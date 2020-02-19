@@ -1,30 +1,30 @@
 defmodule NimbleOptions do
   @moduledoc """
-  Provides a standard API to handle keyword list based configuration.
+  Provides a standard API to handle keyword list based options.
 
-  `NimbleOptions` allows developers to create configuration specs using a
+  `NimbleOptions` allows developers to create specs using a
   pre-defined set of options and types. The main benefits are:
 
-    * A single unified way to define simple static configuration
+    * A single unified way to define simple static options
     * Config validation against specs
     * Automatic doc generation
 
   ## Options
 
-    * `:type` - The type of the config item.
+    * `:type` - The type of the option item.
 
-    * `:required` - Defines if the config item is required. Default is `false`.
+    * `:required` - Defines if the option item is required. Default is `false`.
 
-    * `:default` - The default value for config item if not specified.
+    * `:default` - The default value for option item if not specified.
 
     * `:keys` - Available for types `:keyword_list` and `:non_empty_keyword_list`,
-       it defines which set of keys are accepted for the config item. Use `:*` as
+       it defines which set of keys are accepted for the option item. Use `:*` as
        the key to allow multiple arbitrary keys.
 
-    * `:deprecated` - Defines a message to indicate that the config item is deprecated.
+    * `:deprecated` - Defines a message to indicate that the option item is deprecated.
       The message will be displayed as a warning when passing the item.
 
-    * `:rename_to` - Renames a config item allowing one to use a normalized name
+    * `:rename_to` - Renames a option item allowing one to use a normalized name
       internally, e.g. rename a deprecated item to the currently accepted name.
 
   ## Types
@@ -72,10 +72,10 @@ defmodule NimbleOptions do
       ...> NimbleOptions.validate(config, spec)
       {:error, "required option :module not found, received options: [:concurrency]"}
 
-  ## Nested config items
+  ## Nested option items
 
-  `NimbleOptions` allows config items to be nested so you can recursively validate
-  any item down the configuration tree.
+  `NimbleOptions` allows option items to be nested so you can recursively validate
+  any item down the options tree.
 
   ### Example
 
