@@ -92,17 +92,6 @@ defmodule NimbleOptionsTest do
   end
 
   describe "type validation" do
-    test "invalid type" do
-      spec = [stages: [type: :foo]]
-      opts = [stages: 1]
-
-      assert NimbleOptions.validate(opts, spec) ==
-               {:error,
-                "invalid option type :foo, available types: :any, :keyword_list, " <>
-                  ":non_empty_keyword_list, :atom, :non_neg_integer, :pos_integer, :mfa, " <>
-                  ":mod_arg, {:fun, arity}"}
-    end
-
     test "valid positive integer" do
       spec = [stages: [type: :pos_integer]]
       opts = [stages: 1]
@@ -148,6 +137,36 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate([name: 1], spec) ==
                {:error, "expected :name to be an atom, got: 1"}
+    end
+
+    test "valid string" do
+      spec = [doc: [type: :string]]
+      opts = [doc: "a string"]
+      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+    end
+
+    test "invalid string" do
+      spec = [doc: [type: :string]]
+
+      assert NimbleOptions.validate([doc: :an_atom], spec) ==
+               {:error, "expected :doc to be an string, got: :an_atom"}
+    end
+
+    test "valid boolean" do
+      spec = [required: [type: :boolean]]
+
+      opts = [required: true]
+      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+
+      opts = [required: false]
+      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+    end
+
+    test "invalid boolean" do
+      spec = [required: [type: :boolean]]
+
+      assert NimbleOptions.validate([required: :an_atom], spec) ==
+               {:error, "expected :required to be an boolean, got: :an_atom"}
     end
 
     test "valid mfa" do
@@ -245,6 +264,40 @@ defmodule NimbleOptionsTest do
       assert NimbleOptions.validate(opts, spec) == {
                :error,
                ~s(expected :partition_by to be a function of arity 1, got: function of arity 2)
+             }
+    end
+
+    test "{:custom, mod, fun, args} with empty args" do
+      spec = [buffer_keep: [type: {:custom, __MODULE__, :buffer_keep, []}]]
+
+      opts = [buffer_keep: :first]
+      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+
+      opts = [buffer_keep: :last]
+      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+
+      opts = [buffer_keep: :unknown]
+
+      assert NimbleOptions.validate(opts, spec) == {
+               :error,
+               ~s(expected :first or :last, got: :unknown)
+             }
+    end
+
+    test "{:custom, mod, fun, args} with args" do
+      spec = [buffer_keep: [type: {:custom, __MODULE__, :choice, [[:first, :last]]}]]
+
+      opts = [buffer_keep: :first]
+      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+
+      opts = [buffer_keep: :last]
+      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+
+      opts = [buffer_keep: :unknown]
+
+      assert NimbleOptions.validate(opts, spec) == {
+               :error,
+               ~s(expected one of [:first, :last], got: :unknown)
              }
     end
   end
@@ -532,6 +585,22 @@ defmodule NimbleOptionsTest do
       opts = []
 
       assert NimbleOptions.validate(opts, spec) == {:ok, [batchers: []]}
+    end
+  end
+
+  def buffer_keep(value) when value in [:first, :last] do
+    {:ok, value}
+  end
+
+  def buffer_keep(value) do
+    {:error, "expected :first or :last, got: #{inspect(value)}"}
+  end
+
+  def choice(value, choices) do
+    if value in choices do
+      {:ok, value}
+    else
+      {:error, "expected one of #{inspect(choices)}, got: #{inspect(value)}"}
     end
   end
 end

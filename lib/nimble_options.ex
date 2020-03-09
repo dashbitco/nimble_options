@@ -114,7 +114,9 @@ defmodule NimbleOptions do
     :non_neg_integer,
     :pos_integer,
     :mfa,
-    :mod_arg
+    :mod_arg,
+    :string,
+    :boolean
   ]
 
   def validate(opts, spec) do
@@ -204,6 +206,14 @@ defmodule NimbleOptions do
     {:error, "expected #{inspect(key)} to be an atom, got: #{inspect(value)}"}
   end
 
+  defp validate_type(:string, key, value) when not is_binary(value) do
+    {:error, "expected #{inspect(key)} to be an string, got: #{inspect(value)}"}
+  end
+
+  defp validate_type(:boolean, key, value) when not is_boolean(value) do
+    {:error, "expected #{inspect(key)} to be an boolean, got: #{inspect(value)}"}
+  end
+
   defp validate_type(:keyword_list, key, value) do
     if keyword_list?(value) do
       :ok
@@ -252,6 +262,10 @@ defmodule NimbleOptions do
     end
   end
 
+  defp validate_type({:custom, mod, fun, args}, _key, value) do
+    apply(mod, fun, [value | args])
+  end
+
   defp validate_type(nil, key, value) do
     validate_type(:any, key, value)
   end
@@ -282,7 +296,25 @@ defmodule NimbleOptions do
   end
 
   defp available_types() do
-    types = Enum.map(@basic_types, &inspect/1) ++ ["{:fun, arity}"]
+    types = Enum.map(@basic_types, &inspect/1) ++ ["{:fun, arity}", "{:custom, mod, fun, args}"]
     Enum.join(types, ", ")
+  end
+
+  @doc false
+  def type(value) when value in @basic_types do
+    :ok
+  end
+
+  def type({:fun, arity} = _value) when is_integer(arity) and arity >= 0 do
+    :ok
+  end
+
+  def type({:custom, mod, fun, args} = _value)
+      when is_atom(mod) and is_atom(fun) and is_list(args) do
+    :ok
+  end
+
+  def type(value) do
+    {:error, "invalid option type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
   end
 end
