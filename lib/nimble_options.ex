@@ -1,4 +1,31 @@
 defmodule NimbleOptions do
+
+  @options [
+    type: [
+      type: {:custom, __MODULE__, :type, []},
+      default: :any
+    ],
+    required: [
+      type: :boolean,
+      default: false
+    ],
+    default: [
+      type: :any
+    ],
+    deprecated: [
+      type: :string
+    ],
+    rename_to: [
+      type: :atom
+    ],
+    doc: [
+      type: :string
+    ],
+    keys: [
+      type: :non_empty_recursive_keyword_list
+    ]
+  ]
+
   @moduledoc """
   Provides a standard API to handle keyword list based options.
 
@@ -116,10 +143,22 @@ defmodule NimbleOptions do
     :mfa,
     :mod_arg,
     :string,
-    :boolean
+    :boolean,
+    :non_empty_recursive_keyword_list
   ]
 
   def validate(opts, spec) do
+    root_spec = [root: [type: :non_empty_keyword_list, keys: [*: @options]]]
+
+    case validate_options_with_spec([root: spec], root_spec) do
+      {:error, message} ->
+        raise ArgumentError, "invalid spec given to NimbleOptions.validate/2. Reason: #{message}"
+      _ ->
+      validate_options_with_spec(opts, spec)
+    end
+  end
+
+  defp validate_options_with_spec(opts, spec) do
     case validate_unknown_options(opts, spec) do
       :ok -> validate_options(spec, opts)
       error -> error
@@ -166,11 +205,20 @@ defmodule NimbleOptions do
   defp validate_option(opts, key, spec) do
     with {:ok, value} <- validate_value(opts, key, spec),
          :ok <- validate_type(spec[:type], key, value) do
-      if spec[:keys] do
-        keys = normalize_keys(spec[:keys], value)
-        validate(value, keys)
-      else
-        {:ok, value}
+      cond do
+        spec[:type] == :non_empty_recursive_keyword_list ->
+          spec = Keyword.put(spec, :type, :non_empty_keyword_list)
+          # TODO: Hard coding @options here for experiments. Replace it with the original spec
+          spec = Keyword.put(spec, :keys, [*: @options])
+          keys = normalize_keys(spec[:keys], value)
+          validate_options_with_spec(value, keys)
+
+        spec[:keys] ->
+          keys = normalize_keys(spec[:keys], value)
+          validate_options_with_spec(value, keys)
+
+        true ->
+          {:ok, value}
       end
     end
   end
@@ -246,7 +294,7 @@ defmodule NimbleOptions do
     {:error, "expected #{inspect(key)} to be a tuple {Mod, Arg}, got: #{inspect(value)}"}
   end
 
-  defp validate_type({:fun, arity}, key, value) when is_integer(arity) and arity >= 0 do
+  defp validate_type({:fun, arity}, key, value) do
     expected = "expected #{inspect(key)} to be a function of arity #{arity}, "
 
     if is_function(value) do
@@ -270,12 +318,12 @@ defmodule NimbleOptions do
     validate_type(:any, key, value)
   end
 
-  defp validate_type(type, _key, _value) when type in @basic_types do
+  defp validate_type(:non_empty_recursive_keyword_list, _key, _value) do
     :ok
   end
 
-  defp validate_type(type, _key, _value) do
-    {:error, "invalid option type #{inspect(type)}, available types: #{available_types()}"}
+  defp validate_type(_type, _key, _value) do
+    :ok
   end
 
   defp tagged_tuple?({key, _value}) when is_atom(key), do: true

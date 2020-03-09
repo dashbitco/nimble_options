@@ -19,6 +19,25 @@ defmodule NimbleOptionsTest do
               "unknown options [:not_an_option1, :not_an_option2], valid options are: [:an_option, :other_option]"}
   end
 
+  test "invalid spec" do
+    spec = [stages: [type: :foo]]
+    opts = [stages: 1]
+
+    message =
+      """
+      invalid spec given to NimbleOptions.validate/2. \
+      Reason: invalid option type :foo.
+
+      Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
+      :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, \
+      :non_empty_recursive_keyword_list, {:fun, arity}, {:custom, mod, fun, args}\
+      """
+
+    assert_raise ArgumentError, message, fn ->
+      NimbleOptions.validate(opts, spec)
+    end
+  end
+
   describe "default value" do
     test "is used when none is given" do
       spec = [context: [default: :ok]]
