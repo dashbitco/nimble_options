@@ -48,6 +48,10 @@ defmodule NimbleOptions do
 
     * `{:fun, arity}` - Any function with the specified arity.
 
+    * `{:custom, mod, fun, args}` - A custom type. The related value must be validated
+      by `mod.fun(values, ...args)`. The function should return `{:ok, value}` or
+      `{:error, message}`.
+
   ## Example
 
       iex> spec = [
