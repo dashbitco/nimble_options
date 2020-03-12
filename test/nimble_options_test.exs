@@ -19,7 +19,7 @@ defmodule NimbleOptionsTest do
               "unknown options [:not_an_option1, :not_an_option2], valid options are: [:an_option, :other_option]"}
   end
 
-  describe "validate the spec itself against options_spec/0" do
+  describe "validate the spec itself before validating the options" do
     test "raise ArgumentError when invalid" do
       spec = [stages: [type: :foo]]
       opts = [stages: 1]
@@ -38,7 +38,7 @@ defmodule NimbleOptionsTest do
       end
     end
 
-    test "validate recursively" do
+    test "validate the keys recursively, if any" do
       spec = [
         producers: [
           type: :keyword_list,

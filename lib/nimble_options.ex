@@ -260,7 +260,7 @@ defmodule NimbleOptions do
     {:error, "expected #{inspect(key)} to be a tuple {Mod, Arg}, got: #{inspect(value)}"}
   end
 
-  defp validate_type({:fun, arity}, key, value) when is_integer(arity) and arity >= 0 do
+  defp validate_type({:fun, arity}, key, value) do
     expected = "expected #{inspect(key)} to be a function of arity #{arity}, "
 
     if is_function(value) do
@@ -284,12 +284,8 @@ defmodule NimbleOptions do
     validate_type(:any, key, value)
   end
 
-  defp validate_type(type, _key, _value) when type in @basic_types do
+  defp validate_type(_type, _key, _value) do
     :ok
-  end
-
-  defp validate_type(type, _key, _value) do
-    {:error, "invalid option type #{inspect(type)}, available types: #{available_types()}"}
   end
 
   defp tagged_tuple?({key, _value}) when is_atom(key), do: true
