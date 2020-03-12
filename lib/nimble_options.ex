@@ -291,7 +291,7 @@ defmodule NimbleOptions do
         keys
 
       spec_opts ->
-        Enum.map(opts, fn {k, _} -> {k, [type: :keyword_list, keys: spec_opts]} end)
+        Enum.map(opts, fn {k, _} -> {k, spec_opts} end)
     end
   end
 
