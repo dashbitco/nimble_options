@@ -120,6 +120,16 @@ defmodule NimbleOptions do
   ]
 
   def validate(opts, spec) do
+    case validate_options_with_spec([root: spec], root: options_spec()) do
+      {:error, message} ->
+        raise ArgumentError, "invalid spec given to NimbleOptions.validate/2. Reason: #{message}"
+
+      _ ->
+        validate_options_with_spec(opts, spec)
+    end
+  end
+
+  def validate_options_with_spec(opts, spec) do
     case validate_unknown_options(opts, spec) do
       :ok -> validate_options(spec, opts)
       error -> error
@@ -145,6 +155,10 @@ defmodule NimbleOptions do
     end
   end
 
+  defp reduce_options({key, spec_opts}, opts) when is_function(spec_opts) do
+    reduce_options({key, spec_opts.()}, opts)
+  end
+
   defp reduce_options({key, spec_opts}, opts) do
     case validate_option(opts, key, spec_opts) do
       {:error, _} = result ->
@@ -168,7 +182,7 @@ defmodule NimbleOptions do
          :ok <- validate_type(spec[:type], key, value) do
       if spec[:keys] do
         keys = normalize_keys(spec[:keys], value)
-        validate(value, keys)
+        validate_options_with_spec(value, keys)
       else
         {:ok, value}
       end
@@ -302,19 +316,54 @@ defmodule NimbleOptions do
 
   @doc false
   def type(value) when value in @basic_types do
-    :ok
+    {:ok, value}
   end
 
-  def type({:fun, arity} = _value) when is_integer(arity) and arity >= 0 do
-    :ok
+  def type({:fun, arity} = value) when is_integer(arity) and arity >= 0 do
+    {:ok, value}
   end
 
-  def type({:custom, mod, fun, args} = _value)
+  def type({:custom, mod, fun, args} = value)
       when is_atom(mod) and is_atom(fun) and is_list(args) do
-    :ok
+    {:ok, value}
   end
 
   def type(value) do
     {:error, "invalid option type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
+  end
+
+  @doc false
+  def options_spec() do
+    [
+      type: :non_empty_keyword_list,
+      keys: [
+        *: [
+          type: :keyword_list,
+          keys: [
+            type: [
+              type: {:custom, __MODULE__, :type, []},
+              default: :any
+            ],
+            required: [
+              type: :boolean,
+              default: false
+            ],
+            default: [
+              type: :any
+            ],
+            deprecated: [
+              type: :string
+            ],
+            rename_to: [
+              type: :atom
+            ],
+            doc: [
+              type: :string
+            ],
+            keys: &options_spec/0
+          ]
+        ]
+      ]
+    ]
   end
 end
