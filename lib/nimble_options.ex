@@ -328,8 +328,7 @@ defmodule NimbleOptions do
     {:error, "invalid option type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
   end
 
-  @doc false
-  def options_spec() do
+  defp options_spec() do
     [
       type: :non_empty_keyword_list,
       keys: [
