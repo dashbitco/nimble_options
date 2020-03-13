@@ -48,6 +48,10 @@ defmodule NimbleOptions do
 
     * `{:fun, arity}` - Any function with the specified arity.
 
+    * `{:custom, mod, fun, args}` - A custom type. The related value must be validated
+      by `mod.fun(values, ...args)`. The function should return `{:ok, value}` or
+      `{:error, message}`.
+
   ## Example
 
       iex> spec = [
@@ -120,6 +124,16 @@ defmodule NimbleOptions do
   ]
 
   def validate(opts, spec) do
+    case validate_options_with_spec([root: spec], root: options_spec()) do
+      {:error, message} ->
+        raise ArgumentError, "invalid spec given to NimbleOptions.validate/2. Reason: #{message}"
+
+      _ ->
+        validate_options_with_spec(opts, spec)
+    end
+  end
+
+  def validate_options_with_spec(opts, spec) do
     case validate_unknown_options(opts, spec) do
       :ok -> validate_options(spec, opts)
       error -> error
@@ -145,6 +159,10 @@ defmodule NimbleOptions do
     end
   end
 
+  defp reduce_options({key, spec_opts}, opts) when is_function(spec_opts) do
+    reduce_options({key, spec_opts.()}, opts)
+  end
+
   defp reduce_options({key, spec_opts}, opts) do
     case validate_option(opts, key, spec_opts) do
       {:error, _} = result ->
@@ -168,7 +186,7 @@ defmodule NimbleOptions do
          :ok <- validate_type(spec[:type], key, value) do
       if spec[:keys] do
         keys = normalize_keys(spec[:keys], value)
-        validate(value, keys)
+        validate_options_with_spec(value, keys)
       else
         {:ok, value}
       end
@@ -246,7 +264,7 @@ defmodule NimbleOptions do
     {:error, "expected #{inspect(key)} to be a tuple {Mod, Arg}, got: #{inspect(value)}"}
   end
 
-  defp validate_type({:fun, arity}, key, value) when is_integer(arity) and arity >= 0 do
+  defp validate_type({:fun, arity}, key, value) do
     expected = "expected #{inspect(key)} to be a function of arity #{arity}, "
 
     if is_function(value) do
@@ -270,12 +288,8 @@ defmodule NimbleOptions do
     validate_type(:any, key, value)
   end
 
-  defp validate_type(type, _key, _value) when type in @basic_types do
+  defp validate_type(_type, _key, _value) do
     :ok
-  end
-
-  defp validate_type(type, _key, _value) do
-    {:error, "invalid option type #{inspect(type)}, available types: #{available_types()}"}
   end
 
   defp tagged_tuple?({key, _value}) when is_atom(key), do: true
@@ -291,7 +305,7 @@ defmodule NimbleOptions do
         keys
 
       spec_opts ->
-        Enum.map(opts, fn {k, _} -> {k, [type: :keyword_list, keys: spec_opts]} end)
+        Enum.map(opts, fn {k, _} -> {k, spec_opts} end)
     end
   end
 
@@ -302,19 +316,53 @@ defmodule NimbleOptions do
 
   @doc false
   def type(value) when value in @basic_types do
-    :ok
+    {:ok, value}
   end
 
-  def type({:fun, arity} = _value) when is_integer(arity) and arity >= 0 do
-    :ok
+  def type({:fun, arity} = value) when is_integer(arity) and arity >= 0 do
+    {:ok, value}
   end
 
-  def type({:custom, mod, fun, args} = _value)
+  def type({:custom, mod, fun, args} = value)
       when is_atom(mod) and is_atom(fun) and is_list(args) do
-    :ok
+    {:ok, value}
   end
 
   def type(value) do
     {:error, "invalid option type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
+  end
+
+  defp options_spec() do
+    [
+      type: :non_empty_keyword_list,
+      keys: [
+        *: [
+          type: :keyword_list,
+          keys: [
+            type: [
+              type: {:custom, __MODULE__, :type, []},
+              default: :any
+            ],
+            required: [
+              type: :boolean,
+              default: false
+            ],
+            default: [
+              type: :any
+            ],
+            deprecated: [
+              type: :string
+            ],
+            rename_to: [
+              type: :atom
+            ],
+            doc: [
+              type: :string
+            ],
+            keys: &options_spec/0
+          ]
+        ]
+      ]
+    ]
   end
 end

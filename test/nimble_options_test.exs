@@ -19,6 +19,53 @@ defmodule NimbleOptionsTest do
               "unknown options [:not_an_option1, :not_an_option2], valid options are: [:an_option, :other_option]"}
   end
 
+  describe "validate the spec itself before validating the options" do
+    test "raise ArgumentError when invalid" do
+      spec = [stages: [type: :foo]]
+      opts = [stages: 1]
+
+      message = """
+      invalid spec given to NimbleOptions.validate/2. \
+      Reason: invalid option type :foo.
+
+      Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
+      :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, \
+      {:fun, arity}, {:custom, mod, fun, args}\
+      """
+
+      assert_raise ArgumentError, message, fn ->
+        NimbleOptions.validate(opts, spec)
+      end
+    end
+
+    test "validate the keys recursively, if any" do
+      spec = [
+        producers: [
+          type: :keyword_list,
+          keys: [
+            *: [
+              type: :keyword_list,
+              keys: [
+                module: [unknown_spec_option: 1],
+                arg: []
+              ]
+            ]
+          ]
+        ]
+      ]
+
+      message = """
+      invalid spec given to NimbleOptions.validate/2. \
+      Reason: unknown options [:unknown_spec_option], \
+      valid options are: [:type, :required, :default, :deprecated, :rename_to, :doc, :keys]\
+      """
+
+      assert_raise ArgumentError, message, fn ->
+        NimbleOptions.validate([], spec)
+      end
+    end
+  end
+
   describe "default value" do
     test "is used when none is given" do
       spec = [context: [default: :ok]]
@@ -416,14 +463,17 @@ defmodule NimbleOptionsTest do
           type: :keyword_list,
           keys: [
             *: [
-              module: [],
-              arg: []
+              type: :keyword_list,
+              keys: [
+                module: [],
+                arg: [type: :atom]
+              ]
             ]
           ]
         ]
       ]
 
-      opts = [producers: [producer1: [module: MyModule, arg: :ok]]]
+      opts = [producers: [producer1: [module: MyModule, arg: :atom]]]
 
       assert NimbleOptions.validate(opts, spec) == {:ok, opts}
     end
@@ -434,8 +484,11 @@ defmodule NimbleOptionsTest do
           type: :keyword_list,
           keys: [
             *: [
-              module: [],
-              arg: []
+              type: :keyword_list,
+              keys: [
+                module: [],
+                arg: []
+              ]
             ]
           ]
         ]
@@ -453,7 +506,10 @@ defmodule NimbleOptionsTest do
           type: :keyword_list,
           keys: [
             *: [
-              arg: [default: :ok]
+              type: :keyword_list,
+              keys: [
+                arg: [default: :ok]
+              ]
             ]
           ]
         ]
@@ -470,8 +526,11 @@ defmodule NimbleOptionsTest do
           type: :keyword_list,
           keys: [
             *: [
-              module: [required: true],
-              arg: [required: true]
+              type: :keyword_list,
+              keys: [
+                module: [required: true],
+                arg: [required: true]
+              ]
             ]
           ]
         ]
@@ -488,8 +547,11 @@ defmodule NimbleOptionsTest do
           type: :keyword_list,
           keys: [
             *: [
-              module: [required: true],
-              arg: [required: true]
+              type: :keyword_list,
+              keys: [
+                module: [required: true],
+                arg: [required: true]
+              ]
             ]
           ]
         ]
@@ -507,8 +569,11 @@ defmodule NimbleOptionsTest do
           type: :keyword_list,
           keys: [
             *: [
-              module: [required: true, type: :atom],
-              stages: [type: :pos_integer]
+              type: :keyword_list,
+              keys: [
+                module: [required: true, type: :atom],
+                stages: [type: :pos_integer]
+              ]
             ]
           ]
         ]
@@ -533,8 +598,11 @@ defmodule NimbleOptionsTest do
           type: :non_empty_keyword_list,
           keys: [
             *: [
-              module: [required: true, type: :atom],
-              stages: [type: :pos_integer]
+              type: :keyword_list,
+              keys: [
+                module: [required: true, type: :atom],
+                stages: [type: :pos_integer]
+              ]
             ]
           ]
         ]
@@ -554,8 +622,11 @@ defmodule NimbleOptionsTest do
           type: :keyword_list,
           keys: [
             *: [
-              module: [required: true, type: :atom],
-              stages: [type: :pos_integer]
+              type: :keyword_list,
+              keys: [
+                module: [required: true, type: :atom],
+                stages: [type: :pos_integer]
+              ]
             ]
           ]
         ]
@@ -576,7 +647,10 @@ defmodule NimbleOptionsTest do
           type: :keyword_list,
           keys: [
             *: [
-              stages: [type: :pos_integer, default: 1]
+              type: :keyword_list,
+              keys: [
+                stages: [type: :pos_integer, default: 1]
+              ]
             ]
           ]
         ]
