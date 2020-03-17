@@ -27,6 +27,8 @@ defmodule NimbleOptions do
     * `:rename_to` - Renames a option item allowing one to use a normalized name
       internally, e.g. rename a deprecated item to the currently accepted name.
 
+    * `:doc` - The documentation for the option item.
+
   ## Types
 
     * `:any` - Any type.
@@ -133,7 +135,56 @@ defmodule NimbleOptions do
     end
   end
 
-  def validate_options_with_spec(opts, spec) do
+  def docs(spec) do
+    {docs, _sections, _level} = docs_from_keys(spec[:keys], {[], [], 0})
+    to_string(["## Options\n\n", Enum.reverse(docs)])
+  end
+
+  def docs_from_keys(nil, acc, _level) do
+    acc
+  end
+
+  def docs_from_keys(keys, {docs, sections, level} = acc) do
+    cond do
+      keys[:*] ->
+        docs_from_keys(keys[:*][:keys], acc)
+
+      keys ->
+        Enum.reduce(keys, {docs, sections, level + 1}, &option_to_md/2)
+
+      true ->
+        acc
+    end
+  end
+
+  defp option_to_md({key, {fun, spec}}, acc) when is_function(fun) do
+    option_to_md({key, spec}, acc)
+  end
+
+  defp option_to_md({key, spec}, {docs, sections, level}) do
+    required_str = spec[:required] && "Required."
+    item_doc_str = spec[:doc] && String.trim_trailing(spec[:doc], ".") <> "."
+    default_str =
+      if Keyword.has_key?(spec, :default) do
+        "The default value is `#{inspect(spec[:default])}`."
+      end
+
+    opts_str = if spec[:keys], do: "Supported options:"
+
+    description =
+      [required_str, item_doc_str, default_str, opts_str]
+      |> Enum.reject(&is_nil/1)
+      |> case do
+        [] -> ""
+        parts -> " - " <> Enum.join(parts, " ")
+      end
+
+    ident = String.duplicate("  ", level)
+    doc = "#{ident}* `#{inspect(key)}`#{description}\n\n"
+    docs_from_keys(spec[:keys], {[doc | docs], sections, level})
+  end
+
+  defp validate_options_with_spec(opts, spec) do
     case validate_unknown_options(opts, spec) do
       :ok -> validate_options(spec, opts)
       error -> error
@@ -159,8 +210,13 @@ defmodule NimbleOptions do
     end
   end
 
-  defp reduce_options({key, spec_opts}, opts) when is_function(spec_opts) do
-    reduce_options({key, spec_opts.()}, opts)
+  defp reduce_options({key, spec_fun}, opts) when is_function(spec_fun) do
+    reduce_options({key, spec_fun.()}, opts)
+  end
+
+  defp reduce_options({key, {spec_fun, overrides}}, opts) when is_function(spec_fun) do
+    spec_opts = Keyword.merge(spec_fun.(), overrides || [])
+    reduce_options({key, spec_opts}, opts)
   end
 
   defp reduce_options({key, spec_opts}, opts) do
@@ -341,25 +397,44 @@ defmodule NimbleOptions do
           keys: [
             type: [
               type: {:custom, __MODULE__, :type, []},
-              default: :any
+              default: :any,
+              doc: "The type of the option item."
             ],
             required: [
               type: :boolean,
-              default: false
+              default: false,
+              doc: "Defines if the option item is required."
             ],
             default: [
-              type: :any
+              type: :any,
+              doc: "The default value for option item if not specified."
             ],
+            keys: {
+              &options_spec/0,
+              doc: """
+              Available for types `:keyword_list` and `:non_empty_keyword_list`,
+              it defines which set of keys are accepted for the option item. Use `:*` as
+              the key to allow multiple arbitrary keys.
+              """
+            },
             deprecated: [
-              type: :string
+              type: :string,
+              doc: """
+              Defines a message to indicate that the option item is deprecated. \
+              The message will be displayed as a warning when passing the item.
+              """
             ],
             rename_to: [
-              type: :atom
+              type: :atom,
+              doc: """
+              Renames a option item allowing one to use a normalized name \
+              internally, e.g. rename a deprecated item to the currently accepted name.
+              """
             ],
             doc: [
-              type: :string
-            ],
-            keys: &options_spec/0
+              type: :string,
+              doc: "The documentation for the option item."
+            ]
           ]
         ]
       ]

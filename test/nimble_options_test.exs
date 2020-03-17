@@ -57,7 +57,7 @@ defmodule NimbleOptionsTest do
       message = """
       invalid spec given to NimbleOptions.validate/2. \
       Reason: unknown options [:unknown_spec_option], \
-      valid options are: [:type, :required, :default, :deprecated, :rename_to, :doc, :keys]\
+      valid options are: [:type, :required, :default, :keys, :deprecated, :rename_to, :doc]\
       """
 
       assert_raise ArgumentError, message, fn ->
@@ -662,6 +662,59 @@ defmodule NimbleOptionsTest do
     end
   end
 
+  describe "docs" do
+    test "override docs for recursive keys" do
+      assert NimbleOptions.docs(recursive_spec()) == """
+      ## Options
+
+        * `:type` - Required. The type of the option item.
+
+        * `:required` - Defines if the option item is required. The default value is `false`.
+
+        * `:keys` - Defines which set of keys are accepted.
+
+      """
+    end
+
+    test "generate inline docs for nested options" do
+      spec = [
+        type: :keyword_list,
+        keys: [
+          producer: [
+            type: :non_empty_keyword_list,
+            doc: "The producer",
+            keys: [
+              module: [type: :mod_arg, doc: "The module"],
+              rate_limiting: [
+                type: :non_empty_keyword_list,
+                doc: "A list of options to enable and configure rate limiting",
+                keys: [
+                  allowed_messages: [type: :pos_integer, doc: "Number of messages per interval"],
+                  interval: [required: true, type: :pos_integer, doc: "The interval"]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+
+      assert NimbleOptions.docs(spec) == """
+      ## Options
+
+        * `:producer` - The producer. Supported options:
+
+          * `:module` - The module.
+
+          * `:rate_limiting` - A list of options to enable and configure rate limiting. Supported options:
+
+            * `:allowed_messages` - Number of messages per interval.
+
+            * `:interval` - Required. The interval.
+
+      """
+    end
+  end
+
   def buffer_keep(value) when value in [:first, :last] do
     {:ok, value}
   end
@@ -676,5 +729,32 @@ defmodule NimbleOptionsTest do
     else
       {:error, "expected one of #{inspect(choices)}, got: #{inspect(value)}"}
     end
+  end
+
+  defp recursive_spec() do
+    [
+      type: :non_empty_keyword_list,
+      keys: [
+        *: [
+          type: :keyword_list,
+          keys: [
+            type: [
+              type: :atom,
+              required: true,
+              doc: "The type of the option item."
+            ],
+            required: [
+              type: :boolean,
+              default: false,
+              doc: "Defines if the option item is required."
+            ],
+            keys: {
+              &recursive_spec/0,
+              doc: "Defines which set of keys are accepted."
+            }
+          ]
+        ]
+      ]
+    ]
   end
 end
