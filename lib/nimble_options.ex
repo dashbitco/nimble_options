@@ -29,6 +29,8 @@ defmodule NimbleOptions do
 
     * `:doc` - The documentation for the option item.
 
+    * `:subsection` - The title of separate subsection of the options' documentation.
+
   ## Types
 
     * `:any` - Any type.
