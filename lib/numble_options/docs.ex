@@ -30,14 +30,8 @@ defmodule NimbleOptions.Docs do
   end
 
   defp option_doc({key, spec}, {docs, sections, level}) do
-    doc_parts =
-      (spec[:doc] || "")
-      |> String.trim()
-      |> String.split("\n\n", parts: 2, trim: true)
-
-    doc_summary = Enum.at(doc_parts, 0)
-    doc_body = Enum.at(doc_parts, 1)
-    item_doc_str = doc_summary && String.trim_trailing(doc_summary, ".") <> "."
+    doc_summary = String.trim(spec[:doc] || "")
+    item_doc_str = if doc_summary != "", do: String.trim_trailing(doc_summary, ".") <> "."
 
     description =
       [get_required_str(spec), item_doc_str, get_default_str(spec), get_options_str(spec)]
@@ -51,24 +45,29 @@ defmodule NimbleOptions.Docs do
     doc = "#{indent}* `#{inspect(key)}`#{description}\n\n"
 
     if spec[:subsection] do
-      build_docs_with_subsection(spec, doc, doc_body, {docs, sections, level})
+      build_docs_with_subsection(spec, doc, {docs, sections, level})
     else
       build_docs(spec[:keys], {[doc | docs], sections, level})
     end
   end
 
-  defp build_docs_with_subsection(spec, doc, doc_body, {docs, sections, level}) do
-    {item_docs, sections, _level} = build_docs(spec[:keys], {[], sections, 0})
-    section_title = "### #{spec[:subsection]}\n\n"
+  defp build_docs_with_subsection(spec, doc, {docs, sections, level}) do
+    {section_title, section_body} = split_section(spec[:subsection])
 
-    doc_body =
-      if doc_body do
-        String.trim_trailing(doc_body, "\n") <> "\n\n"
-      else
-        ""
+    section_title = "### #{section_title}\n\n"
+
+    section_body =
+      case section_body do
+        nil ->
+          ""
+
+        body ->
+          String.trim_trailing(body, "\n") <> "\n\n"
       end
 
-    item_section = [section_title, doc_body | Enum.reverse(item_docs)]
+    {item_docs, sections, _level} = build_docs(spec[:keys], {[], sections, 0})
+    item_section = [section_title, section_body | Enum.reverse(item_docs)]
+
     {[doc | docs], [item_section | sections], level}
   end
 
@@ -83,7 +82,9 @@ defmodule NimbleOptions.Docs do
   end
 
   defp get_options_str(spec) do
-    case {spec[:keys], spec[:subsection]} do
+    {section_title, _} = split_section(spec[:subsection])
+
+    case {spec[:keys], section_title} do
       {nil, nil} ->
         nil
 
@@ -93,5 +94,14 @@ defmodule NimbleOptions.Docs do
       {_, subsection} ->
         "See \"#{subsection}\" section below."
     end
+  end
+
+  defp split_section(text) do
+    parts =
+      (text || "")
+      |> String.trim()
+      |> String.split("\n\n", parts: 2, trim: true)
+
+    {Enum.at(parts, 0), Enum.at(parts, 1)}
   end
 end

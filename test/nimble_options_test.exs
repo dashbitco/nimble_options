@@ -727,14 +727,14 @@ defmodule NimbleOptionsTest do
           name: [required: true, type: :atom, doc: "The name"],
           producer: [
             type: :non_empty_keyword_list,
-            doc: """
-            This is the producer summary.
+            doc: "This is the producer summary",
+            subsection: """
+            Producers options
 
             The producer options allow users to set up the producer.
 
             The available options are:
             """,
-            subsection: "Producers options",
             keys: [
               module: [type: :mod_arg, doc: "The module"],
               concurrency: [type: :pos_integer, doc: "The concurrency"]
