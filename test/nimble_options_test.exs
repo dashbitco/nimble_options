@@ -766,6 +766,43 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.docs(spec) == docs
     end
+
+    test "keep indentation of multiline doc" do
+      spec = [
+        type: :keyword_list,
+        keys: [
+          name: [
+            type: :string,
+            doc: """
+            The name.
+
+            This a multiline text.
+
+            Another line.
+            """
+          ],
+          module: [
+            type: :atom,
+            doc: "The module"
+          ]
+        ]
+      ]
+
+      docs = """
+      ## Options
+
+        * `:name` - The name.
+
+        This a multiline text.
+
+        Another line.
+
+        * `:module` - The module.
+
+      """
+
+      assert NimbleOptions.docs(spec) == docs
+    end
   end
 
   def buffer_keep(value) when value in [:first, :last] do
