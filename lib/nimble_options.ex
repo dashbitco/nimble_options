@@ -1,4 +1,59 @@
 defmodule NimbleOptions do
+  @options_spec [
+    type: :non_empty_keyword_list,
+    keys: [
+      *: [
+        type: :keyword_list,
+        keys: [
+          type: [
+            type: {:custom, __MODULE__, :type, []},
+            default: :any,
+            doc: "The type of the option item."
+          ],
+          required: [
+            type: :boolean,
+            default: false,
+            doc: "Defines if the option item is required."
+          ],
+          default: [
+            type: :any,
+            doc: "The default value for option item if not specified."
+          ],
+          keys: {
+            &__MODULE__.options_spec/0,
+            doc: """
+            Available for types `:keyword_list` and `:non_empty_keyword_list`,
+            it defines which set of keys are accepted for the option item. Use `:*` as
+            the key to allow multiple arbitrary keys.
+            """
+          },
+          deprecated: [
+            type: :string,
+            doc: """
+            Defines a message to indicate that the option item is deprecated. \
+            The message will be displayed as a warning when passing the item.
+            """
+          ],
+          rename_to: [
+            type: :atom,
+            doc: """
+            Renames a option item allowing one to use a normalized name \
+            internally, e.g. rename a deprecated item to the currently accepted name.
+            """
+          ],
+          doc: [
+            type: :string,
+            doc: "The documentation for the option item."
+          ],
+          subsection: [
+            type: :string,
+            doc: "The title of separate subsection of the options' documentation"
+          ]
+        ]
+      ]
+    ]
+  ]
+
   @moduledoc """
   Provides a standard API to handle keyword list based options.
 
@@ -9,27 +64,7 @@ defmodule NimbleOptions do
     * Config validation against specs
     * Automatic doc generation
 
-  ## Options
-
-    * `:type` - The type of the option item.
-
-    * `:required` - Defines if the option item is required. Default is `false`.
-
-    * `:default` - The default value for option item if not specified.
-
-    * `:keys` - Available for types `:keyword_list` and `:non_empty_keyword_list`,
-       it defines which set of keys are accepted for the option item. Use `:*` as
-       the key to allow multiple arbitrary keys.
-
-    * `:deprecated` - Defines a message to indicate that the option item is deprecated.
-      The message will be displayed as a warning when passing the item.
-
-    * `:rename_to` - Renames a option item allowing one to use a normalized name
-      internally, e.g. rename a deprecated item to the currently accepted name.
-
-    * `:doc` - The documentation for the option item.
-
-    * `:subsection` - The title of separate subsection of the options' documentation.
+  #{NimbleOptions.Docs.generate(@options_spec)}
 
   ## Types
 
@@ -138,93 +173,12 @@ defmodule NimbleOptions do
   end
 
   def docs(spec) do
-    {docs, sections, _level} = build_docs(spec[:keys], {[], [], 0})
-
-    doc = if spec[:doc], do: "#{spec[:doc]}\n\n", else: ""
-    to_string(["## Options\n\n#{doc}", Enum.reverse(docs), Enum.reverse(sections)])
+    NimbleOptions.Docs.generate(spec)
   end
 
-  defp build_docs(nil, acc) do
-    acc
-  end
-
-  defp build_docs(keys, {docs, sections, level} = acc) do
-    cond do
-      keys[:*] ->
-        build_docs(keys[:*][:keys], acc)
-
-      keys ->
-        Enum.reduce(keys, {docs, sections, level + 1}, &option_doc/2)
-
-      true ->
-        acc
-    end
-  end
-
-  defp option_doc({key, {fun, spec}}, acc) when is_function(fun) do
-    option_doc({key, spec}, acc)
-  end
-
-  defp option_doc({key, spec}, {docs, sections, level}) do
-    doc_parts = String.split(spec[:doc] || "", "\n\n", parts: 2, trim: true)
-    doc_summary = Enum.at(doc_parts, 0)
-    doc_body = Enum.at(doc_parts, 1)
-    item_doc_str = doc_summary && String.trim_trailing(doc_summary, ".") <> "."
-
-    description =
-      [get_required_str(spec), item_doc_str, get_default_str(spec), get_options_str(spec)]
-      |> Enum.reject(&is_nil/1)
-      |> case do
-        [] -> ""
-        parts -> " - " <> Enum.join(parts, " ")
-      end
-
-    indent = String.duplicate("  ", level)
-    doc = "#{indent}* `#{inspect(key)}`#{description}\n\n"
-
-    if spec[:subsection] do
-      build_docs_with_subsection(spec, doc, doc_body, {docs, sections, level})
-    else
-      build_docs(spec[:keys], {[doc | docs], sections, level})
-    end
-  end
-
-  defp build_docs_with_subsection(spec, doc, doc_body, {docs, sections, level}) do
-    {item_docs, sections, _level} = build_docs(spec[:keys], {[], sections, 0})
-    section_title = "### #{spec[:subsection]}\n\n"
-
-    doc_body =
-      if doc_body do
-        String.trim_trailing(doc_body, "\n") <> "\n\n"
-      else
-        ""
-      end
-
-    item_section = [section_title, doc_body | Enum.reverse(item_docs)]
-    {[doc | docs], [item_section | sections], level}
-  end
-
-  defp get_required_str(spec) do
-    spec[:required] && "Required."
-  end
-
-  defp get_default_str(spec) do
-    if Keyword.has_key?(spec, :default) do
-      "The default value is `#{inspect(spec[:default])}`."
-    end
-  end
-
-  defp get_options_str(spec) do
-    case {spec[:keys], spec[:subsection]} do
-      {nil, nil} ->
-        nil
-
-      {_, nil} ->
-        "Supported options:"
-
-      {_, subsection} ->
-        "See \"#{subsection}\" section below."
-    end
+  @doc false
+  def options_spec() do
+    @options_spec
   end
 
   defp validate_options_with_spec(opts, spec) do
@@ -429,62 +383,5 @@ defmodule NimbleOptions do
 
   def type(value) do
     {:error, "invalid option type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
-  end
-
-  defp options_spec() do
-    [
-      type: :non_empty_keyword_list,
-      keys: [
-        *: [
-          type: :keyword_list,
-          keys: [
-            type: [
-              type: {:custom, __MODULE__, :type, []},
-              default: :any,
-              doc: "The type of the option item."
-            ],
-            required: [
-              type: :boolean,
-              default: false,
-              doc: "Defines if the option item is required."
-            ],
-            default: [
-              type: :any,
-              doc: "The default value for option item if not specified."
-            ],
-            keys: {
-              &options_spec/0,
-              doc: """
-              Available for types `:keyword_list` and `:non_empty_keyword_list`,
-              it defines which set of keys are accepted for the option item. Use `:*` as
-              the key to allow multiple arbitrary keys.
-              """
-            },
-            deprecated: [
-              type: :string,
-              doc: """
-              Defines a message to indicate that the option item is deprecated. \
-              The message will be displayed as a warning when passing the item.
-              """
-            ],
-            rename_to: [
-              type: :atom,
-              doc: """
-              Renames a option item allowing one to use a normalized name \
-              internally, e.g. rename a deprecated item to the currently accepted name.
-              """
-            ],
-            doc: [
-              type: :string,
-              doc: "The documentation for the option item."
-            ],
-            subsection: [
-              type: :string,
-              doc: "The title of separate subsection of the options' documentation"
-            ]
-          ]
-        ]
-      ]
-    ]
   end
 end
