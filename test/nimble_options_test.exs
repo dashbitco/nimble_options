@@ -57,7 +57,8 @@ defmodule NimbleOptionsTest do
       message = """
       invalid spec given to NimbleOptions.validate/2. \
       Reason: unknown options [:unknown_spec_option], \
-      valid options are: [:type, :required, :default, :keys, :deprecated, :rename_to, :doc]\
+      valid options are: [:type, :required, :default, :keys, \
+      :deprecated, :rename_to, :doc, :subsection]\
       """
 
       assert_raise ArgumentError, message, fn ->
@@ -664,7 +665,7 @@ defmodule NimbleOptionsTest do
 
   describe "docs" do
     test "override docs for recursive keys" do
-      assert NimbleOptions.docs(recursive_spec()) == """
+      docs = """
       ## Options
 
         * `:type` - Required. The type of the option item.
@@ -674,9 +675,11 @@ defmodule NimbleOptionsTest do
         * `:keys` - Defines which set of keys are accepted.
 
       """
+
+      assert NimbleOptions.docs(recursive_spec()) == docs
     end
 
-    test "generate inline docs for nested options" do
+    test "generate inline indented docs for nested options" do
       spec = [
         type: :keyword_list,
         keys: [
@@ -698,7 +701,7 @@ defmodule NimbleOptionsTest do
         ]
       ]
 
-      assert NimbleOptions.docs(spec) == """
+      docs = """
       ## Options
 
         * `:producer` - The producer. Supported options:
@@ -712,6 +715,56 @@ defmodule NimbleOptionsTest do
             * `:interval` - Required. The interval.
 
       """
+
+      assert NimbleOptions.docs(spec) == docs
+    end
+
+    test "generate subsections for nested options" do
+      spec = [
+        type: :keyword_list,
+        doc: "In order to set up the pipeline, use the following options:",
+        keys: [
+          name: [required: true, type: :atom, doc: "The name"],
+          producer: [
+            type: :non_empty_keyword_list,
+            doc: """
+            This is the producer summary.
+
+            The producer options allow users to set up the producer.
+
+            The available options are:
+            """,
+            subsection: "Producers options",
+            keys: [
+              module: [type: :mod_arg, doc: "The module"],
+              concurrency: [type: :pos_integer, doc: "The concurrency"]
+            ]
+          ]
+        ]
+      ]
+
+      docs = """
+      ## Options
+
+      In order to set up the pipeline, use the following options:
+
+        * `:name` - Required. The name.
+
+        * `:producer` - This is the producer summary. See "Producers options" section below.
+
+      ### Producers options
+
+      The producer options allow users to set up the producer.
+
+      The available options are:
+
+        * `:module` - The module.
+
+        * `:concurrency` - The concurrency.
+
+      """
+
+      assert NimbleOptions.docs(spec) == docs
     end
   end
 

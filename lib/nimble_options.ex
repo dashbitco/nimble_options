@@ -136,52 +136,93 @@ defmodule NimbleOptions do
   end
 
   def docs(spec) do
-    {docs, _sections, _level} = docs_from_keys(spec[:keys], {[], [], 0})
-    to_string(["## Options\n\n", Enum.reverse(docs)])
+    {docs, sections, _level} = build_docs(spec[:keys], {[], [], 0})
+
+    doc = if spec[:doc], do: "#{spec[:doc]}\n\n", else: ""
+    to_string(["## Options\n\n#{doc}", Enum.reverse(docs), Enum.reverse(sections)])
   end
 
-  def docs_from_keys(nil, acc, _level) do
+  defp build_docs(nil, acc) do
     acc
   end
 
-  def docs_from_keys(keys, {docs, sections, level} = acc) do
+  defp build_docs(keys, {docs, sections, level} = acc) do
     cond do
       keys[:*] ->
-        docs_from_keys(keys[:*][:keys], acc)
+        build_docs(keys[:*][:keys], acc)
 
       keys ->
-        Enum.reduce(keys, {docs, sections, level + 1}, &option_to_md/2)
+        Enum.reduce(keys, {docs, sections, level + 1}, &option_doc/2)
 
       true ->
         acc
     end
   end
 
-  defp option_to_md({key, {fun, spec}}, acc) when is_function(fun) do
-    option_to_md({key, spec}, acc)
+  defp option_doc({key, {fun, spec}}, acc) when is_function(fun) do
+    option_doc({key, spec}, acc)
   end
 
-  defp option_to_md({key, spec}, {docs, sections, level}) do
-    required_str = spec[:required] && "Required."
-    item_doc_str = spec[:doc] && String.trim_trailing(spec[:doc], ".") <> "."
-    default_str =
-      if Keyword.has_key?(spec, :default) do
-        "The default value is `#{inspect(spec[:default])}`."
-      end
-
-    opts_str = if spec[:keys], do: "Supported options:"
+  defp option_doc({key, spec}, {docs, sections, level}) do
+    doc_parts = String.split(spec[:doc] || "", "\n\n", parts: 2, trim: true)
+    doc_summary = Enum.at(doc_parts, 0)
+    doc_body = Enum.at(doc_parts, 1)
+    item_doc_str = doc_summary && String.trim_trailing(doc_summary, ".") <> "."
 
     description =
-      [required_str, item_doc_str, default_str, opts_str]
+      [get_required_str(spec), item_doc_str, get_default_str(spec), get_options_str(spec)]
       |> Enum.reject(&is_nil/1)
       |> case do
         [] -> ""
         parts -> " - " <> Enum.join(parts, " ")
       end
 
-    ident = String.duplicate("  ", level)
-    doc = "#{ident}* `#{inspect(key)}`#{description}\n\n"
-    docs_from_keys(spec[:keys], {[doc | docs], sections, level})
+    indent = String.duplicate("  ", level)
+    doc = "#{indent}* `#{inspect(key)}`#{description}\n\n"
+
+    if spec[:subsection] do
+      build_docs_with_subsection(spec, doc, doc_body, {docs, sections, level})
+    else
+      build_docs(spec[:keys], {[doc | docs], sections, level})
+    end
+  end
+
+  defp build_docs_with_subsection(spec, doc, doc_body, {docs, sections, level}) do
+    {item_docs, sections, _level} = build_docs(spec[:keys], {[], sections, 0})
+    section_title = "### #{spec[:subsection]}\n\n"
+
+    doc_body =
+      if doc_body do
+        String.trim_trailing(doc_body, "\n") <> "\n\n"
+      else
+        ""
+      end
+
+    item_section = [section_title, doc_body | Enum.reverse(item_docs)]
+    {[doc | docs], [item_section | sections], level}
+  end
+
+  defp get_required_str(spec) do
+    spec[:required] && "Required."
+  end
+
+  defp get_default_str(spec) do
+    if Keyword.has_key?(spec, :default) do
+      "The default value is `#{inspect(spec[:default])}`."
+    end
+  end
+
+  defp get_options_str(spec) do
+    case {spec[:keys], spec[:subsection]} do
+      {nil, nil} ->
+        nil
+
+      {_, nil} ->
+        "Supported options:"
+
+      {_, subsection} ->
+        "See \"#{subsection}\" section below."
+    end
   end
 
   defp validate_options_with_spec(opts, spec) do
@@ -434,6 +475,10 @@ defmodule NimbleOptions do
             doc: [
               type: :string,
               doc: "The documentation for the option item."
+            ],
+            subsection: [
+              type: :string,
+              doc: "The title of separate subsection of the options' documentation"
             ]
           ]
         ]
