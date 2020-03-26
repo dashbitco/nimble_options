@@ -22,21 +22,17 @@ defmodule NimbleOptions.Docs do
   end
 
   defp build_docs_with_subsection(spec, {docs, sections, level}) do
-    {section_title, section_body} = split_section(spec[:subsection])
-
-    section_title = "### #{section_title}\n\n"
-
-    section_body =
-      case section_body do
+    subsection =
+      case spec[:subsection] do
         nil ->
           ""
 
-        body ->
-          String.trim_trailing(body, "\n") <> "\n\n"
+        text ->
+          String.trim_trailing(text, "\n") <> "\n\n"
       end
 
     {item_docs, sections, _level} = build_docs(spec, {[], sections, 0})
-    item_section = [section_title, section_body | Enum.reverse(item_docs)]
+    item_section = [subsection | Enum.reverse(item_docs)]
 
     {docs, [item_section | sections], level}
   end
@@ -47,7 +43,7 @@ defmodule NimbleOptions.Docs do
 
   defp option_doc({key, spec}, {docs, sections, level}) do
     description =
-      [get_required_str(spec), get_doc_str(spec), get_default_str(spec), get_options_str(spec)]
+      [get_required_str(spec), get_doc_str(spec), get_default_str(spec)]
       |> Enum.reject(&is_nil/1)
       |> case do
         [] -> ""
@@ -66,13 +62,7 @@ defmodule NimbleOptions.Docs do
   end
 
   defp get_doc_str(spec) do
-    case String.trim(spec[:doc] || "") do
-      "" ->
-        nil
-
-      doc ->
-        String.trim_trailing(doc, ".") <> "."
-    end
+    spec[:doc] && String.trim(spec[:doc])
   end
 
   defp get_required_str(spec) do
@@ -83,30 +73,6 @@ defmodule NimbleOptions.Docs do
     if Keyword.has_key?(spec, :default) do
       "The default value is `#{inspect(spec[:default])}`."
     end
-  end
-
-  defp get_options_str(spec) do
-    {section_title, _} = split_section(spec[:subsection])
-
-    case {spec[:keys], section_title} do
-      {nil, nil} ->
-        nil
-
-      {_, nil} ->
-        "Supported options:"
-
-      {_, subsection} ->
-        "See \"#{subsection}\" section below."
-    end
-  end
-
-  defp split_section(text) do
-    parts =
-      (text || "")
-      |> String.trim()
-      |> String.split("\n\n", parts: 2, trim: true)
-
-    {Enum.at(parts, 0), Enum.at(parts, 1)}
   end
 
   defp indent_doc(text, indent) do

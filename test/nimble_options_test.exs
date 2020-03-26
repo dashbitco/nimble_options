@@ -685,15 +685,17 @@ defmodule NimbleOptionsTest do
         keys: [
           producer: [
             type: :non_empty_keyword_list,
-            doc: "The producer",
+            doc: "The producer. Supported options:",
             keys: [
-              module: [type: :mod_arg, doc: "The module"],
+              module: [type: :mod_arg, doc: "The module."],
               rate_limiting: [
                 type: :non_empty_keyword_list,
-                doc: "A list of options to enable and configure rate limiting",
+                doc: """
+                A list of options to enable and configure rate limiting. Supported options:
+                """,
                 keys: [
-                  allowed_messages: [type: :pos_integer, doc: "Number of messages per interval"],
-                  interval: [required: true, type: :pos_integer, doc: "The interval"]
+                  allowed_messages: [type: :pos_integer, doc: "Number of messages per interval."],
+                  interval: [required: true, type: :pos_integer, doc: "The interval."]
                 ]
               ]
             ]
@@ -724,20 +726,20 @@ defmodule NimbleOptionsTest do
         type: :keyword_list,
         doc: "In order to set up the pipeline, use the following options:",
         keys: [
-          name: [required: true, type: :atom, doc: "The name"],
+          name: [required: true, type: :atom, doc: "The name."],
           producer: [
             type: :non_empty_keyword_list,
-            doc: "This is the producer summary",
+            doc: "This is the producer summary. See \"Producers options\" section below.",
             subsection: """
-            Producers options
+            ### Producers options
 
             The producer options allow users to set up the producer.
 
             The available options are:
             """,
             keys: [
-              module: [type: :mod_arg, doc: "The module"],
-              concurrency: [type: :pos_integer, doc: "The concurrency"]
+              module: [type: :mod_arg, doc: "The module."],
+              concurrency: [type: :pos_integer, doc: "The concurrency."]
             ]
           ]
         ]
@@ -783,7 +785,7 @@ defmodule NimbleOptionsTest do
           ],
           module: [
             type: :atom,
-            doc: "The module"
+            doc: "The module."
           ]
         ]
       ]
