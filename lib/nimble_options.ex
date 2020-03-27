@@ -1,4 +1,59 @@
 defmodule NimbleOptions do
+  @options_spec [
+    type: :non_empty_keyword_list,
+    keys: [
+      *: [
+        type: :keyword_list,
+        keys: [
+          type: [
+            type: {:custom, __MODULE__, :type, []},
+            default: :any,
+            doc: "The type of the option item."
+          ],
+          required: [
+            type: :boolean,
+            default: false,
+            doc: "Defines if the option item is required."
+          ],
+          default: [
+            type: :any,
+            doc: "The default value for option item if not specified."
+          ],
+          keys: {
+            &__MODULE__.options_spec/0,
+            doc: """
+            Available for types `:keyword_list` and `:non_empty_keyword_list`,
+            it defines which set of keys are accepted for the option item. Use `:*` as
+            the key to allow multiple arbitrary keys.
+            """
+          },
+          deprecated: [
+            type: :string,
+            doc: """
+            Defines a message to indicate that the option item is deprecated. \
+            The message will be displayed as a warning when passing the item.
+            """
+          ],
+          rename_to: [
+            type: :atom,
+            doc: """
+            Renames a option item allowing one to use a normalized name \
+            internally, e.g. rename a deprecated item to the currently accepted name.
+            """
+          ],
+          doc: [
+            type: :string,
+            doc: "The documentation for the option item."
+          ],
+          subsection: [
+            type: :string,
+            doc: "The title of separate subsection of the options' documentation"
+          ]
+        ]
+      ]
+    ]
+  ]
+
   @moduledoc """
   Provides a standard API to handle keyword list based options.
 
@@ -9,23 +64,7 @@ defmodule NimbleOptions do
     * Config validation against specs
     * Automatic doc generation
 
-  ## Options
-
-    * `:type` - The type of the option item.
-
-    * `:required` - Defines if the option item is required. Default is `false`.
-
-    * `:default` - The default value for option item if not specified.
-
-    * `:keys` - Available for types `:keyword_list` and `:non_empty_keyword_list`,
-       it defines which set of keys are accepted for the option item. Use `:*` as
-       the key to allow multiple arbitrary keys.
-
-    * `:deprecated` - Defines a message to indicate that the option item is deprecated.
-      The message will be displayed as a warning when passing the item.
-
-    * `:rename_to` - Renames a option item allowing one to use a normalized name
-      internally, e.g. rename a deprecated item to the currently accepted name.
+  #{NimbleOptions.Docs.generate(@options_spec)}
 
   ## Types
 
@@ -133,7 +172,16 @@ defmodule NimbleOptions do
     end
   end
 
-  def validate_options_with_spec(opts, spec) do
+  def docs(spec) do
+    NimbleOptions.Docs.generate(spec)
+  end
+
+  @doc false
+  def options_spec() do
+    @options_spec
+  end
+
+  defp validate_options_with_spec(opts, spec) do
     case validate_unknown_options(opts, spec) do
       :ok -> validate_options(spec, opts)
       error -> error
@@ -159,8 +207,13 @@ defmodule NimbleOptions do
     end
   end
 
-  defp reduce_options({key, spec_opts}, opts) when is_function(spec_opts) do
-    reduce_options({key, spec_opts.()}, opts)
+  defp reduce_options({key, spec_fun}, opts) when is_function(spec_fun) do
+    reduce_options({key, spec_fun.()}, opts)
+  end
+
+  defp reduce_options({key, {spec_fun, overrides}}, opts) when is_function(spec_fun) do
+    spec_opts = Keyword.merge(spec_fun.(), overrides || [])
+    reduce_options({key, spec_opts}, opts)
   end
 
   defp reduce_options({key, spec_opts}, opts) do
@@ -330,39 +383,5 @@ defmodule NimbleOptions do
 
   def type(value) do
     {:error, "invalid option type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
-  end
-
-  defp options_spec() do
-    [
-      type: :non_empty_keyword_list,
-      keys: [
-        *: [
-          type: :keyword_list,
-          keys: [
-            type: [
-              type: {:custom, __MODULE__, :type, []},
-              default: :any
-            ],
-            required: [
-              type: :boolean,
-              default: false
-            ],
-            default: [
-              type: :any
-            ],
-            deprecated: [
-              type: :string
-            ],
-            rename_to: [
-              type: :atom
-            ],
-            doc: [
-              type: :string
-            ],
-            keys: &options_spec/0
-          ]
-        ]
-      ]
-    ]
   end
 end
