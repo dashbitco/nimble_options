@@ -1,29 +1,29 @@
 defmodule NimbleOptions.Docs do
   @moduledoc false
 
-  def generate(spec) do
-    {docs, sections, _level} = build_docs(spec, {[], [], 0})
+  def generate(schema) do
+    {docs, sections, _level} = build_docs(schema, {[], [], 0})
 
-    doc = if spec[:doc], do: "#{spec[:doc]}\n\n", else: ""
+    doc = if schema[:doc], do: "#{schema[:doc]}\n\n", else: ""
     to_string(["## Options\n\n#{doc}", Enum.reverse(docs), Enum.reverse(sections)])
   end
 
-  defp build_docs(spec, {docs, sections, level} = acc) do
+  defp build_docs(schema, {docs, sections, level} = acc) do
     cond do
-      spec[:keys][:*] ->
-        build_docs(spec[:keys][:*], acc)
+      schema[:keys][:*] ->
+        build_docs(schema[:keys][:*], acc)
 
-      spec[:keys] ->
-        Enum.reduce(spec[:keys], {docs, sections, level + 1}, &option_doc/2)
+      schema[:keys] ->
+        Enum.reduce(schema[:keys], {docs, sections, level + 1}, &option_doc/2)
 
       true ->
         acc
     end
   end
 
-  defp build_docs_with_subsection(spec, {docs, sections, level}) do
+  defp build_docs_with_subsection(schema, {docs, sections, level}) do
     subsection =
-      case spec[:subsection] do
+      case schema[:subsection] do
         nil ->
           ""
 
@@ -31,19 +31,19 @@ defmodule NimbleOptions.Docs do
           String.trim_trailing(text, "\n") <> "\n\n"
       end
 
-    {item_docs, sections, _level} = build_docs(spec, {[], sections, 0})
+    {item_docs, sections, _level} = build_docs(schema, {[], sections, 0})
     item_section = [subsection | Enum.reverse(item_docs)]
 
     {docs, [item_section | sections], level}
   end
 
-  defp option_doc({key, {fun, spec}}, acc) when is_function(fun) do
-    option_doc({key, spec}, acc)
+  defp option_doc({key, {fun, schema}}, acc) when is_function(fun) do
+    option_doc({key, schema}, acc)
   end
 
-  defp option_doc({key, spec}, {docs, sections, level}) do
+  defp option_doc({key, schema}, {docs, sections, level}) do
     description =
-      [get_required_str(spec), get_doc_str(spec), get_default_str(spec)]
+      [get_required_str(schema), get_doc_str(schema), get_default_str(schema)]
       |> Enum.reject(&is_nil/1)
       |> case do
         [] -> ""
@@ -54,24 +54,24 @@ defmodule NimbleOptions.Docs do
     doc = indent_doc("* `#{inspect(key)}`#{description}\n\n", indent)
     acc = {[doc | docs], sections, level}
 
-    if spec[:subsection] do
-      build_docs_with_subsection(spec, acc)
+    if schema[:subsection] do
+      build_docs_with_subsection(schema, acc)
     else
-      build_docs(spec, acc)
+      build_docs(schema, acc)
     end
   end
 
-  defp get_doc_str(spec) do
-    spec[:doc] && String.trim(spec[:doc])
+  defp get_doc_str(schema) do
+    schema[:doc] && String.trim(schema[:doc])
   end
 
-  defp get_required_str(spec) do
-    spec[:required] && "Required."
+  defp get_required_str(schema) do
+    schema[:required] && "Required."
   end
 
-  defp get_default_str(spec) do
-    if Keyword.has_key?(spec, :default) do
-      "The default value is `#{inspect(spec[:default])}`."
+  defp get_default_str(schema) do
+    if Keyword.has_key?(schema, :default) do
+      "The default value is `#{inspect(schema[:default])}`."
     end
   end
 
