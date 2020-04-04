@@ -1,5 +1,5 @@
 defmodule NimbleOptions do
-  @options_spec [
+  @options_schema [
     type: :non_empty_keyword_list,
     keys: [
       *: [
@@ -20,7 +20,7 @@ defmodule NimbleOptions do
             doc: "The default value for option item if not specified."
           ],
           keys: {
-            &__MODULE__.options_spec/0,
+            &__MODULE__.options_schema/0,
             doc: """
             Available for types `:keyword_list` and `:non_empty_keyword_list`,
             it defines which set of keys are accepted for the option item. Use `:*` as
@@ -57,14 +57,14 @@ defmodule NimbleOptions do
   @moduledoc """
   Provides a standard API to handle keyword list based options.
 
-  `NimbleOptions` allows developers to create specs using a
+  `NimbleOptions` allows developers to create schemas using a
   pre-defined set of options and types. The main benefits are:
 
     * A single unified way to define simple static options
-    * Config validation against specs
+    * Config validation against schemas
     * Automatic doc generation
 
-  #{NimbleOptions.Docs.generate(@options_spec)}
+  #{NimbleOptions.Docs.generate(@options_schema)}
 
   ## Types
 
@@ -97,7 +97,7 @@ defmodule NimbleOptions do
 
   ## Example
 
-      iex> spec = [
+      iex> schema = [
       ...>   producer: [
       ...>     type: :non_empty_keyword_list,
       ...>     required: true,
@@ -116,7 +116,7 @@ defmodule NimbleOptions do
       ...>   ]
       ...> ]
       ...>
-      ...> NimbleOptions.validate(config, spec)
+      ...> NimbleOptions.validate(config, schema)
       {:error, "required option :module not found, received options: [:concurrency]"}
 
   ## Nested option items
@@ -126,7 +126,7 @@ defmodule NimbleOptions do
 
   ### Example
 
-      iex> spec = [
+      iex> schema = [
       ...>   producer: [
       ...>     required: true,
       ...>     type: :non_empty_keyword_list,
@@ -149,7 +149,7 @@ defmodule NimbleOptions do
       ...>   ]
       ...> ]
       ...>
-      ...> NimbleOptions.validate(config, spec)
+      ...> NimbleOptions.validate(config, schema)
       {:error, "expected :interval to be a positive integer, got: :oops!"}
 
   """
@@ -167,62 +167,63 @@ defmodule NimbleOptions do
     :boolean
   ]
 
-  @type spec() :: keyword()
+  @type schema() :: keyword()
 
   @doc """
-  Validate the given `options` with the given `spec`.
+  Validate the given `options` with the given `schema`.
 
-  See the module documentation for what a `spec` is.
+  See the module documentation for what a `schema` is.
 
   If the validation is successful, this function returns `{:ok, validated_options}`
   where `validated_options` is a keyword list. If the validation fails, this
   function returns `{:error, reason}` where `reason` is an error message (a string)
   telling what's wrong with the given options.
   """
-  @spec validate(keyword(), spec()) ::
+  @spec validate(keyword(), schema()) ::
           {:ok, validated_options :: keyword()} | {:error, reason :: String.t()}
-  def validate(options, spec) do
-    case validate_options_with_spec([root: spec], root: options_spec()) do
+  def validate(options, schema) do
+    case validate_options_with_schema([root: schema], root: options_schema()) do
       {:error, message} ->
-        raise ArgumentError, "invalid spec given to NimbleOptions.validate/2. Reason: #{message}"
+        raise ArgumentError,
+              "invalid schema given to NimbleOptions.validate/2. Reason: #{message}"
 
       _ ->
-        validate_options_with_spec(options, spec)
+        validate_options_with_schema(options, schema)
     end
   end
 
   @doc ~S"""
-  Returns documentation for the given spec.
+  Returns documentation for the given schema.
 
   You can use this to inject documentation in your docstrings. For example,
-  say you have your spec in a module attribute:
+  say you have your schema in a module attribute:
 
-      @options_spec [...]
+      @options_schema [...]
 
   With this, you can use `docs/1` to inject documentation:
 
-      @doc "Supported options:\n#{NimbleOptions.docs(@options_spec)}"
+      @doc "Supported options:\n#{NimbleOptions.docs(@options_schema)}"
 
   """
-  @spec docs(spec()) :: String.t()
-  def docs(spec) do
-    NimbleOptions.Docs.generate(spec)
+  @spec docs(schema()) :: String.t()
+  def docs(schema) do
+    NimbleOptions.Docs.generate(schema)
   end
 
   @doc false
-  def options_spec() do
-    @options_spec
+  def options_schema() do
+    @options_schema
   end
 
-  defp validate_options_with_spec(opts, spec) do
-    case validate_unknown_options(opts, spec) do
-      :ok -> validate_options(spec, opts)
+  defp validate_options_with_schema(opts, schema) do
+    case validate_unknown_options(opts, schema) do
+      :ok -> validate_options(schema, opts)
       error -> error
     end
   end
 
-  defp validate_unknown_options(opts, spec) do
-    valid_opts = Keyword.keys(spec)
+  defp validate_unknown_options(opts, schema) do
+    valid_opts = Keyword.keys(schema)
 
     case Keyword.keys(opts) -- valid_opts do
       [] ->
@@ -233,62 +234,62 @@ defmodule NimbleOptions do
     end
   end
 
-  defp validate_options(spec, opts) do
-    case Enum.reduce_while(spec, opts, &reduce_options/2) do
+  defp validate_options(schema, opts) do
+    case Enum.reduce_while(schema, opts, &reduce_options/2) do
       {:error, _} = result -> result
       result -> {:ok, result}
     end
   end
 
-  defp reduce_options({key, spec_fun}, opts) when is_function(spec_fun) do
-    reduce_options({key, spec_fun.()}, opts)
+  defp reduce_options({key, schema_fun}, opts) when is_function(schema_fun) do
+    reduce_options({key, schema_fun.()}, opts)
   end
 
-  defp reduce_options({key, {spec_fun, overrides}}, opts) when is_function(spec_fun) do
-    spec_opts = Keyword.merge(spec_fun.(), overrides || [])
-    reduce_options({key, spec_opts}, opts)
+  defp reduce_options({key, {schema_fun, overrides}}, opts) when is_function(schema_fun) do
+    schema_opts = Keyword.merge(schema_fun.(), overrides || [])
+    reduce_options({key, schema_opts}, opts)
   end
 
-  defp reduce_options({key, spec_opts}, opts) do
-    case validate_option(opts, key, spec_opts) do
+  defp reduce_options({key, schema_opts}, opts) do
+    case validate_option(opts, key, schema_opts) do
       {:error, _} = result ->
         {:halt, result}
 
       {:ok, value} ->
-        actual_key = spec_opts[:rename_to] || key
+        actual_key = schema_opts[:rename_to] || key
         {:cont, Keyword.update(opts, actual_key, value, fn _ -> value end)}
 
       :no_value ->
-        if Keyword.has_key?(spec_opts, :default) do
-          {:cont, Keyword.put(opts, key, spec_opts[:default])}
+        if Keyword.has_key?(schema_opts, :default) do
+          {:cont, Keyword.put(opts, key, schema_opts[:default])}
         else
           {:cont, opts}
         end
     end
   end
 
-  defp validate_option(opts, key, spec) do
-    with {:ok, value} <- validate_value(opts, key, spec),
-         :ok <- validate_type(spec[:type], key, value) do
-      if spec[:keys] do
-        keys = normalize_keys(spec[:keys], value)
-        validate_options_with_spec(value, keys)
+  defp validate_option(opts, key, schema) do
+    with {:ok, value} <- validate_value(opts, key, schema),
+         :ok <- validate_type(schema[:type], key, value) do
+      if schema[:keys] do
+        keys = normalize_keys(schema[:keys], value)
+        validate_options_with_schema(value, keys)
       else
         {:ok, value}
       end
     end
   end
 
-  defp validate_value(opts, key, spec) do
+  defp validate_value(opts, key, schema) do
     cond do
       Keyword.has_key?(opts, key) ->
-        if message = Keyword.get(spec, :deprecated) do
+        if message = Keyword.get(schema, :deprecated) do
           IO.warn("#{inspect(key)} is deprecated. " <> message)
         end
 
         {:ok, opts[key]}
 
-      Keyword.get(spec, :required, false) ->
+      Keyword.get(schema, :required, false) ->
         {:error,
          "required option #{inspect(key)} not found, received options: " <>
            inspect(Keyword.keys(opts))}
@@ -390,8 +391,8 @@ defmodule NimbleOptions do
       nil ->
         keys
 
-      spec_opts ->
-        Enum.map(opts, fn {k, _} -> {k, spec_opts} end)
+      schema_opts ->
+        Enum.map(opts, fn {k, _} -> {k, schema_opts} end)
     end
   end
 

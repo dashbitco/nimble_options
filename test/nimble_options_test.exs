@@ -4,28 +4,28 @@ defmodule NimbleOptionsTest do
   doctest NimbleOptions
 
   test "known options" do
-    spec = [name: [], context: []]
+    schema = [name: [], context: []]
     opts = [name: MyProducer, context: :ok]
 
-    assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+    assert NimbleOptions.validate(opts, schema) == {:ok, opts}
   end
 
   test "unknown options" do
-    spec = [an_option: [], other_option: []]
+    schema = [an_option: [], other_option: []]
     opts = [an_option: 1, not_an_option1: 1, not_an_option2: 1]
 
-    assert NimbleOptions.validate(opts, spec) ==
+    assert NimbleOptions.validate(opts, schema) ==
              {:error,
               "unknown options [:not_an_option1, :not_an_option2], valid options are: [:an_option, :other_option]"}
   end
 
-  describe "validate the spec itself before validating the options" do
+  describe "validate the schema itself before validating the options" do
     test "raise ArgumentError when invalid" do
-      spec = [stages: [type: :foo]]
+      schema = [stages: [type: :foo]]
       opts = [stages: 1]
 
       message = """
-      invalid spec given to NimbleOptions.validate/2. \
+      invalid schema given to NimbleOptions.validate/2. \
       Reason: invalid option type :foo.
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
@@ -34,19 +34,19 @@ defmodule NimbleOptionsTest do
       """
 
       assert_raise ArgumentError, message, fn ->
-        NimbleOptions.validate(opts, spec)
+        NimbleOptions.validate(opts, schema)
       end
     end
 
     test "validate the keys recursively, if any" do
-      spec = [
+      schema = [
         producers: [
           type: :keyword_list,
           keys: [
             *: [
               type: :keyword_list,
               keys: [
-                module: [unknown_spec_option: 1],
+                module: [unknown_schema_option: 1],
                 arg: []
               ]
             ]
@@ -55,43 +55,43 @@ defmodule NimbleOptionsTest do
       ]
 
       message = """
-      invalid spec given to NimbleOptions.validate/2. \
-      Reason: unknown options [:unknown_spec_option], \
+      invalid schema given to NimbleOptions.validate/2. \
+      Reason: unknown options [:unknown_schema_option], \
       valid options are: [:type, :required, :default, :keys, \
       :deprecated, :rename_to, :doc, :subsection]\
       """
 
       assert_raise ArgumentError, message, fn ->
-        NimbleOptions.validate([], spec)
+        NimbleOptions.validate([], schema)
       end
     end
   end
 
   describe "default value" do
     test "is used when none is given" do
-      spec = [context: [default: :ok]]
-      assert NimbleOptions.validate([], spec) == {:ok, [context: :ok]}
+      schema = [context: [default: :ok]]
+      assert NimbleOptions.validate([], schema) == {:ok, [context: :ok]}
     end
 
     test "is not used when one is given" do
-      spec = [context: [default: :ok]]
-      assert NimbleOptions.validate([context: :given], spec) == {:ok, [context: :given]}
+      schema = [context: [default: :ok]]
+      assert NimbleOptions.validate([context: :given], schema) == {:ok, [context: :given]}
     end
   end
 
   describe "required options" do
     test "when present" do
-      spec = [name: [required: true, type: :atom]]
+      schema = [name: [required: true, type: :atom]]
       opts = [name: MyProducer]
 
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "when missing" do
-      spec = [name: [required: true], an_option: [], other_option: []]
+      schema = [name: [required: true], an_option: [], other_option: []]
       opts = [an_option: 1, other_option: 2]
 
-      assert NimbleOptions.validate(opts, spec) ==
+      assert NimbleOptions.validate(opts, schema) ==
                {:error,
                 "required option :name not found, received options: [:an_option, :other_option]"}
     end
@@ -99,20 +99,20 @@ defmodule NimbleOptionsTest do
 
   describe "rename_to" do
     test "is renamed when given" do
-      spec = [context: [rename_to: :new_context], new_context: []]
+      schema = [context: [rename_to: :new_context], new_context: []]
 
-      assert NimbleOptions.validate([context: :ok], spec) ==
+      assert NimbleOptions.validate([context: :ok], schema) ==
                {:ok, [{:context, :ok}, {:new_context, :ok}]}
     end
 
     test "is ignored when not given" do
-      spec = [context: [rename_to: :new_context], new_context: []]
-      assert NimbleOptions.validate([], spec) == {:ok, []}
+      schema = [context: [rename_to: :new_context], new_context: []]
+      assert NimbleOptions.validate([], schema) == {:ok, []}
     end
 
     test "is ignored with default" do
-      spec = [context: [rename_to: :new_context, default: 1], new_context: []]
-      assert NimbleOptions.validate([], spec) == {:ok, [context: 1]}
+      schema = [context: [rename_to: :new_context, default: 1], new_context: []]
+      assert NimbleOptions.validate([], schema) == {:ok, [context: 1]}
     end
   end
 
@@ -120,230 +120,230 @@ defmodule NimbleOptionsTest do
     import ExUnit.CaptureIO
 
     test "warns when given" do
-      spec = [context: [deprecated: "Use something else"]]
+      schema = [context: [deprecated: "Use something else"]]
 
       assert capture_io(:stderr, fn ->
-               assert NimbleOptions.validate([context: :ok], spec) == {:ok, [context: :ok]}
+               assert NimbleOptions.validate([context: :ok], schema) == {:ok, [context: :ok]}
              end) =~ ":context is deprecated. Use something else"
     end
 
     test "does not warn when not given" do
-      spec = [context: [deprecated: "Use something else"]]
-      assert NimbleOptions.validate([], spec) == {:ok, []}
+      schema = [context: [deprecated: "Use something else"]]
+      assert NimbleOptions.validate([], schema) == {:ok, []}
     end
 
     test "does not warn when using default" do
-      spec = [context: [deprecated: "Use something else", default: :ok]]
+      schema = [context: [deprecated: "Use something else", default: :ok]]
 
-      assert NimbleOptions.validate([], spec) == {:ok, [context: :ok]}
+      assert NimbleOptions.validate([], schema) == {:ok, [context: :ok]}
     end
   end
 
   describe "type validation" do
     test "valid positive integer" do
-      spec = [stages: [type: :pos_integer]]
+      schema = [stages: [type: :pos_integer]]
       opts = [stages: 1]
 
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "invalid positive integer" do
-      spec = [stages: [type: :pos_integer]]
+      schema = [stages: [type: :pos_integer]]
 
-      assert NimbleOptions.validate([stages: 0], spec) ==
+      assert NimbleOptions.validate([stages: 0], schema) ==
                {:error, "expected :stages to be a positive integer, got: 0"}
 
-      assert NimbleOptions.validate([stages: :an_atom], spec) ==
+      assert NimbleOptions.validate([stages: :an_atom], schema) ==
                {:error, "expected :stages to be a positive integer, got: :an_atom"}
     end
 
     test "valid non negative integer" do
-      spec = [min_demand: [type: :non_neg_integer]]
+      schema = [min_demand: [type: :non_neg_integer]]
       opts = [min_demand: 0]
 
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "invalid non negative integer" do
-      spec = [min_demand: [type: :non_neg_integer]]
+      schema = [min_demand: [type: :non_neg_integer]]
 
-      assert NimbleOptions.validate([min_demand: -1], spec) ==
+      assert NimbleOptions.validate([min_demand: -1], schema) ==
                {:error, "expected :min_demand to be a non negative integer, got: -1"}
 
-      assert NimbleOptions.validate([min_demand: :an_atom], spec) ==
+      assert NimbleOptions.validate([min_demand: :an_atom], schema) ==
                {:error, "expected :min_demand to be a non negative integer, got: :an_atom"}
     end
 
     test "valid atom" do
-      spec = [name: [type: :atom]]
+      schema = [name: [type: :atom]]
       opts = [name: :an_atom]
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "invalid atom" do
-      spec = [name: [type: :atom]]
+      schema = [name: [type: :atom]]
 
-      assert NimbleOptions.validate([name: 1], spec) ==
+      assert NimbleOptions.validate([name: 1], schema) ==
                {:error, "expected :name to be an atom, got: 1"}
     end
 
     test "valid string" do
-      spec = [doc: [type: :string]]
+      schema = [doc: [type: :string]]
       opts = [doc: "a string"]
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "invalid string" do
-      spec = [doc: [type: :string]]
+      schema = [doc: [type: :string]]
 
-      assert NimbleOptions.validate([doc: :an_atom], spec) ==
+      assert NimbleOptions.validate([doc: :an_atom], schema) ==
                {:error, "expected :doc to be an string, got: :an_atom"}
     end
 
     test "valid boolean" do
-      spec = [required: [type: :boolean]]
+      schema = [required: [type: :boolean]]
 
       opts = [required: true]
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
 
       opts = [required: false]
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "invalid boolean" do
-      spec = [required: [type: :boolean]]
+      schema = [required: [type: :boolean]]
 
-      assert NimbleOptions.validate([required: :an_atom], spec) ==
+      assert NimbleOptions.validate([required: :an_atom], schema) ==
                {:error, "expected :required to be an boolean, got: :an_atom"}
     end
 
     test "valid mfa" do
-      spec = [transformer: [type: :mfa]]
+      schema = [transformer: [type: :mfa]]
 
       opts = [transformer: {SomeMod, :func, [1, 2]}]
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
 
       opts = [transformer: {SomeMod, :func, []}]
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "invalid mfa" do
-      spec = [transformer: [type: :mfa]]
+      schema = [transformer: [type: :mfa]]
 
       opts = [transformer: {"not_a_module", :func, []}]
 
-      assert NimbleOptions.validate(opts, spec) == {
+      assert NimbleOptions.validate(opts, schema) == {
                :error,
                ~s(expected :transformer to be a tuple {Mod, Fun, Args}, got: {"not_a_module", :func, []})
              }
 
       opts = [transformer: {SomeMod, "not_a_func", []}]
 
-      assert NimbleOptions.validate(opts, spec) == {
+      assert NimbleOptions.validate(opts, schema) == {
                :error,
                ~s(expected :transformer to be a tuple {Mod, Fun, Args}, got: {SomeMod, "not_a_func", []})
              }
 
       opts = [transformer: {SomeMod, :func, "not_a_list"}]
 
-      assert NimbleOptions.validate(opts, spec) == {
+      assert NimbleOptions.validate(opts, schema) == {
                :error,
                ~s(expected :transformer to be a tuple {Mod, Fun, Args}, got: {SomeMod, :func, "not_a_list"})
              }
 
       opts = [transformer: NotATuple]
 
-      assert NimbleOptions.validate(opts, spec) == {
+      assert NimbleOptions.validate(opts, schema) == {
                :error,
                ~s(expected :transformer to be a tuple {Mod, Fun, Args}, got: NotATuple)
              }
     end
 
     test "valid mod_arg" do
-      spec = [producer: [type: :mod_arg]]
+      schema = [producer: [type: :mod_arg]]
 
       opts = [producer: {SomeMod, [1, 2]}]
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
 
       opts = [producer: {SomeMod, []}]
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "invalid mod_arg" do
-      spec = [producer: [type: :mod_arg]]
+      schema = [producer: [type: :mod_arg]]
 
       opts = [producer: NotATuple]
 
-      assert NimbleOptions.validate(opts, spec) == {
+      assert NimbleOptions.validate(opts, schema) == {
                :error,
                ~s(expected :producer to be a tuple {Mod, Arg}, got: NotATuple)
              }
 
       opts = [producer: {"not_a_module", []}]
 
-      assert NimbleOptions.validate(opts, spec) == {
+      assert NimbleOptions.validate(opts, schema) == {
                :error,
                ~s(expected :producer to be a tuple {Mod, Arg}, got: {"not_a_module", []})
              }
     end
 
     test "valid {:fun, arity}" do
-      spec = [partition_by: [type: {:fun, 1}]]
+      schema = [partition_by: [type: {:fun, 1}]]
 
       opts = [partition_by: fn x -> x end]
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
 
       opts = [partition_by: &:erlang.phash2/1]
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "invalid {:fun, arity}" do
-      spec = [partition_by: [type: {:fun, 1}]]
+      schema = [partition_by: [type: {:fun, 1}]]
 
       opts = [partition_by: :not_a_fun]
 
-      assert NimbleOptions.validate(opts, spec) == {
+      assert NimbleOptions.validate(opts, schema) == {
                :error,
                ~s(expected :partition_by to be a function of arity 1, got: :not_a_fun)
              }
 
       opts = [partition_by: fn x, y -> x * y end]
 
-      assert NimbleOptions.validate(opts, spec) == {
+      assert NimbleOptions.validate(opts, schema) == {
                :error,
                ~s(expected :partition_by to be a function of arity 1, got: function of arity 2)
              }
     end
 
     test "{:custom, mod, fun, args} with empty args" do
-      spec = [buffer_keep: [type: {:custom, __MODULE__, :buffer_keep, []}]]
+      schema = [buffer_keep: [type: {:custom, __MODULE__, :buffer_keep, []}]]
 
       opts = [buffer_keep: :first]
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
 
       opts = [buffer_keep: :last]
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
 
       opts = [buffer_keep: :unknown]
 
-      assert NimbleOptions.validate(opts, spec) == {
+      assert NimbleOptions.validate(opts, schema) == {
                :error,
                ~s(expected :first or :last, got: :unknown)
              }
     end
 
     test "{:custom, mod, fun, args} with args" do
-      spec = [buffer_keep: [type: {:custom, __MODULE__, :choice, [[:first, :last]]}]]
+      schema = [buffer_keep: [type: {:custom, __MODULE__, :choice, [[:first, :last]]}]]
 
       opts = [buffer_keep: :first]
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
 
       opts = [buffer_keep: :last]
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
 
       opts = [buffer_keep: :unknown]
 
-      assert NimbleOptions.validate(opts, spec) == {
+      assert NimbleOptions.validate(opts, schema) == {
                :error,
                ~s(expected one of [:first, :last], got: :unknown)
              }
@@ -352,7 +352,7 @@ defmodule NimbleOptionsTest do
 
   describe "nested options with predefined keys" do
     test "known options" do
-      spec = [
+      schema = [
         processors: [
           type: :keyword_list,
           keys: [
@@ -364,11 +364,11 @@ defmodule NimbleOptionsTest do
 
       opts = [processors: [stages: 1, max_demand: 2]]
 
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "unknown options" do
-      spec = [
+      schema = [
         processors: [
           type: :keyword_list,
           keys: [
@@ -386,13 +386,13 @@ defmodule NimbleOptionsTest do
         ]
       ]
 
-      assert NimbleOptions.validate(opts, spec) ==
+      assert NimbleOptions.validate(opts, schema) ==
                {:error,
                 "unknown options [:unknown_option1, :unknown_option2], valid options are: [:stages, :min_demand]"}
     end
 
     test "options with default values" do
-      spec = [
+      schema = [
         processors: [
           type: :keyword_list,
           keys: [
@@ -403,11 +403,11 @@ defmodule NimbleOptionsTest do
 
       opts = [processors: []]
 
-      assert NimbleOptions.validate(opts, spec) == {:ok, [processors: [stages: 10]]}
+      assert NimbleOptions.validate(opts, schema) == {:ok, [processors: [stages: 10]]}
     end
 
     test "all required options present" do
-      spec = [
+      schema = [
         processors: [
           type: :keyword_list,
           keys: [
@@ -419,11 +419,11 @@ defmodule NimbleOptionsTest do
 
       opts = [processors: [stages: 1, max_demand: 2]]
 
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "required options missing" do
-      spec = [
+      schema = [
         processors: [
           type: :keyword_list,
           keys: [
@@ -435,12 +435,12 @@ defmodule NimbleOptionsTest do
 
       opts = [processors: [max_demand: 1]]
 
-      assert NimbleOptions.validate(opts, spec) ==
+      assert NimbleOptions.validate(opts, schema) ==
                {:error, "required option :stages not found, received options: [:max_demand]"}
     end
 
     test "nested options types" do
-      spec = [
+      schema = [
         processors: [
           type: :keyword_list,
           keys: [
@@ -452,14 +452,14 @@ defmodule NimbleOptionsTest do
 
       opts = [processors: [name: MyModule, stages: :an_atom]]
 
-      assert NimbleOptions.validate(opts, spec) ==
+      assert NimbleOptions.validate(opts, schema) ==
                {:error, "expected :stages to be a positive integer, got: :an_atom"}
     end
   end
 
   describe "nested options with custom keys" do
     test "known options" do
-      spec = [
+      schema = [
         producers: [
           type: :keyword_list,
           keys: [
@@ -476,11 +476,11 @@ defmodule NimbleOptionsTest do
 
       opts = [producers: [producer1: [module: MyModule, arg: :atom]]]
 
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "unknown options" do
-      spec = [
+      schema = [
         producers: [
           type: :keyword_list,
           keys: [
@@ -497,12 +497,12 @@ defmodule NimbleOptionsTest do
 
       opts = [producers: [producer1: [module: MyModule, arg: :ok, unknown_option: 1]]]
 
-      assert NimbleOptions.validate(opts, spec) ==
+      assert NimbleOptions.validate(opts, schema) ==
                {:error, "unknown options [:unknown_option], valid options are: [:module, :arg]"}
     end
 
     test "options with default values" do
-      spec = [
+      schema = [
         producers: [
           type: :keyword_list,
           keys: [
@@ -518,11 +518,11 @@ defmodule NimbleOptionsTest do
 
       opts = [producers: [producer1: []]]
 
-      assert NimbleOptions.validate(opts, spec) == {:ok, [producers: [producer1: [arg: :ok]]]}
+      assert NimbleOptions.validate(opts, schema) == {:ok, [producers: [producer1: [arg: :ok]]]}
     end
 
     test "all required options present" do
-      spec = [
+      schema = [
         producers: [
           type: :keyword_list,
           keys: [
@@ -539,11 +539,11 @@ defmodule NimbleOptionsTest do
 
       opts = [producers: [default: [module: MyModule, arg: :ok]]]
 
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "required options missing" do
-      spec = [
+      schema = [
         producers: [
           type: :keyword_list,
           keys: [
@@ -560,12 +560,12 @@ defmodule NimbleOptionsTest do
 
       opts = [producers: [default: [module: MyModule]]]
 
-      assert NimbleOptions.validate(opts, spec) ==
+      assert NimbleOptions.validate(opts, schema) ==
                {:error, "required option :arg not found, received options: [:module]"}
     end
 
     test "nested options types" do
-      spec = [
+      schema = [
         producers: [
           type: :keyword_list,
           keys: [
@@ -589,12 +589,12 @@ defmodule NimbleOptionsTest do
         ]
       ]
 
-      assert NimbleOptions.validate(opts, spec) ==
+      assert NimbleOptions.validate(opts, schema) ==
                {:error, "expected :stages to be a positive integer, got: :an_atom"}
     end
 
     test "validate empty keys for :non_empty_keyword_list" do
-      spec = [
+      schema = [
         producers: [
           type: :non_empty_keyword_list,
           keys: [
@@ -613,12 +613,12 @@ defmodule NimbleOptionsTest do
         producers: []
       ]
 
-      assert NimbleOptions.validate(opts, spec) ==
+      assert NimbleOptions.validate(opts, schema) ==
                {:error, "expected :producers to be a non-empty keyword list, got: []"}
     end
 
     test "allow empty keys for :keyword_list" do
-      spec = [
+      schema = [
         producers: [
           type: :keyword_list,
           keys: [
@@ -637,11 +637,11 @@ defmodule NimbleOptionsTest do
         producers: []
       ]
 
-      assert NimbleOptions.validate(opts, spec) == {:ok, opts}
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "default value for :keyword_list" do
-      spec = [
+      schema = [
         batchers: [
           required: false,
           default: [],
@@ -659,7 +659,7 @@ defmodule NimbleOptionsTest do
 
       opts = []
 
-      assert NimbleOptions.validate(opts, spec) == {:ok, [batchers: []]}
+      assert NimbleOptions.validate(opts, schema) == {:ok, [batchers: []]}
     end
   end
 
@@ -676,11 +676,11 @@ defmodule NimbleOptionsTest do
 
       """
 
-      assert NimbleOptions.docs(recursive_spec()) == docs
+      assert NimbleOptions.docs(recursive_schema()) == docs
     end
 
     test "generate inline indented docs for nested options" do
-      spec = [
+      schema = [
         type: :keyword_list,
         keys: [
           producer: [
@@ -718,11 +718,11 @@ defmodule NimbleOptionsTest do
 
       """
 
-      assert NimbleOptions.docs(spec) == docs
+      assert NimbleOptions.docs(schema) == docs
     end
 
     test "generate subsections for nested options" do
-      spec = [
+      schema = [
         type: :keyword_list,
         doc: "In order to set up the pipeline, use the following options:",
         keys: [
@@ -766,11 +766,11 @@ defmodule NimbleOptionsTest do
 
       """
 
-      assert NimbleOptions.docs(spec) == docs
+      assert NimbleOptions.docs(schema) == docs
     end
 
     test "keep indentation of multiline doc" do
-      spec = [
+      schema = [
         type: :keyword_list,
         keys: [
           name: [
@@ -803,7 +803,7 @@ defmodule NimbleOptionsTest do
 
       """
 
-      assert NimbleOptions.docs(spec) == docs
+      assert NimbleOptions.docs(schema) == docs
     end
   end
 
@@ -823,7 +823,7 @@ defmodule NimbleOptionsTest do
     end
   end
 
-  defp recursive_spec() do
+  defp recursive_schema() do
     [
       type: :non_empty_keyword_list,
       keys: [
@@ -841,7 +841,7 @@ defmodule NimbleOptionsTest do
               doc: "Defines if the option item is required."
             ],
             keys: {
-              &recursive_spec/0,
+              &recursive_schema/0,
               doc: "Defines which set of keys are accepted."
             }
           ]

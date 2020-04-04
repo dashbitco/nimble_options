@@ -14,7 +14,7 @@ defmodule NimbleOptions.MixProject do
 
       # Hex
       package: package(),
-      description: "Library to perform validation of options based on specs",
+      description: "Library to perform validation of options based on schemas",
 
       # Docs
       name: "NimbleOptions",
