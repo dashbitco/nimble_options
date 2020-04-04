@@ -76,6 +76,10 @@ defmodule NimbleOptions do
 
     * `:atom` - An atom.
 
+    * `:string` - A string.
+
+    * `:boolean` - A boolean.
+
     * `:non_neg_integer` - A non-negative integer.
 
     * `:pos_integer` - A positive integer.
