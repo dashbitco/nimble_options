@@ -147,6 +147,7 @@ defmodule NimbleOptions do
       ...>
       ...> NimbleOptions.validate(config, spec)
       {:error, "expected :interval to be a positive integer, got: :oops!"}
+
   """
 
   @basic_types [
@@ -162,16 +163,44 @@ defmodule NimbleOptions do
     :boolean
   ]
 
-  def validate(opts, spec) do
+  @type spec() :: keyword()
+
+  @doc """
+  Validate the given `options` with the given `spec`.
+
+  See the module documentation for what a `spec` is.
+
+  If the validation is successful, this function returns `{:ok, validated_options}`
+  where `validated_options` is a keyword list. If the validation fails, this
+  function returns `{:error, reason}` where `reason` is an error message (a string)
+  telling what's wrong with the given options.
+  """
+  @spec validate(keyword(), spec()) ::
+          {:ok, validated_options :: keyword()} | {:error, reason :: String.t()}
+  def validate(options, spec) do
     case validate_options_with_spec([root: spec], root: options_spec()) do
       {:error, message} ->
         raise ArgumentError, "invalid spec given to NimbleOptions.validate/2. Reason: #{message}"
 
       _ ->
-        validate_options_with_spec(opts, spec)
+        validate_options_with_spec(options, spec)
     end
   end
 
+  @doc ~S"""
+  Returns documentation for the given spec.
+
+  You can use this to inject documentation in your docstrings. For example,
+  say you have your spec in a module attribute:
+
+      @options_spec [...]
+
+  With this, you can use `docs/1` to inject documentation:
+
+      @doc "Supported options:\n#{NimbleOptions.docs(@options_spec)}"
+
+  """
+  @spec docs(spec()) :: String.t()
   def docs(spec) do
     NimbleOptions.Docs.generate(spec)
   end
