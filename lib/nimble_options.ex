@@ -84,6 +84,8 @@ defmodule NimbleOptions do
 
     * `:pos_integer` - A positive integer.
 
+    * `:timeout` - A non-negative integer or the atom `:infinity`.
+
     * `:mfa` - A named function in the format `{module, function, arity}`
 
     * `:mod_arg` - A module along with arguments, e.g. `{MyModule, [arg1, arg2]}`.
@@ -164,7 +166,8 @@ defmodule NimbleOptions do
     :mfa,
     :mod_arg,
     :string,
-    :boolean
+    :boolean,
+    :timeout
   ]
 
   @type schema() :: keyword()
@@ -309,6 +312,12 @@ defmodule NimbleOptions do
 
   defp validate_type(:atom, key, value) when not is_atom(value) do
     {:error, "expected #{inspect(key)} to be an atom, got: #{inspect(value)}"}
+  end
+
+  defp validate_type(:timeout, key, value)
+       when not (value == :infinity or (is_integer(value) and value >= 0)) do
+    {:error,
+     "expected #{inspect(key)} to be non-negative integer or :infinity, got: #{inspect(value)}"}
   end
 
   defp validate_type(:string, key, value) when not is_binary(value) do
