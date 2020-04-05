@@ -121,7 +121,7 @@ defmodule NimbleOptions do
       ...> ]
       ...>
       ...> NimbleOptions.validate(config, schema)
-      {:error, "required option :module not found, received options: [:concurrency]"}
+      {:error, "(in options [:producer]) required option :module not found, received options: [:concurrency]"}
 
   ## Nested option items
 
@@ -154,7 +154,7 @@ defmodule NimbleOptions do
       ...> ]
       ...>
       ...> NimbleOptions.validate(config, schema)
-      {:error, "expected :interval to be a positive integer, got: :oops!"}
+      {:error, "(in options [:producer, :rate_limiting]) expected :interval to be a positive integer, got: :oops!"}
 
   """
 
@@ -187,13 +187,14 @@ defmodule NimbleOptions do
   @spec validate(keyword(), schema()) ::
           {:ok, validated_options :: keyword()} | {:error, reason :: String.t()}
   def validate(options, schema) do
-    case validate_options_with_schema([root: schema], root: options_schema()) do
-      {:error, message} ->
-        raise ArgumentError,
-              "invalid schema given to NimbleOptions.validate/2. Reason: #{message}"
+    case validate_options_with_schema([root: schema], [root: options_schema()], _path = []) do
+      {:ok, _validated_schema} ->
+        validate_options_with_schema_and_path(options, schema)
 
-      _ ->
-        validate_options_with_schema(options, schema)
+      {:error, message, [:root | path]} ->
+        raise ArgumentError,
+              "invalid schema given to NimbleOptions.validate/2, in options #{inspect(path)}. " <>
+                "Reason: #{message}"
     end
   end
 
@@ -220,10 +221,29 @@ defmodule NimbleOptions do
     @options_schema
   end
 
-  defp validate_options_with_schema(opts, schema) do
-    case validate_unknown_options(opts, schema) do
-      :ok -> validate_options(schema, opts)
-      error -> error
+  defp validate_options_with_schema_and_path(opts, schema) do
+    case validate_options_with_schema(opts, schema, _path = []) do
+      {:ok, options} ->
+        {:ok, options}
+
+      {:error, message, []} ->
+        {:error, message}
+
+      {:error, message, path} ->
+        {:error, "(in options #{inspect(path)}) " <> message}
+    end
+  end
+
+  defp validate_options_with_schema(opts, schema, path) do
+    with :ok <- validate_unknown_options(opts, schema),
+         {:ok, options} <- validate_options(schema, opts) do
+      {:ok, options}
+    else
+      {:error, message} ->
+        {:error, message, path}
+
+      {:error, message, sub_path} ->
+        {:error, message, path ++ sub_path}
     end
   end
 
@@ -241,7 +261,7 @@ defmodule NimbleOptions do
 
   defp validate_options(schema, opts) do
     case Enum.reduce_while(schema, opts, &reduce_options/2) do
-      {:error, _} = result -> result
+      {:error, _, _} = result -> result
       result -> {:ok, result}
     end
   end
@@ -257,7 +277,7 @@ defmodule NimbleOptions do
 
   defp reduce_options({key, schema_opts}, opts) do
     case validate_option(opts, key, schema_opts) do
-      {:error, _} = result ->
+      {:error, _message, _path} = result ->
         {:halt, result}
 
       {:ok, value} ->
@@ -274,14 +294,20 @@ defmodule NimbleOptions do
   end
 
   defp validate_option(opts, key, schema) do
-    with {:ok, value} <- validate_value(opts, key, schema),
-         :ok <- validate_type(schema[:type], key, value) do
-      if schema[:keys] do
-        keys = normalize_keys(schema[:keys], value)
-        validate_options_with_schema(value, keys)
-      else
-        {:ok, value}
+    result =
+      with {:ok, value} <- validate_value(opts, key, schema),
+           :ok <- validate_type(schema[:type], key, value) do
+        if schema[:keys] do
+          keys = normalize_keys(schema[:keys], value)
+          validate_options_with_schema(value, keys, _path = [key])
+        else
+          {:ok, value}
+        end
       end
+
+    case result do
+      {:error, message} -> {:error, message, _path = []}
+      other -> other
     end
   end
 

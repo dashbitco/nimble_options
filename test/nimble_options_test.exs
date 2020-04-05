@@ -25,7 +25,7 @@ defmodule NimbleOptionsTest do
       opts = [stages: 1]
 
       message = """
-      invalid schema given to NimbleOptions.validate/2. \
+      invalid schema given to NimbleOptions.validate/2, in options [:stages]. \
       Reason: invalid option type :foo.
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
@@ -55,7 +55,7 @@ defmodule NimbleOptionsTest do
       ]
 
       message = """
-      invalid schema given to NimbleOptions.validate/2. \
+      invalid schema given to NimbleOptions.validate/2, in options [:producers, :keys, :*, :keys, :module]. \
       Reason: unknown options [:unknown_schema_option], \
       valid options are: [:type, :required, :default, :keys, \
       :deprecated, :rename_to, :doc, :subsection]\
@@ -444,7 +444,7 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                "unknown options [:unknown_option1, :unknown_option2], valid options are: [:stages, :min_demand]"}
+                "(in options [:processors]) unknown options [:unknown_option1, :unknown_option2], valid options are: [:stages, :min_demand]"}
     end
 
     test "options with default values" do
@@ -492,7 +492,8 @@ defmodule NimbleOptionsTest do
       opts = [processors: [max_demand: 1]]
 
       assert NimbleOptions.validate(opts, schema) ==
-               {:error, "required option :stages not found, received options: [:max_demand]"}
+               {:error,
+                "(in options [:processors]) required option :stages not found, received options: [:max_demand]"}
     end
 
     test "nested options types" do
@@ -509,7 +510,8 @@ defmodule NimbleOptionsTest do
       opts = [processors: [name: MyModule, stages: :an_atom]]
 
       assert NimbleOptions.validate(opts, schema) ==
-               {:error, "expected :stages to be a positive integer, got: :an_atom"}
+               {:error,
+                "(in options [:processors]) expected :stages to be a positive integer, got: :an_atom"}
     end
   end
 
@@ -554,7 +556,8 @@ defmodule NimbleOptionsTest do
       opts = [producers: [producer1: [module: MyModule, arg: :ok, unknown_option: 1]]]
 
       assert NimbleOptions.validate(opts, schema) ==
-               {:error, "unknown options [:unknown_option], valid options are: [:module, :arg]"}
+               {:error,
+                "(in options [:producers, :producer1]) unknown options [:unknown_option], valid options are: [:module, :arg]"}
     end
 
     test "options with default values" do
@@ -617,7 +620,8 @@ defmodule NimbleOptionsTest do
       opts = [producers: [default: [module: MyModule]]]
 
       assert NimbleOptions.validate(opts, schema) ==
-               {:error, "required option :arg not found, received options: [:module]"}
+               {:error,
+                "(in options [:producers, :default]) required option :arg not found, received options: [:module]"}
     end
 
     test "nested options types" do
@@ -646,7 +650,8 @@ defmodule NimbleOptionsTest do
       ]
 
       assert NimbleOptions.validate(opts, schema) ==
-               {:error, "expected :stages to be a positive integer, got: :an_atom"}
+               {:error,
+                "(in options [:producers, :producer1]) expected :stages to be a positive integer, got: :an_atom"}
     end
 
     test "validate empty keys for :non_empty_keyword_list" do
@@ -716,6 +721,31 @@ defmodule NimbleOptionsTest do
       opts = []
 
       assert NimbleOptions.validate(opts, schema) == {:ok, [batchers: []]}
+    end
+  end
+
+  describe "nested options show up in error messages" do
+    @tag :focus
+    test "for options that we validate" do
+      schema = [
+        socket_options: [
+          type: :keyword_list,
+          keys: [
+            certificates: [
+              type: :keyword_list,
+              keys: [
+                path: [type: :string]
+              ]
+            ]
+          ]
+        ]
+      ]
+
+      opts = [socket_options: [certificates: [path: :not_a_string]]]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                "(in options [:socket_options, :certificates]) expected :path to be an string, got: :not_a_string"}
     end
   end
 
