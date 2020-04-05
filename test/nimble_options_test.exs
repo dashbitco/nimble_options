@@ -348,6 +348,15 @@ defmodule NimbleOptionsTest do
                ~s(expected one of [:first, :last], got: :unknown)
              }
     end
+
+    test "{:custom, mod, fun, args} can also cast the value of an option" do
+      schema = [connections: [type: {:custom, __MODULE__, :string_to_integer, []}]]
+
+      opts = [connections: "5"]
+      assert {:ok, validated_opts} = NimbleOptions.validate(opts, schema)
+      assert length(validated_opts) == 1
+      assert validated_opts[:connections] == 5
+    end
   end
 
   describe "nested options with predefined keys" do
@@ -821,6 +830,10 @@ defmodule NimbleOptionsTest do
     else
       {:error, "expected one of #{inspect(choices)}, got: #{inspect(value)}"}
     end
+  end
+
+  def string_to_integer(value) do
+    {:ok, String.to_integer(value)}
   end
 
   defp recursive_schema() do
