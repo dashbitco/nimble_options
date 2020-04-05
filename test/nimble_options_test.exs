@@ -29,7 +29,7 @@ defmodule NimbleOptionsTest do
       Reason: invalid option type :foo.
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
-      :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, \
+      :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
       {:fun, arity}, {:custom, mod, fun, args}\
       """
 
@@ -215,6 +215,34 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate([required: :an_atom], schema) ==
                {:error, "expected :required to be an boolean, got: :an_atom"}
+    end
+
+    test "valid timeout" do
+      schema = [timeout: [type: :timeout]]
+
+      opts = [timeout: 0]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [timeout: 1000]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [timeout: :infinity]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid timeout" do
+      schema = [timeout: [type: :timeout]]
+
+      opts = [timeout: -1]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error, "expected :timeout to be non-negative integer or :infinity, got: -1"}
+
+      opts = [timeout: :invalid]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                "expected :timeout to be non-negative integer or :infinity, got: :invalid"}
     end
 
     test "valid mfa" do
