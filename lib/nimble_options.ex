@@ -93,6 +93,8 @@ defmodule NimbleOptions do
 
     * `{:fun, arity}` - Any function with the specified arity.
 
+    * `{:one_of, choices}` - A value that is a member of one of the `choices`.
+
     * `{:custom, mod, fun, args}` - A custom type. The related value must be validated
       by `mod.fun(values, ...args)`. The function should return `{:ok, value}` or
       `{:error, message}`.
@@ -380,6 +382,15 @@ defmodule NimbleOptions do
     apply(mod, fun, [value | args])
   end
 
+  defp validate_type({:one_of, choices}, key, value) do
+    if value in choices do
+      :ok
+    else
+      {:error,
+       "expected #{inspect(key)} to be one of #{inspect(choices)}, got: #{inspect(value)}"}
+    end
+  end
+
   defp validate_type(nil, key, value) do
     validate_type(:any, key, value)
   end
@@ -406,7 +417,10 @@ defmodule NimbleOptions do
   end
 
   defp available_types() do
-    types = Enum.map(@basic_types, &inspect/1) ++ ["{:fun, arity}", "{:custom, mod, fun, args}"]
+    types =
+      Enum.map(@basic_types, &inspect/1) ++
+        ["{:fun, arity}", "{:one_of, choices}", "{:custom, mod, fun, args}"]
+
     Enum.join(types, ", ")
   end
 
@@ -416,6 +430,10 @@ defmodule NimbleOptions do
   end
 
   def type({:fun, arity} = value) when is_integer(arity) and arity >= 0 do
+    {:ok, value}
+  end
+
+  def type({:one_of, choices} = value) when is_list(choices) do
     {:ok, value}
   end
 

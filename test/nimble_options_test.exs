@@ -30,7 +30,7 @@ defmodule NimbleOptionsTest do
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
-      {:fun, arity}, {:custom, mod, fun, args}\
+      {:fun, arity}, {:one_of, choices}, {:custom, mod, fun, args}\
       """
 
       assert_raise ArgumentError, message, fn ->
@@ -341,6 +341,25 @@ defmodule NimbleOptionsTest do
                :error,
                ~s(expected :partition_by to be a function of arity 1, got: function of arity 2)
              }
+    end
+
+    test "valid {:one_of, choices}" do
+      schema = [batch_mode: [type: {:one_of, [:flush, :bulk]}]]
+
+      opts = [batch_mode: :flush]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [batch_mode: :bulk]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid {:one_of, choices}" do
+      schema = [batch_mode: [type: {:one_of, [:flush, :bulk]}]]
+
+      opts = [batch_mode: :invalid]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error, "expected :batch_mode to be one of [:flush, :bulk], got: :invalid"}
     end
 
     test "{:custom, mod, fun, args} with empty args" do
