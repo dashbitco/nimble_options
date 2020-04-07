@@ -211,7 +211,7 @@ defmodule NimbleOptions do
       @doc "Supported options:\n#{NimbleOptions.docs(@options_schema)}"
 
   """
-  @spec docs(schema()) :: String.t()
+  @spec docs(schema(), String.t()) :: String.t()
   def docs(schema, section_intro \\ "") do
     NimbleOptions.Docs.generate(schema, section_intro)
   end
