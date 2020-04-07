@@ -64,7 +64,7 @@ defmodule NimbleOptions do
     * Config validation against schemas
     * Automatic doc generation
 
-  #{NimbleOptions.Docs.generate(@options_schema)}
+  #{NimbleOptions.Docs.generate(@options_schema[:keys], "")}
 
   ## Types
 
@@ -212,8 +212,8 @@ defmodule NimbleOptions do
 
   """
   @spec docs(schema()) :: String.t()
-  def docs(schema) do
-    NimbleOptions.Docs.generate(schema)
+  def docs(schema, section_intro \\ "") do
+    NimbleOptions.Docs.generate(schema, section_intro)
   end
 
   @doc false

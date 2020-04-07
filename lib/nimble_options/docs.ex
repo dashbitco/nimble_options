@@ -1,11 +1,13 @@
 defmodule NimbleOptions.Docs do
   @moduledoc false
 
-  def generate(schema) do
+  def generate(schema, section_intro) do
+    schema = [keys: schema]
     {docs, sections, _level} = build_docs(schema, {[], [], 0})
 
-    doc = if schema[:doc], do: "#{schema[:doc]}\n\n", else: ""
-    to_string(["## Options\n\n#{doc}", Enum.reverse(docs), Enum.reverse(sections)])
+    section_intro = if section_intro == "", do: "", else: "#{section_intro}\n\n"
+
+    to_string(["## Options\n\n#{section_intro}", Enum.reverse(docs), Enum.reverse(sections)])
   end
 
   defp build_docs(schema, {docs, sections, level} = acc) do
