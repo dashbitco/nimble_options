@@ -725,7 +725,6 @@ defmodule NimbleOptionsTest do
   end
 
   describe "nested options show up in error messages" do
-    @tag :focus
     test "for options that we validate" do
       schema = [
         socket_options: [
