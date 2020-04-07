@@ -39,6 +39,7 @@ defmodule NimbleOptions.MixProject do
   defp package do
     [
       maintainers: ["José Valim", "Marlus Saraiva"],
+      licenses: ["Apache 2.0"],
       links: %{"GitHub" => @repo_url}
     ]
   end
