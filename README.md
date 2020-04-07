@@ -2,7 +2,7 @@
 
 ![](https://github.com/dashbitco/nimble_options/workflows/CI/badge.svg)
 
-Simple library for validating and documenting options.
+A tiny library for validating and documenting high-level options.
 
 ## Installation
 
