@@ -1,6 +1,7 @@
 # NimbleOptions
 
-![](https://github.com/dashbitco/nimble_options/workflows/CI/badge.svg)
+![](https://github.com/dashbitco/nimble_options/workflows/CI/badge.svg) [![Hex Version](https://img.shields.io/hexpm/v/nimble_options.svg)](https://hex.pm/packages/nimble_options) [![docs](https://img.shields.io/badge/docs-hexpm-blue.svg)](https://hexdocs.pm/nimble_options)
+
 
 A tiny library for validating and documenting high-level options.
 
