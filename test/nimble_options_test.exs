@@ -752,13 +752,13 @@ defmodule NimbleOptionsTest do
   describe "docs" do
     test "override docs for recursive keys" do
       docs = """
-      ## Options
-
         * `:type` - Required. The type of the option item.
 
         * `:required` - Defines if the option item is required. The default value is `false`.
 
         * `:keys` - Defines which set of keys are accepted.
+
+        * `:default` - The default.
 
       """
 
@@ -787,8 +787,6 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-      ## Options
-
         * `:producer` - The producer. Supported options:
 
           * `:module` - The module.
@@ -825,10 +823,6 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-      ## Options
-
-      In order to set up the pipeline, use the following options:
-
         * `:name` - Required. The name.
 
         * `:producer` - This is the producer summary. See "Producers options" section below.
@@ -845,9 +839,7 @@ defmodule NimbleOptionsTest do
 
       """
 
-      section_intro = "In order to set up the pipeline, use the following options:"
-
-      assert NimbleOptions.docs(schema, section_intro) == docs
+      assert NimbleOptions.docs(schema) == docs
     end
 
     test "keep indentation of multiline doc" do
@@ -869,13 +861,11 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-      ## Options
-
         * `:name` - The name.
 
-        This a multiline text.
+      This a multiline text.
 
-        Another line.
+      Another line.
 
         * `:module` - The module.
 
@@ -920,10 +910,14 @@ defmodule NimbleOptionsTest do
             default: false,
             doc: "Defines if the option item is required."
           ],
-          keys: {
-            &recursive_schema/0,
-            doc: "Defines which set of keys are accepted."
-          }
+          keys: [
+            type: :keyword_list,
+            doc: "Defines which set of keys are accepted.",
+            keys: &recursive_schema/0
+          ],
+          default: [
+            doc: "The default."
+          ]
         ]
       ]
     ]

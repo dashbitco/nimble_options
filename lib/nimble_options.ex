@@ -53,7 +53,7 @@ defmodule NimbleOptions do
   ]
 
   @moduledoc """
-  Provides a standard API to handle keyword list based options.
+  Provides a standard API to handle keyword-list-based options.
 
   `NimbleOptions` allows developers to create schemas using a
   pre-defined set of options and types. The main benefits are:
@@ -62,7 +62,12 @@ defmodule NimbleOptions do
     * Config validation against schemas
     * Automatic doc generation
 
-  #{NimbleOptions.Docs.generate(@options_schema[:keys], "")}
+  ## Schema options
+
+  These are the options supported in a *schema*. They are what
+  defines the validation for the itmes in the given schema.
+
+  #{NimbleOptions.Docs.generate(@options_schema)}
 
   ## Types
 
@@ -208,9 +213,9 @@ defmodule NimbleOptions do
       @doc "Supported options:\n#{NimbleOptions.docs(@options_schema)}"
 
   """
-  @spec docs(schema(), String.t()) :: String.t()
-  def docs(schema, section_intro \\ "") do
-    NimbleOptions.Docs.generate(schema, section_intro)
+  @spec docs(schema()) :: String.t()
+  def docs(schema) do
+    NimbleOptions.Docs.generate(schema)
   end
 
   @doc false
@@ -236,14 +241,7 @@ defmodule NimbleOptions do
   end
 
   defp validate_options_with_schema(opts, schema, path) do
-    schema =
-      case Keyword.fetch(schema, :*) do
-        {:ok, schema_for_all_keys} ->
-          Enum.map(opts, fn {key, _} -> {key, schema_for_all_keys} end)
-
-        :error ->
-          schema
-      end
+    schema = expand_star_to_option_keys(schema, opts)
 
     with :ok <- validate_unknown_options(opts, schema),
          {:ok, options} <- validate_options(schema, opts) do
@@ -441,7 +439,7 @@ defmodule NimbleOptions do
     is_list(value) && Enum.all?(value, &tagged_tuple?/1)
   end
 
-  defp normalize_keys(keys, opts) do
+  defp expand_star_to_option_keys(keys, opts) do
     case keys[:*] do
       nil ->
         keys
