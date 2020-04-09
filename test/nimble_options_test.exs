@@ -25,8 +25,8 @@ defmodule NimbleOptionsTest do
       opts = [stages: 1]
 
       message = """
-      invalid schema given to NimbleOptions.validate/2, in options [:stages]. \
-      Reason: invalid option type :foo.
+      invalid schema given to NimbleOptions.validate/2. \
+      Reason: (in options [:stages]) invalid option type :foo.
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
@@ -55,8 +55,9 @@ defmodule NimbleOptionsTest do
       ]
 
       message = """
-      invalid schema given to NimbleOptions.validate/2, in options [:producers, :keys, :*, :keys, :module]. \
-      Reason: unknown options [:unknown_schema_option], \
+      invalid schema given to NimbleOptions.validate/2. \
+      Reason: (in options [:producers, :keys, :*, :keys, :module]) \
+      unknown options [:unknown_schema_option], \
       valid options are: [:type, :required, :default, :keys, \
       :deprecated, :rename_to, :doc, :subsection]\
       """
