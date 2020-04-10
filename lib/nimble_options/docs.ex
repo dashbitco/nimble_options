@@ -1,44 +1,33 @@
 defmodule NimbleOptions.Docs do
   @moduledoc false
 
-  def generate(schema) do
+  def generate(schema) when is_list(schema) do
     {docs, sections, _level} = build_docs(schema, {[], [], 0})
+    to_string([Enum.reverse(docs), Enum.reverse(sections)])
+  end
 
-    doc = if schema[:doc], do: "#{schema[:doc]}\n\n", else: ""
-    to_string(["## Options\n\n#{doc}", Enum.reverse(docs), Enum.reverse(sections)])
+  # If the schema is a function, we want to not show anything (it's a recursive
+  # function) and "back up" one level since when we got here we already
+  # increased the level by one.
+  defp build_docs(fun, {docs, sections, level}) when is_function(fun) do
+    {docs, sections, level - 1}
   end
 
   defp build_docs(schema, {docs, sections, level} = acc) do
-    cond do
-      schema[:keys][:*] ->
-        build_docs(schema[:keys][:*], acc)
-
-      schema[:keys] ->
-        Enum.reduce(schema[:keys], {docs, sections, level + 1}, &option_doc/2)
-
-      true ->
-        acc
+    if schema[:*] do
+      build_docs(schema[:*][:keys], acc)
+    else
+      Enum.reduce(schema, {docs, sections, level}, &option_doc/2)
     end
   end
 
-  defp build_docs_with_subsection(schema, {docs, sections, level}) do
-    subsection =
-      case schema[:subsection] do
-        nil ->
-          ""
-
-        text ->
-          String.trim_trailing(text, "\n") <> "\n\n"
-      end
+  defp build_docs_with_subsection(subsection, schema, {docs, sections, level}) do
+    subsection = String.trim_trailing(subsection, "\n") <> "\n\n"
 
     {item_docs, sections, _level} = build_docs(schema, {[], sections, 0})
     item_section = [subsection | Enum.reverse(item_docs)]
 
     {docs, [item_section | sections], level}
-  end
-
-  defp option_doc({key, {fun, schema}}, acc) when is_function(fun) do
-    option_doc({key, schema}, acc)
   end
 
   defp option_doc({key, schema}, {docs, sections, level}) do
@@ -51,13 +40,19 @@ defmodule NimbleOptions.Docs do
       end
 
     indent = String.duplicate("  ", level)
-    doc = indent_doc("* `#{inspect(key)}`#{description}\n\n", indent)
-    acc = {[doc | docs], sections, level}
+    doc = indent_doc("  * `#{inspect(key)}`#{description}\n\n", indent)
 
-    if schema[:subsection] do
-      build_docs_with_subsection(schema, acc)
-    else
-      build_docs(schema, acc)
+    docs = [doc | docs]
+
+    cond do
+      schema[:keys] && schema[:subsection] ->
+        build_docs_with_subsection(schema[:subsection], schema[:keys], {docs, sections, level})
+
+      schema[:keys] ->
+        build_docs(schema[:keys], {docs, sections, level + 1})
+
+      true ->
+        {docs, sections, level}
     end
   end
 

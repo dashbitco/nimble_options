@@ -1,61 +1,59 @@
 defmodule NimbleOptions do
   @options_schema [
-    type: :non_empty_keyword_list,
-    keys: [
-      *: [
-        type: :keyword_list,
+    *: [
+      type: :keyword_list,
+      keys: [
+        type: [
+          type: {:custom, __MODULE__, :type, []},
+          default: :any,
+          doc: "The type of the option item."
+        ],
+        required: [
+          type: :boolean,
+          default: false,
+          doc: "Defines if the option item is required."
+        ],
+        default: [
+          type: :any,
+          doc: "The default value for option item if not specified."
+        ],
         keys: [
-          type: [
-            type: {:custom, __MODULE__, :type, []},
-            default: :any,
-            doc: "The type of the option item."
-          ],
-          required: [
-            type: :boolean,
-            default: false,
-            doc: "Defines if the option item is required."
-          ],
-          default: [
-            type: :any,
-            doc: "The default value for option item if not specified."
-          ],
-          keys: {
-            &__MODULE__.options_schema/0,
-            doc: """
-            Available for types `:keyword_list` and `:non_empty_keyword_list`,
-            it defines which set of keys are accepted for the option item. Use `:*` as
-            the key to allow multiple arbitrary keys.
-            """
-          },
-          deprecated: [
-            type: :string,
-            doc: """
-            Defines a message to indicate that the option item is deprecated. \
-            The message will be displayed as a warning when passing the item.
-            """
-          ],
-          rename_to: [
-            type: :atom,
-            doc: """
-            Renames a option item allowing one to use a normalized name \
-            internally, e.g. rename a deprecated item to the currently accepted name.
-            """
-          ],
-          doc: [
-            type: :string,
-            doc: "The documentation for the option item."
-          ],
-          subsection: [
-            type: :string,
-            doc: "The title of separate subsection of the options' documentation"
-          ]
+          type: :keyword_list,
+          doc: """
+          Available for types `:keyword_list` and `:non_empty_keyword_list`,
+          it defines which set of keys are accepted for the option item. Use `:*` as
+          the key to allow multiple arbitrary keys.
+          """,
+          keys: &__MODULE__.options_schema/0
+        ],
+        deprecated: [
+          type: :string,
+          doc: """
+          Defines a message to indicate that the option item is deprecated. \
+          The message will be displayed as a warning when passing the item.
+          """
+        ],
+        rename_to: [
+          type: :atom,
+          doc: """
+          Renames a option item allowing one to use a normalized name \
+          internally, e.g. rename a deprecated item to the currently accepted name.
+          """
+        ],
+        doc: [
+          type: :string,
+          doc: "The documentation for the option item."
+        ],
+        subsection: [
+          type: :string,
+          doc: "The title of separate subsection of the options' documentation"
         ]
       ]
     ]
   ]
 
   @moduledoc """
-  Provides a standard API to handle keyword list based options.
+  Provides a standard API to handle keyword-list-based options.
 
   `NimbleOptions` allows developers to create schemas using a
   pre-defined set of options and types. The main benefits are:
@@ -63,6 +61,11 @@ defmodule NimbleOptions do
     * A single unified way to define simple static options
     * Config validation against schemas
     * Automatic doc generation
+
+  ## Schema options
+
+  These are the options supported in a *schema*. They are what
+  defines the validation for the itmes in the given schema.
 
   #{NimbleOptions.Docs.generate(@options_schema)}
 
@@ -187,14 +190,13 @@ defmodule NimbleOptions do
   @spec validate(keyword(), schema()) ::
           {:ok, validated_options :: keyword()} | {:error, reason :: String.t()}
   def validate(options, schema) do
-    case validate_options_with_schema([root: schema], [root: options_schema()], _path = []) do
+    case validate_options_with_schema_and_path(schema, options_schema()) do
       {:ok, _validated_schema} ->
         validate_options_with_schema_and_path(options, schema)
 
-      {:error, message, [:root | path]} ->
+      {:error, message} ->
         raise ArgumentError,
-              "invalid schema given to NimbleOptions.validate/2, in options #{inspect(path)}. " <>
-                "Reason: #{message}"
+              "invalid schema given to NimbleOptions.validate/2. Reason: #{message}"
     end
   end
 
@@ -234,7 +236,13 @@ defmodule NimbleOptions do
     end
   end
 
+  defp validate_options_with_schema(opts, fun, path) when is_function(fun) do
+    validate_options_with_schema(opts, fun.(), path)
+  end
+
   defp validate_options_with_schema(opts, schema, path) do
+    schema = expand_star_to_option_keys(schema, opts)
+
     with :ok <- validate_unknown_options(opts, schema),
          {:ok, options} <- validate_options(schema, opts) do
       {:ok, options}
@@ -297,9 +305,8 @@ defmodule NimbleOptions do
     result =
       with {:ok, value} <- validate_value(opts, key, schema),
            :ok <- validate_type(schema[:type], key, value) do
-        if schema[:keys] do
-          keys = normalize_keys(schema[:keys], value)
-          validate_options_with_schema(value, keys, _path = [key])
+        if nested_schema = schema[:keys] do
+          validate_options_with_schema(value, nested_schema, _path = [key])
         else
           {:ok, value}
         end
@@ -432,7 +439,7 @@ defmodule NimbleOptions do
     is_list(value) && Enum.all?(value, &tagged_tuple?/1)
   end
 
-  defp normalize_keys(keys, opts) do
+  defp expand_star_to_option_keys(keys, opts) do
     case keys[:*] do
       nil ->
         keys

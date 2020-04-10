@@ -25,8 +25,8 @@ defmodule NimbleOptionsTest do
       opts = [stages: 1]
 
       message = """
-      invalid schema given to NimbleOptions.validate/2, in options [:stages]. \
-      Reason: invalid option type :foo.
+      invalid schema given to NimbleOptions.validate/2. \
+      Reason: (in options [:stages]) invalid option type :foo.
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
@@ -55,8 +55,9 @@ defmodule NimbleOptionsTest do
       ]
 
       message = """
-      invalid schema given to NimbleOptions.validate/2, in options [:producers, :keys, :*, :keys, :module]. \
-      Reason: unknown options [:unknown_schema_option], \
+      invalid schema given to NimbleOptions.validate/2. \
+      Reason: (in options [:producers, :keys, :*, :keys, :module]) \
+      unknown options [:unknown_schema_option], \
       valid options are: [:type, :required, :default, :keys, \
       :deprecated, :rename_to, :doc, :subsection]\
       """
@@ -751,13 +752,13 @@ defmodule NimbleOptionsTest do
   describe "docs" do
     test "override docs for recursive keys" do
       docs = """
-      ## Options
-
         * `:type` - Required. The type of the option item.
 
         * `:required` - Defines if the option item is required. The default value is `false`.
 
         * `:keys` - Defines which set of keys are accepted.
+
+        * `:default` - The default.
 
       """
 
@@ -766,22 +767,19 @@ defmodule NimbleOptionsTest do
 
     test "generate inline indented docs for nested options" do
       schema = [
-        type: :keyword_list,
-        keys: [
-          producer: [
-            type: :non_empty_keyword_list,
-            doc: "The producer. Supported options:",
-            keys: [
-              module: [type: :mod_arg, doc: "The module."],
-              rate_limiting: [
-                type: :non_empty_keyword_list,
-                doc: """
-                A list of options to enable and configure rate limiting. Supported options:
-                """,
-                keys: [
-                  allowed_messages: [type: :pos_integer, doc: "Number of messages per interval."],
-                  interval: [required: true, type: :pos_integer, doc: "The interval."]
-                ]
+        producer: [
+          type: :non_empty_keyword_list,
+          doc: "The producer. Supported options:",
+          keys: [
+            module: [type: :mod_arg, doc: "The module."],
+            rate_limiting: [
+              type: :non_empty_keyword_list,
+              doc: """
+              A list of options to enable and configure rate limiting. Supported options:
+              """,
+              keys: [
+                allowed_messages: [type: :pos_integer, doc: "Number of messages per interval."],
+                interval: [required: true, type: :pos_integer, doc: "The interval."]
               ]
             ]
           ]
@@ -789,8 +787,6 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-      ## Options
-
         * `:producer` - The producer. Supported options:
 
           * `:module` - The module.
@@ -808,33 +804,25 @@ defmodule NimbleOptionsTest do
 
     test "generate subsections for nested options" do
       schema = [
-        type: :keyword_list,
-        doc: "In order to set up the pipeline, use the following options:",
-        keys: [
-          name: [required: true, type: :atom, doc: "The name."],
-          producer: [
-            type: :non_empty_keyword_list,
-            doc: "This is the producer summary. See \"Producers options\" section below.",
-            subsection: """
-            ### Producers options
+        name: [required: true, type: :atom, doc: "The name."],
+        producer: [
+          type: :non_empty_keyword_list,
+          doc: "This is the producer summary. See \"Producers options\" section below.",
+          subsection: """
+          ### Producers options
 
-            The producer options allow users to set up the producer.
+          The producer options allow users to set up the producer.
 
-            The available options are:
-            """,
-            keys: [
-              module: [type: :mod_arg, doc: "The module."],
-              concurrency: [type: :pos_integer, doc: "The concurrency."]
-            ]
+          The available options are:
+          """,
+          keys: [
+            module: [type: :mod_arg, doc: "The module."],
+            concurrency: [type: :pos_integer, doc: "The concurrency."]
           ]
         ]
       ]
 
       docs = """
-      ## Options
-
-      In order to set up the pipeline, use the following options:
-
         * `:name` - Required. The name.
 
         * `:producer` - This is the producer summary. See "Producers options" section below.
@@ -856,33 +844,28 @@ defmodule NimbleOptionsTest do
 
     test "keep indentation of multiline doc" do
       schema = [
-        type: :keyword_list,
-        keys: [
-          name: [
-            type: :string,
-            doc: """
-            The name.
+        name: [
+          type: :string,
+          doc: """
+          The name.
 
-            This a multiline text.
+          This a multiline text.
 
-            Another line.
-            """
-          ],
-          module: [
-            type: :atom,
-            doc: "The module."
-          ]
+          Another line.
+          """
+        ],
+        module: [
+          type: :atom,
+          doc: "The module."
         ]
       ]
 
       docs = """
-      ## Options
-
         * `:name` - The name.
 
-        This a multiline text.
+      This a multiline text.
 
-        Another line.
+      Another line.
 
         * `:module` - The module.
 
@@ -914,25 +897,26 @@ defmodule NimbleOptionsTest do
 
   defp recursive_schema() do
     [
-      type: :non_empty_keyword_list,
-      keys: [
-        *: [
-          type: :keyword_list,
+      *: [
+        type: :keyword_list,
+        keys: [
+          type: [
+            type: :atom,
+            required: true,
+            doc: "The type of the option item."
+          ],
+          required: [
+            type: :boolean,
+            default: false,
+            doc: "Defines if the option item is required."
+          ],
           keys: [
-            type: [
-              type: :atom,
-              required: true,
-              doc: "The type of the option item."
-            ],
-            required: [
-              type: :boolean,
-              default: false,
-              doc: "Defines if the option item is required."
-            ],
-            keys: {
-              &recursive_schema/0,
-              doc: "Defines which set of keys are accepted."
-            }
+            type: :keyword_list,
+            doc: "Defines which set of keys are accepted.",
+            keys: &recursive_schema/0
+          ],
+          default: [
+            doc: "The default."
           ]
         ]
       ]
