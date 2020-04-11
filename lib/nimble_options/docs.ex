@@ -17,7 +17,7 @@ defmodule NimbleOptions.Docs do
     if schema[:*] do
       build_docs(schema[:*][:keys], acc)
     else
-      Enum.reduce(schema, {docs, sections, level}, &option_doc/2)
+      Enum.reduce(schema, {docs, sections, level}, &maybe_option_doc/2)
     end
   end
 
@@ -28,6 +28,14 @@ defmodule NimbleOptions.Docs do
     item_section = [subsection | Enum.reverse(item_docs)]
 
     {docs, [item_section | sections], level}
+  end
+
+  defp maybe_option_doc({key, schema}, acc) do
+    if schema[:doc] == false do
+      acc
+    else
+      option_doc({key, schema}, acc)
+    end
   end
 
   defp option_doc({key, schema}, {docs, sections, level}) do

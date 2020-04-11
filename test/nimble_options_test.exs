@@ -873,6 +873,41 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.docs(schema) == docs
     end
+
+    test "the option doesn't appear in the documentation when the :doc option is false" do
+      schema = [
+        name: [type: :atom, doc: "An atom."],
+        secret: [type: :string, doc: false],
+        count: [type: :integer]
+      ]
+
+      docs = """
+        * `:name` - An atom.
+
+        * `:count`
+
+      """
+
+      assert NimbleOptions.docs(schema) == docs
+    end
+
+    test "the option and its children don't appear in the documentation when the :doc option is false" do
+      schema = [
+        producer: [
+          type: :keyword_list,
+          doc: false,
+          keys: [
+            name: [type: :atom],
+            concurrency: [type: :pos_integer]
+          ]
+        ]
+      ]
+
+      docs = """
+      """
+
+      assert NimbleOptions.docs(schema) == docs
+    end
   end
 
   def buffer_keep(value) when value in [:first, :last] do
