@@ -117,6 +117,22 @@ defmodule NimbleOptionsTest do
     end
   end
 
+  describe "doc" do
+    test "valid documentation for key" do
+      schema = [context: [doc: "details", default: 1]]
+      assert NimbleOptions.validate([], schema) == {:ok, [context: 1]}
+      schema = [context: [doc: false, default: 1]]
+      assert NimbleOptions.validate([], schema) == {:ok, [context: 1]}
+    end
+
+    test "invalid documentation for key" do
+      assert_raise ArgumentError, ~r/expected :doc to be a string or false, got: 1/, fn ->
+        schema = [context: [doc: 1, default: 1]]
+        NimbleOptions.validate([], schema)
+      end
+    end
+  end
+
   describe "deprecated" do
     import ExUnit.CaptureIO
 
