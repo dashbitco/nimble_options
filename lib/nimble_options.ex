@@ -274,15 +274,6 @@ defmodule NimbleOptions do
     end
   end
 
-  defp reduce_options({key, schema_fun}, opts) when is_function(schema_fun) do
-    reduce_options({key, schema_fun.()}, opts)
-  end
-
-  defp reduce_options({key, {schema_fun, overrides}}, opts) when is_function(schema_fun) do
-    schema_opts = Keyword.merge(schema_fun.(), overrides || [])
-    reduce_options({key, schema_opts}, opts)
-  end
-
   defp reduce_options({key, schema_opts}, opts) do
     case validate_option(opts, key, schema_opts) do
       {:error, _message, _path} = result ->
