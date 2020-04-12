@@ -190,9 +190,9 @@ defmodule NimbleOptions do
   @spec validate(keyword(), schema()) ::
           {:ok, validated_options :: keyword()} | {:error, reason :: String.t()}
   def validate(options, schema) do
-    case validate_options_with_schema_and_path(schema, options_schema()) do
+    case validate_options_with_schema(schema, options_schema()) do
       {:ok, _validated_schema} ->
-        validate_options_with_schema_and_path(options, schema)
+        validate_options_with_schema(options, schema)
 
       {:error, message} ->
         raise ArgumentError,
@@ -223,8 +223,8 @@ defmodule NimbleOptions do
     @options_schema
   end
 
-  defp validate_options_with_schema_and_path(opts, schema) do
-    case validate_options_with_schema(opts, schema, _path = []) do
+  defp validate_options_with_schema(opts, schema) do
+    case validate_options_with_schema_and_path(opts, schema, _path = []) do
       {:ok, options} ->
         {:ok, options}
 
@@ -236,11 +236,11 @@ defmodule NimbleOptions do
     end
   end
 
-  defp validate_options_with_schema(opts, fun, path) when is_function(fun) do
-    validate_options_with_schema(opts, fun.(), path)
+  defp validate_options_with_schema_and_path(opts, fun, path) when is_function(fun) do
+    validate_options_with_schema_and_path(opts, fun.(), path)
   end
 
-  defp validate_options_with_schema(opts, schema, path) do
+  defp validate_options_with_schema_and_path(opts, schema, path) do
     schema = expand_star_to_option_keys(schema, opts)
 
     with :ok <- validate_unknown_options(opts, schema),
@@ -297,7 +297,7 @@ defmodule NimbleOptions do
       with {:ok, value} <- validate_value(opts, key, schema),
            :ok <- validate_type(schema[:type], key, value) do
         if nested_schema = schema[:keys] do
-          validate_options_with_schema(value, nested_schema, _path = [key])
+          validate_options_with_schema_and_path(value, nested_schema, _path = [key])
         else
           {:ok, value}
         end
