@@ -1,30 +1,15 @@
 # NimbleOptions
 
-![](https://github.com/dashbitco/nimble_options/workflows/CI/badge.svg)
+[Online Documentation](https://hexdocs.pm/nimble_options).
 
 A tiny library for validating and documenting high-level options.
-
-## Installation
-
-You can install `nimble_options` by adding it to your list of
-dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:nimble_options, "~> 0.1.0"}
-  ]
-end
-```
-
-## Usage
 
 This library allows you to validate options based on a definition.
 A definition is a keyword list specifying how the options you want
 to validate should look like:
 
 ```elixir
-schema = [
+definition = [
   connections: [
     type: :non_neg_integer,
     default: 5
@@ -41,7 +26,7 @@ Now you can validate options through `NimbleOptions.validate/2`:
 ```elixir
 options = [url: "https://example.com"]
 
-NimbleOptions.validate(options, schema)
+NimbleOptions.validate(options, definition)
 #=> {:ok, [url: "https://example.com", connections: 5]}
 ```
 
@@ -52,12 +37,31 @@ NimbleOptions.validate([connections: 3], schema)
 #=> {:error, "required option :url not found, received options: [:connections]"}
 ```
 
+`NimbleOptions` is also capable of automatically generating
+documentation for a definition by calling `NimbleOptions.docs/1`
+with your definition.
+
+## Installation
+
+You can install `nimble_options` by adding it to your list of
+dependencies in `mix.exs`:
+
+```elixir
+def deps do
+  [
+    {:nimble_options, "~> 0.1.0"}
+  ]
+end
+```
+
 ## Nimble*
 
-Other nimble libraries by Dashbit:
+All nimble libraries by Dashbit:
 
   * [NimbleCSV](https://github.com/dashbitco/nimble_csv) - simple and fast CSV parsing
+  * [NimbleOptions](https://github.com/dashbitco/nimble_options) - tiny library for validating and documenting high-level options
   * [NimbleParsec](https://github.com/dashbitco/nimble_parsec) - simple and fast parser combinators
+  * [NimblePool](https://github.com/dashbitco/nimble_pool) - tiny resource-pool implementation
 
 ## License
 
