@@ -1,5 +1,9 @@
 # Changelog for NimbleOptions
 
+## v0.2.1
+
+  * Add `NimbleOptions.validate!/2`.
+
 ## v0.2.0
 
   * Change the behavior of `NimbleOptions.docs/1` to accept a normal schema and produce documentation for that.
