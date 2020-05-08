@@ -204,7 +204,7 @@ defmodule NimbleOptions do
   Validates the given `options` with the given `schema` and raises if they're not valid.
 
   This function behaves exactly like `validate/2`, but returns the options directly
-  if they're valid or raises a `NimbelOptions.ValidationError` exception otherwise.
+  if they're valid or raises a `NimbleOptions.ValidationError` exception otherwise.
   """
   @spec validate!(keyword(), schema()) :: validate_options :: keyword()
   def validate!(options, schema) do
