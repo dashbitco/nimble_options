@@ -926,6 +926,27 @@ defmodule NimbleOptionsTest do
     end
   end
 
+  describe "validate!/2 (raising version)" do
+    test "returns the direct options if the options are valid" do
+      schema = [name: [], context: []]
+      opts = [name: MyProducer, context: :ok]
+
+      assert NimbleOptions.validate!(opts, schema) == opts
+    end
+
+    test "raises a NimbleOptions.ValidationError if the options are invalid" do
+      schema = [an_option: [], other_option: []]
+      opts = [an_option: 1, not_an_option1: 1, not_an_option2: 1]
+
+      message =
+        "unknown options [:not_an_option1, :not_an_option2], valid options are: [:an_option, :other_option]"
+
+      assert_raise NimbleOptions.ValidationError, message, fn ->
+        NimbleOptions.validate!(opts, schema)
+      end
+    end
+  end
+
   def buffer_keep(value) when value in [:first, :last] do
     {:ok, value}
   end
