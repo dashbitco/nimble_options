@@ -65,7 +65,7 @@ defmodule NimbleOptions do
   ## Schema options
 
   These are the options supported in a *schema*. They are what
-  defines the validation for the itmes in the given schema.
+  defines the validation for the items in the given schema.
 
   #{NimbleOptions.Docs.generate(@options_schema)}
 
