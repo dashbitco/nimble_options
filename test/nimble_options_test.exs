@@ -30,7 +30,7 @@ defmodule NimbleOptionsTest do
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
-      {:fun, arity}, {:one_of, choices}, {:custom, mod, fun, args}\
+      {:fun, arity}, {:one_of, choices}, {:custom, mod, fun, args}, {:list, type}\
       """
 
       assert_raise ArgumentError, message, fn ->
@@ -420,6 +420,51 @@ defmodule NimbleOptionsTest do
       assert {:ok, validated_opts} = NimbleOptions.validate(opts, schema)
       assert length(validated_opts) == 1
       assert validated_opts[:connections] == 5
+    end
+
+    test "valid {:list, type} for basic types" do
+      schema = [hosts: [type: {:list, :string}]]
+
+      opts = [hosts: ["localhost", "hex.pm"]]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [hosts: []]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "valid {:list, type} for complex types" do
+      schema = [transformers: [type: {:list, :mfa}]]
+      opts = [transformers: [{SomeMod, :func, [1, 2]}]]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      schema = [partitions_by: [type: {:list, {:fun, 1}}]]
+      opts = [partitions_by: [fn x -> x end]]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      schema = [choices: [type: {:list, {:custom, __MODULE__, :choice, [[:first, :last]]}}]]
+      opts = [choices: [:first]]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid {:list, type}" do
+      schema = [hosts: [type: {:list, :string}]]
+
+      opts = [hosts: [1, 2, 3]]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error, "expected :hosts to be of type :string"}
+
+      opts = [hosts: [:localhost, "hex.pm"]]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error, "expected :hosts to be of type :string"}
+
+      schema = [hosts: [type: {:list, :invalid}]]
+      opts = [hosts: [1, 2, 3]]
+
+      assert_raise ArgumentError, fn ->
+        NimbleOptions.validate(opts, schema)
+      end
     end
   end
 

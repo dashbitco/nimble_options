@@ -102,6 +102,8 @@ defmodule NimbleOptions do
       by `mod.fun(values, ...args)`. The function should return `{:ok, value}` or
       `{:error, message}`.
 
+    * `{:list, type}` - A list containing elements of any `type`. Can be an empty list.
+
   ## Example
 
       iex> schema = [
@@ -429,6 +431,16 @@ defmodule NimbleOptions do
     end
   end
 
+  defp validate_type({:list, type}, key, values) when is_list(values) do
+    Enum.reduce_while(values, :ok, fn value, acc ->
+      case validate_type(type, key, value) do
+        :ok -> {:cont, acc}
+        {:ok, _} -> {:cont, acc}
+        _ -> {:halt, {:error, "expected #{inspect(key)} to be of type #{inspect(type)}"}}
+      end
+    end)
+  end
+
   defp validate_type(nil, key, value) do
     validate_type(:any, key, value)
   end
@@ -457,7 +469,7 @@ defmodule NimbleOptions do
   defp available_types() do
     types =
       Enum.map(@basic_types, &inspect/1) ++
-        ["{:fun, arity}", "{:one_of, choices}", "{:custom, mod, fun, args}"]
+        ["{:fun, arity}", "{:one_of, choices}", "{:custom, mod, fun, args}", "{:list, type}"]
 
     Enum.join(types, ", ")
   end
@@ -478,6 +490,13 @@ defmodule NimbleOptions do
   def type({:custom, mod, fun, args} = value)
       when is_atom(mod) and is_atom(fun) and is_list(args) do
     {:ok, value}
+  end
+
+  def type({:list, type} = value) do
+    case type(type) do
+      {:ok, _} -> {:ok, value}
+      {:error, error} -> {:error, error}
+    end
   end
 
   def type(value) do
