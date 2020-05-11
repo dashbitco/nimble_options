@@ -89,6 +89,8 @@ defmodule NimbleOptions do
 
     * `:timeout` - A non-negative integer or the atom `:infinity`.
 
+    * `:pid` - A PID (process identifier).
+
     * `:mfa` - A named function in the format `{module, function, arity}`
 
     * `:mod_arg` - A module along with arguments, e.g. `{MyModule, [arg1, arg2]}`.
@@ -174,7 +176,8 @@ defmodule NimbleOptions do
     :mod_arg,
     :string,
     :boolean,
-    :timeout
+    :timeout,
+    :pid
   ]
 
   @type schema() :: keyword()
@@ -384,6 +387,14 @@ defmodule NimbleOptions do
     else
       {:error, "expected #{inspect(key)} to be a non-empty keyword list, got: #{inspect(value)}"}
     end
+  end
+
+  defp validate_type(:pid, _key, value) when is_pid(value) do
+    :ok
+  end
+
+  defp validate_type(:pid, key, value) do
+    {:error, "expected #{inspect(key)} to be a pid, got: #{inspect(value)}"}
   end
 
   defp validate_type(:mfa, _key, {m, f, args}) when is_atom(m) and is_atom(f) and is_list(args) do
