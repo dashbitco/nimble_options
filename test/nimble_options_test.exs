@@ -30,7 +30,7 @@ defmodule NimbleOptionsTest do
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
-      {:fun, arity}, {:one_of, choices}, {:custom, mod, fun, args}\
+      :pid, {:fun, arity}, {:one_of, choices}, {:custom, mod, fun, args}\
       """
 
       assert_raise ArgumentError, message, fn ->
@@ -272,7 +272,7 @@ defmodule NimbleOptionsTest do
       schema = [name: [type: :pid]]
 
       assert NimbleOptions.validate([name: 1], schema) ==
-               {:error, "expected :name to be an pid, got: 1"}
+               {:error, "expected :name to be a pid, got: 1"}
     end
 
     test "valid mfa" do
