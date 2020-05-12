@@ -438,11 +438,17 @@ defmodule NimbleOptionsTest do
     test "valid {:list, type} for basic types" do
       schema = [hosts: [type: {:list, :string}]]
 
-      opts = [hosts: ["localhost", "hex.pm"]]
-      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
-
       opts = [hosts: []]
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [hosts: ["localhost", "hex.pm"]]
+      assert {:ok, validated_opts} = NimbleOptions.validate(opts, schema)
+      assert validated_opts[:hosts] == ["localhost", "hex.pm"]
+
+      schema = [partitions_by: [type: {:list, {:fun, 1}}]]
+      opts = [partitions_by: [fn x -> x end]]
+      assert {:ok, validated_opts} = NimbleOptions.validate(opts, schema)
+      assert is_function(hd(validated_opts[:partitions_by]), 1)
     end
 
     test "valid {:list, type} for complex types" do
@@ -454,35 +460,46 @@ defmodule NimbleOptionsTest do
       opts = [partitions_by: [fn x -> x end]]
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
 
-      schema = [choices: [type: {:list, {:custom, __MODULE__, :choice, [[:first, :last]]}}]]
-      opts = [choices: [:first]]
+      schema = [ports: [type: {:list, {:custom, __MODULE__, :validate_port, []}}]]
+
+      opts = [ports: [22]]
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [ports: [22, "80"]]
+      assert {:ok, validated_opts} = NimbleOptions.validate(opts, schema)
+      assert validated_opts[:ports] == [22, 80]
     end
 
     test "invalid {:list, type}" do
       schema = [hosts: [type: {:list, :string}]]
 
-      opts = [hosts: [1, 2, 3]]
+      opts = [hosts: ["hex.pm", :localhost, "127.0.0.1", 127]]
 
       assert NimbleOptions.validate(opts, schema) ==
-               {:error, "expected :hosts to be a list of type :string, got: 1"}
-
-      opts = [hosts: [:localhost, "hex.pm"]]
-
-      assert NimbleOptions.validate(opts, schema) ==
-               {:error, "expected :hosts to be a list of type :string, got: :localhost"}
+               {:error,
+                "expected :hosts to be a list of type :string, got: [\"hex.pm\", :localhost, \"127.0.0.1\", 127]"}
 
       opts = [hosts: :not_a_list]
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error, "expected :hosts to be a list of type :string, got: :not_a_list"}
 
-      schema = [hosts: [type: {:list, :invalid}]]
-      opts = [hosts: [1, 2, 3]]
+      schema = [ports: [type: {:list, :invalid}]]
+      opts = [ports: [1, 2, 3]]
 
       assert_raise ArgumentError, fn ->
         NimbleOptions.validate(opts, schema)
       end
+
+      schema = [ports: [type: {:list, {:custom, __MODULE__, :validate_port, []}}]]
+      opts = [ports: [:not_a_port, 22, "80", __MODULE__]]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                [
+                  "expected an integer or a string, got: :not_a_port",
+                  "expected an integer or a string, got: NimbleOptionsTest"
+                ]}
     end
   end
 
@@ -1029,6 +1046,12 @@ defmodule NimbleOptionsTest do
   def string_to_integer(value) do
     {:ok, String.to_integer(value)}
   end
+
+  def validate_port(value) when is_binary(value), do: {:ok, String.to_integer(value)}
+  def validate_port(value) when is_integer(value), do: {:ok, value}
+
+  def validate_port(value),
+    do: {:error, "expected an integer or a string, got: #{inspect(value)}"}
 
   defp recursive_schema() do
     [

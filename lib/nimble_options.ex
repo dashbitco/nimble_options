@@ -442,6 +442,25 @@ defmodule NimbleOptions do
     end
   end
 
+  defp validate_type({:list, {:custom, _, _, _} = type}, key, values) when is_list(values) do
+    validation =
+      Enum.reduce(values, [valid_values: [], errors: []], fn value, acc ->
+        case validate_type(type, key, value) do
+          {:ok, value} -> Keyword.update!(acc, :valid_values, &[value | &1])
+          {:error, msg} -> Keyword.update!(acc, :errors, &[msg | &1])
+        end
+      end)
+
+    case Keyword.get(validation, :errors) do
+      [] ->
+        valid_values = validation |> Keyword.get(:valid_values) |> Enum.reverse()
+        {:ok, valid_values}
+
+      errors ->
+        {:error, Enum.reverse(errors)}
+    end
+  end
+
   defp validate_type({:list, type}, key, values) when is_list(values) do
     Enum.reduce_while(values, :ok, fn value, acc ->
       case validate_type(type, key, value) do
@@ -454,7 +473,7 @@ defmodule NimbleOptions do
         _ ->
           expected =
             "expected #{inspect(key)} to be a list of type #{inspect(type)}, got: #{
-              inspect(value)
+              inspect(values)
             }"
 
           {:halt, {:error, expected}}
