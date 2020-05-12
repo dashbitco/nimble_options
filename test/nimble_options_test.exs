@@ -465,12 +465,17 @@ defmodule NimbleOptionsTest do
       opts = [hosts: [1, 2, 3]]
 
       assert NimbleOptions.validate(opts, schema) ==
-               {:error, "expected :hosts to be of type :string"}
+               {:error, "expected :hosts to be a list of type :string, got: 1"}
 
       opts = [hosts: [:localhost, "hex.pm"]]
 
       assert NimbleOptions.validate(opts, schema) ==
-               {:error, "expected :hosts to be of type :string"}
+               {:error, "expected :hosts to be a list of type :string, got: :localhost"}
+
+      opts = [hosts: :not_a_list]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error, "expected :hosts to be a list of type :string, got: :not_a_list"}
 
       schema = [hosts: [type: {:list, :invalid}]]
       opts = [hosts: [1, 2, 3]]

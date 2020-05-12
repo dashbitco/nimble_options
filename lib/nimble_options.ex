@@ -445,11 +445,26 @@ defmodule NimbleOptions do
   defp validate_type({:list, type}, key, values) when is_list(values) do
     Enum.reduce_while(values, :ok, fn value, acc ->
       case validate_type(type, key, value) do
-        :ok -> {:cont, acc}
-        {:ok, _} -> {:cont, acc}
-        _ -> {:halt, {:error, "expected #{inspect(key)} to be of type #{inspect(type)}"}}
+        :ok ->
+          {:cont, acc}
+
+        {:ok, _} ->
+          {:cont, acc}
+
+        _ ->
+          expected =
+            "expected #{inspect(key)} to be a list of type #{inspect(type)}, got: #{
+              inspect(value)
+            }"
+
+          {:halt, {:error, expected}}
       end
     end)
+  end
+
+  defp validate_type({:list, type}, key, value) do
+    {:error,
+     "expected #{inspect(key)} to be a list of type #{inspect(type)}, got: #{inspect(value)}"}
   end
 
   defp validate_type(nil, key, value) do
