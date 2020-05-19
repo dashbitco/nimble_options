@@ -98,7 +98,9 @@ defmodule NimbleOptions do
 
     * `{:fun, arity}` - Any function with the specified arity.
 
-    * `{:one_of, choices}` - A value that is a member of one of the `choices`.
+    * `{:one_of, choices}` - A value that is a member of one of the `choices`. `choices`
+      should be a list of terms. The value is an element in said list of terms,
+      that is, `value in choices` is `true`.
 
     * `{:custom, mod, fun, args}` - A custom type. The related value must be validated
       by `mod.fun(values, ...args)`. The function should return `{:ok, value}` or
