@@ -444,13 +444,13 @@ defmodule NimbleOptions do
 
   defp validate_type({:list, type}, key, values) when is_list(values) do
     validation =
-      Enum.reduce(values, [valid_fields: [], custom_errors: [], is_valid?: true], fn value, acc ->
+      Enum.reduce(values, [valid_values: [], custom_errors: [], is_valid?: true], fn value, acc ->
         case validate_type(type, key, value) do
           :ok ->
-            Keyword.update!(acc, :valid_fields, &[value | &1])
+            Keyword.update!(acc, :valid_values, &[value | &1])
 
           {:ok, value} ->
-            Keyword.update!(acc, :valid_fields, &[value | &1])
+            Keyword.update!(acc, :valid_values, &[value | &1])
 
           {:error, msg} ->
             acc
@@ -461,7 +461,7 @@ defmodule NimbleOptions do
 
     case Keyword.get(validation, :is_valid?) do
       true ->
-        valid = validation |> Keyword.get(:valid_fields) |> Enum.reverse()
+        valid = validation |> Keyword.get(:valid_values) |> Enum.reverse()
         {:ok, valid}
 
       false ->

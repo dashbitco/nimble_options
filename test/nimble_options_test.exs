@@ -435,7 +435,7 @@ defmodule NimbleOptionsTest do
       assert validated_opts[:connections] == 5
     end
 
-    test "valid {:list, type} for basic types" do
+    test "valid {:list, type}" do
       schema = [hosts: [type: {:list, :string}]]
 
       opts = [hosts: []]
@@ -447,20 +447,13 @@ defmodule NimbleOptionsTest do
 
       schema = [partitions_by: [type: {:list, {:fun, 1}}]]
       opts = [partitions_by: [fn x -> x end]]
-      assert {:ok, validated_opts} = NimbleOptions.validate(opts, schema)
-      assert is_function(hd(validated_opts[:partitions_by]), 1)
-    end
+      assert {:ok, [partitions_by: [opt | []]]} = NimbleOptions.validate(opts, schema)
+      assert is_function(opt, 1)
 
-    test "valid {:list, type} for complex types" do
       schema = [transformers: [type: {:list, :mfa}]]
       opts = [transformers: [{SomeMod, :func, [1, 2]}]]
       assert {:ok, validated_opts} = NimbleOptions.validate(opts, schema)
       assert validated_opts[:transformers] == [{SomeMod, :func, [1, 2]}]
-
-      schema = [partitions_by: [type: {:list, {:fun, 1}}]]
-      opts = [partitions_by: [fn x -> x end]]
-      assert {:ok, [partitions_by: [opt | []]]} = NimbleOptions.validate(opts, schema)
-      assert is_function(opt, 1)
 
       schema = [ports: [type: {:list, {:custom, __MODULE__, :validate_port, []}}]]
 
