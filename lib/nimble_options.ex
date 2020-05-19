@@ -442,43 +442,41 @@ defmodule NimbleOptions do
     end
   end
 
-  defp validate_type({:list, {:custom, _, _, _} = type}, key, values) when is_list(values) do
+  defp validate_type({:list, type}, key, values) when is_list(values) do
     validation =
-      Enum.reduce(values, [valid_values: [], errors: []], fn value, acc ->
+      Enum.reduce(values, [valid_fields: [], custom_errors: [], is_valid?: true], fn value, acc ->
         case validate_type(type, key, value) do
-          {:ok, value} -> Keyword.update!(acc, :valid_values, &[value | &1])
-          {:error, msg} -> Keyword.update!(acc, :errors, &[msg | &1])
+          :ok ->
+            Keyword.update!(acc, :valid_fields, &[value | &1])
+
+          {:ok, value} ->
+            Keyword.update!(acc, :valid_fields, &[value | &1])
+
+          {:error, msg} ->
+            acc
+            |> Keyword.put(:is_valid?, false)
+            |> Keyword.update!(:custom_errors, &[msg | &1])
         end
       end)
 
-    case Keyword.get(validation, :errors) do
-      [] ->
-        valid_values = validation |> Keyword.get(:valid_values) |> Enum.reverse()
-        {:ok, valid_values}
+    case Keyword.get(validation, :is_valid?) do
+      true ->
+        valid = validation |> Keyword.get(:valid_fields) |> Enum.reverse()
+        {:ok, valid}
 
-      errors ->
-        {:error, Enum.reverse(errors)}
-    end
-  end
-
-  defp validate_type({:list, type}, key, values) when is_list(values) do
-    Enum.reduce_while(values, :ok, fn value, acc ->
-      case validate_type(type, key, value) do
-        :ok ->
-          {:cont, acc}
-
-        {:ok, _} ->
-          {:cont, acc}
-
-        _ ->
-          expected =
+      false ->
+        if match?({:custom, _, _, _}, type) do
+          custom = validation |> Keyword.get(:custom_errors) |> Enum.reverse()
+          {:error, custom}
+        else
+          msg =
             "expected #{inspect(key)} to be a list of type #{inspect(type)}, got: #{
               inspect(values)
             }"
 
-          {:halt, {:error, expected}}
-      end
-    end)
+          {:error, msg}
+        end
+    end
   end
 
   defp validate_type({:list, type}, key, value) do

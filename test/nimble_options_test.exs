@@ -454,20 +454,28 @@ defmodule NimbleOptionsTest do
     test "valid {:list, type} for complex types" do
       schema = [transformers: [type: {:list, :mfa}]]
       opts = [transformers: [{SomeMod, :func, [1, 2]}]]
-      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+      assert {:ok, validated_opts} = NimbleOptions.validate(opts, schema)
+      assert validated_opts[:transformers] == [{SomeMod, :func, [1, 2]}]
 
       schema = [partitions_by: [type: {:list, {:fun, 1}}]]
       opts = [partitions_by: [fn x -> x end]]
-      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+      assert {:ok, [partitions_by: [opt | []]]} = NimbleOptions.validate(opts, schema)
+      assert is_function(opt, 1)
 
       schema = [ports: [type: {:list, {:custom, __MODULE__, :validate_port, []}}]]
 
       opts = [ports: [22]]
-      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+      assert {:ok, validated_opts} = NimbleOptions.validate(opts, schema)
+      assert validated_opts[:ports] == [22]
 
       opts = [ports: [22, "80"]]
       assert {:ok, validated_opts} = NimbleOptions.validate(opts, schema)
       assert validated_opts[:ports] == [22, 80]
+
+      schema = [ports: [type: {:list, {:list, {:custom, __MODULE__, :validate_port, []}}}]]
+      opts = [ports: [[22], [80, "8080"]]]
+      assert {:ok, validated_opts} = NimbleOptions.validate(opts, schema)
+      assert validated_opts[:ports] == [[22], [80, 8080]]
     end
 
     test "invalid {:list, type}" do
