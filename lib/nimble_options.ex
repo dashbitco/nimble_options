@@ -129,7 +129,7 @@ defmodule NimbleOptions do
       ...>
       ...> {:error, %NimbleOptions.ValidationError{} = error} = NimbleOptions.validate(config, schema)
       ...> Exception.message(error)
-      "(in options [:producer]) required option :module not found, received options: [:concurrency]"
+      "required option :module not found, received options: [:concurrency] (in options [:producer])"
 
   ## Nested option items
 
@@ -163,7 +163,7 @@ defmodule NimbleOptions do
       ...>
       ...> {:error, %NimbleOptions.ValidationError{} = error} = NimbleOptions.validate(config, schema)
       ...> Exception.message(error)
-      "(in options [:producer, :rate_limiting]) expected :interval to be a positive integer, got: :oops!"
+      "expected :interval to be a positive integer, got: :oops! (in options [:producer, :rate_limiting])"
 
   """
 

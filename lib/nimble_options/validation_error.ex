@@ -15,12 +15,12 @@ defmodule NimbleOptions.ValidationError do
 
   @impl true
   def message(%__MODULE__{message: message, keys_path: keys_path}) do
-    prefix =
+    suffix =
       case keys_path do
         [] -> ""
-        keys -> "(in options #{inspect(keys)}) "
+        keys -> " (in options #{inspect(keys)})"
       end
 
-    prefix <> message
+    message <> suffix
   end
 end

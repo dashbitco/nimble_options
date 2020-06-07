@@ -31,11 +31,11 @@ defmodule NimbleOptionsTest do
 
       message = """
       invalid schema given to NimbleOptions.validate/2. \
-      Reason: (in options [:stages]) invalid option type :foo.
+      Reason: invalid option type :foo.
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
-      :pid, {:fun, arity}, {:one_of, choices}, {:custom, mod, fun, args}\
+      :pid, {:fun, arity}, {:one_of, choices}, {:custom, mod, fun, args} (in options [:stages])\
       """
 
       assert_raise ArgumentError, message, fn ->
@@ -61,10 +61,11 @@ defmodule NimbleOptionsTest do
 
       message = """
       invalid schema given to NimbleOptions.validate/2. \
-      Reason: (in options [:producers, :keys, :*, :keys, :module]) \
+      Reason: \
       unknown options [:unknown_schema_option], \
       valid options are: [:type, :required, :default, :keys, \
-      :deprecated, :rename_to, :doc, :subsection]\
+      :deprecated, :rename_to, :doc, :subsection] \
+      (in options [:producers, :keys, :*, :keys, :module])\
       """
 
       assert_raise ArgumentError, message, fn ->
