@@ -127,8 +127,9 @@ defmodule NimbleOptions do
       ...>   ]
       ...> ]
       ...>
-      ...> NimbleOptions.validate(config, schema)
-      {:error, "(in options [:producer]) required option :module not found, received options: [:concurrency]"}
+      ...> {:error, %NimbleOptions.ValidationError{} = error} = NimbleOptions.validate(config, schema)
+      ...> Exception.message(error)
+      "required option :module not found, received options: [:concurrency] (in options [:producer])"
 
   ## Nested option items
 
@@ -160,10 +161,13 @@ defmodule NimbleOptions do
       ...>   ]
       ...> ]
       ...>
-      ...> NimbleOptions.validate(config, schema)
-      {:error, "(in options [:producer, :rate_limiting]) expected :interval to be a positive integer, got: :oops!"}
+      ...> {:error, %NimbleOptions.ValidationError{} = error} = NimbleOptions.validate(config, schema)
+      ...> Exception.message(error)
+      "expected :interval to be a positive integer, got: :oops! (in options [:producer, :rate_limiting])"
 
   """
+
+  alias NimbleOptions.ValidationError
 
   @basic_types [
     :any,
@@ -193,15 +197,16 @@ defmodule NimbleOptions do
   telling what's wrong with the given options.
   """
   @spec validate(keyword(), schema()) ::
-          {:ok, validated_options :: keyword()} | {:error, reason :: String.t()}
-  def validate(options, schema) do
+          {:ok, validated_options :: keyword()} | {:error, ValidationError.t()}
+  def validate(options, schema) when is_list(options) and is_list(schema) do
     case validate_options_with_schema(schema, options_schema()) do
       {:ok, _validated_schema} ->
         validate_options_with_schema(options, schema)
 
-      {:error, message} ->
+      {:error, %ValidationError{} = error} ->
         raise ArgumentError,
-              "invalid schema given to NimbleOptions.validate/2. Reason: #{message}"
+              "invalid schema given to NimbleOptions.validate/2. " <>
+                "Reason: #{Exception.message(error)}"
     end
   end
 
@@ -211,11 +216,11 @@ defmodule NimbleOptions do
   This function behaves exactly like `validate/2`, but returns the options directly
   if they're valid or raises a `NimbleOptions.ValidationError` exception otherwise.
   """
-  @spec validate!(keyword(), schema()) :: validate_options :: keyword()
+  @spec validate!(keyword(), schema()) :: validated_options :: keyword()
   def validate!(options, schema) do
     case validate(options, schema) do
       {:ok, options} -> options
-      {:error, message} -> raise NimbleOptions.ValidationError, message
+      {:error, %ValidationError{} = error} -> raise error
     end
   end
 
@@ -233,7 +238,7 @@ defmodule NimbleOptions do
 
   """
   @spec docs(schema()) :: String.t()
-  def docs(schema) do
+  def docs(schema) when is_list(schema) do
     NimbleOptions.Docs.generate(schema)
   end
 
@@ -243,16 +248,7 @@ defmodule NimbleOptions do
   end
 
   defp validate_options_with_schema(opts, schema) do
-    case validate_options_with_schema_and_path(opts, schema, _path = []) do
-      {:ok, options} ->
-        {:ok, options}
-
-      {:error, message, []} ->
-        {:error, message}
-
-      {:error, message, path} ->
-        {:error, "(in options #{inspect(path)}) " <> message}
-    end
+    validate_options_with_schema_and_path(opts, schema, _path = [])
   end
 
   defp validate_options_with_schema_and_path(opts, fun, path) when is_function(fun) do
@@ -266,11 +262,8 @@ defmodule NimbleOptions do
          {:ok, options} <- validate_options(schema, opts) do
       {:ok, options}
     else
-      {:error, message} ->
-        {:error, message, path}
-
-      {:error, message, sub_path} ->
-        {:error, message, path ++ sub_path}
+      {:error, %ValidationError{} = error} ->
+        {:error, %ValidationError{error | keys_path: path ++ error.keys_path}}
     end
   end
 
@@ -282,20 +275,20 @@ defmodule NimbleOptions do
         :ok
 
       keys ->
-        {:error, "unknown options #{inspect(keys)}, valid options are: #{inspect(valid_opts)}"}
+        error_tuple("unknown options #{inspect(keys)}, valid options are: #{inspect(valid_opts)}")
     end
   end
 
   defp validate_options(schema, opts) do
     case Enum.reduce_while(schema, opts, &reduce_options/2) do
-      {:error, _, _} = result -> result
+      {:error, %ValidationError{}} = result -> result
       result -> {:ok, result}
     end
   end
 
   defp reduce_options({key, schema_opts}, opts) do
     case validate_option(opts, key, schema_opts) do
-      {:error, _message, _path} = result ->
+      {:error, %ValidationError{}} = result ->
         {:halt, result}
 
       {:ok, value} ->
@@ -312,19 +305,13 @@ defmodule NimbleOptions do
   end
 
   defp validate_option(opts, key, schema) do
-    result =
-      with {:ok, value} <- validate_value(opts, key, schema),
-           :ok <- validate_type(schema[:type], key, value) do
-        if nested_schema = schema[:keys] do
-          validate_options_with_schema_and_path(value, nested_schema, _path = [key])
-        else
-          {:ok, value}
-        end
+    with {:ok, value} <- validate_value(opts, key, schema),
+         :ok <- validate_type(schema[:type], key, value) do
+      if nested_schema = schema[:keys] do
+        validate_options_with_schema_and_path(value, nested_schema, _path = [key])
+      else
+        {:ok, value}
       end
-
-    case result do
-      {:error, message} -> {:error, message, _path = []}
-      other -> other
     end
   end
 
@@ -338,9 +325,10 @@ defmodule NimbleOptions do
         {:ok, opts[key]}
 
       Keyword.get(schema, :required, false) ->
-        {:error,
-         "required option #{inspect(key)} not found, received options: " <>
-           inspect(Keyword.keys(opts))}
+        error_tuple(
+          "required option #{inspect(key)} not found, received options: " <>
+            inspect(Keyword.keys(opts))
+        )
 
       true ->
         :no_value
@@ -348,36 +336,37 @@ defmodule NimbleOptions do
   end
 
   defp validate_type(:non_neg_integer, key, value) when not is_integer(value) or value < 0 do
-    {:error, "expected #{inspect(key)} to be a non negative integer, got: #{inspect(value)}"}
+    error_tuple("expected #{inspect(key)} to be a non negative integer, got: #{inspect(value)}")
   end
 
   defp validate_type(:pos_integer, key, value) when not is_integer(value) or value < 1 do
-    {:error, "expected #{inspect(key)} to be a positive integer, got: #{inspect(value)}"}
+    error_tuple("expected #{inspect(key)} to be a positive integer, got: #{inspect(value)}")
   end
 
   defp validate_type(:atom, key, value) when not is_atom(value) do
-    {:error, "expected #{inspect(key)} to be an atom, got: #{inspect(value)}"}
+    error_tuple("expected #{inspect(key)} to be an atom, got: #{inspect(value)}")
   end
 
   defp validate_type(:timeout, key, value)
        when not (value == :infinity or (is_integer(value) and value >= 0)) do
-    {:error,
-     "expected #{inspect(key)} to be non-negative integer or :infinity, got: #{inspect(value)}"}
+    error_tuple(
+      "expected #{inspect(key)} to be non-negative integer or :infinity, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(:string, key, value) when not is_binary(value) do
-    {:error, "expected #{inspect(key)} to be an string, got: #{inspect(value)}"}
+    error_tuple("expected #{inspect(key)} to be an string, got: #{inspect(value)}")
   end
 
   defp validate_type(:boolean, key, value) when not is_boolean(value) do
-    {:error, "expected #{inspect(key)} to be an boolean, got: #{inspect(value)}"}
+    error_tuple("expected #{inspect(key)} to be an boolean, got: #{inspect(value)}")
   end
 
   defp validate_type(:keyword_list, key, value) do
     if keyword_list?(value) do
       :ok
     else
-      {:error, "expected #{inspect(key)} to be a keyword list, got: #{inspect(value)}"}
+      error_tuple("expected #{inspect(key)} to be a keyword list, got: #{inspect(value)}")
     end
   end
 
@@ -385,7 +374,9 @@ defmodule NimbleOptions do
     if keyword_list?(value) && value != [] do
       :ok
     else
-      {:error, "expected #{inspect(key)} to be a non-empty keyword list, got: #{inspect(value)}"}
+      error_tuple(
+        "expected #{inspect(key)} to be a non-empty keyword list, got: #{inspect(value)}"
+      )
     end
   end
 
@@ -394,7 +385,7 @@ defmodule NimbleOptions do
   end
 
   defp validate_type(:pid, key, value) do
-    {:error, "expected #{inspect(key)} to be a pid, got: #{inspect(value)}"}
+    error_tuple("expected #{inspect(key)} to be a pid, got: #{inspect(value)}")
   end
 
   defp validate_type(:mfa, _key, {m, f, args}) when is_atom(m) and is_atom(f) and is_list(args) do
@@ -402,7 +393,7 @@ defmodule NimbleOptions do
   end
 
   defp validate_type(:mfa, key, value) when not is_nil(value) do
-    {:error, "expected #{inspect(key)} to be a tuple {Mod, Fun, Args}, got: #{inspect(value)}"}
+    error_tuple("expected #{inspect(key)} to be a tuple {Mod, Fun, Args}, got: #{inspect(value)}")
   end
 
   defp validate_type(:mod_arg, _key, {m, _arg}) when is_atom(m) do
@@ -410,7 +401,7 @@ defmodule NimbleOptions do
   end
 
   defp validate_type(:mod_arg, key, value) do
-    {:error, "expected #{inspect(key)} to be a tuple {Mod, Arg}, got: #{inspect(value)}"}
+    error_tuple("expected #{inspect(key)} to be a tuple {Mod, Arg}, got: #{inspect(value)}")
   end
 
   defp validate_type({:fun, arity}, key, value) do
@@ -422,23 +413,27 @@ defmodule NimbleOptions do
           :ok
 
         {:arity, fun_arity} ->
-          {:error, expected <> "got: function of arity #{inspect(fun_arity)}"}
+          error_tuple(expected <> "got: function of arity #{inspect(fun_arity)}")
       end
     else
-      {:error, expected <> "got: #{inspect(value)}"}
+      error_tuple(expected <> "got: #{inspect(value)}")
     end
   end
 
   defp validate_type({:custom, mod, fun, args}, _key, value) do
-    apply(mod, fun, [value | args])
+    case apply(mod, fun, [value | args]) do
+      {:ok, value} -> {:ok, value}
+      {:error, message} when is_binary(message) -> error_tuple(message)
+    end
   end
 
   defp validate_type({:one_of, choices}, key, value) do
     if value in choices do
       :ok
     else
-      {:error,
-       "expected #{inspect(key)} to be one of #{inspect(choices)}, got: #{inspect(value)}"}
+      error_tuple(
+        "expected #{inspect(key)} to be one of #{inspect(choices)}, got: #{inspect(value)}"
+      )
     end
   end
 
@@ -504,5 +499,9 @@ defmodule NimbleOptions do
     else
       {:error, "expected :doc to be a string or false, got: #{inspect(doc)}"}
     end
+  end
+
+  defp error_tuple(message) do
+    {:error, %ValidationError{message: message}}
   end
 end
