@@ -33,8 +33,12 @@ NimbleOptions.validate(options, definition)
 If the options don't match the definition, an error is returned:
 
 ```elixir
-NimbleOptions.validate([connections: 3], schema)
-#=> {:error, "required option :url not found, received options: [:connections]"}
+NimbleOptions.validate([connections: 3], definition)
+{:error,
+ %NimbleOptions.ValidationError{
+   keys_path: [],
+   message: "required option :url not found, received options: [:connections]"
+ }}
 ```
 
 `NimbleOptions` is also capable of automatically generating
@@ -49,7 +53,7 @@ dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:nimble_options, "~> 0.2.0"}
+    {:nimble_options, "~> 0.3.0"}
   ]
 end
 ```
