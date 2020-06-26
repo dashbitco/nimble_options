@@ -1,11 +1,26 @@
 defmodule NimbleOptions.ValidationError do
   @moduledoc """
-  Raised when options are invalid.
+  An error that is returned (or raised) when options are invalid.
+
+  The contents of this exception are not public and you should not rely on
+  its fields.
+
+  Since this is an exception, you can either raise it directly with `raise/1`
+  or turn it into a message string with `Exception.message/1`.
   """
 
-  defexception [:message]
+  @type t() :: %__MODULE__{}
 
-  def exception(message) when is_binary(message) do
-    %__MODULE__{message: message}
+  defexception [:message, keys_path: []]
+
+  @impl true
+  def message(%__MODULE__{message: message, keys_path: keys_path}) do
+    suffix =
+      case keys_path do
+        [] -> ""
+        keys -> " (in options #{inspect(keys)})"
+      end
+
+    message <> suffix
   end
 end
