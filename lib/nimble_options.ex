@@ -456,7 +456,7 @@ defmodule NimbleOptions do
       end)
 
     case Keyword.get(validation, :invalid_values) do
-      [] -> 
+      [] ->
         valid_values = validation |> Keyword.get(:valid_values) |> Enum.reverse()
         {:ok, valid_values}
 
@@ -466,7 +466,9 @@ defmodule NimbleOptions do
         if match?({:custom, _, _, _}, type) do
           error_tuple("expected #{inspect(key)} to be a list, got: #{inspect(invalid_values)}")
         else
-          error_tuple("expected #{inspect(key)} to be a list of #{type}, got: #{inspect(invalid_values)}")
+          error_tuple(
+            "expected #{inspect(key)} to be a list of #{type}, got: #{inspect(invalid_values)}"
+          )
         end
     end
   end

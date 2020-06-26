@@ -554,10 +554,10 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-               %ValidationError{
-                 keys_path: [],
-                 message: "expected :ports to be a list, got: [:not_a_port, NimbleOptionsTest]"
-               }}
+                %ValidationError{
+                  keys_path: [],
+                  message: "expected :ports to be a list, got: [:not_a_port, NimbleOptionsTest]"
+                }}
     end
   end
 
