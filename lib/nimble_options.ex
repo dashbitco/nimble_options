@@ -106,7 +106,7 @@ defmodule NimbleOptions do
       by `mod.fun(values, ...args)`. The function should return `{:ok, value}` or
       `{:error, message}`.
 
-    * `{:list, type}` - A list containing elements of any `type`. Can be an empty list.
+    * `{:list, type}` - A list containing elements of the given `type`. Can be an empty list.
 
   ## Example
 
@@ -442,7 +442,7 @@ defmodule NimbleOptions do
 
   defp validate_type({:list, type}, key, values) when is_list(values) do
     validation =
-      Enum.reduce(values, [valid_values: [], custom_errors: [], is_valid?: true], fn value, acc ->
+      Enum.reduce(values, [valid_values: [], invalid_values: []], fn value, acc ->
         case validate_type(type, key, value) do
           :ok ->
             Keyword.update!(acc, :valid_values, &[value | &1])
@@ -450,36 +450,29 @@ defmodule NimbleOptions do
           {:ok, value} ->
             Keyword.update!(acc, :valid_values, &[value | &1])
 
-          {:error, msg} ->
-            acc
-            |> Keyword.put(:is_valid?, false)
-            |> Keyword.update!(:custom_errors, &[msg | &1])
+          {:error, _msg} ->
+            Keyword.update!(acc, :invalid_values, &[value | &1])
         end
       end)
 
-    case Keyword.get(validation, :is_valid?) do
-      true ->
-        valid = validation |> Keyword.get(:valid_values) |> Enum.reverse()
-        {:ok, valid}
+    case Keyword.get(validation, :invalid_values) do
+      [] -> 
+        valid_values = validation |> Keyword.get(:valid_values) |> Enum.reverse()
+        {:ok, valid_values}
 
-      false ->
+      invalid_values ->
+        invalid_values = Enum.reverse(invalid_values)
+
         if match?({:custom, _, _, _}, type) do
-          custom = validation |> Keyword.get(:custom_errors) |> Enum.reverse()
-          {:error, custom}
+          error_tuple("expected #{inspect(key)} to be a list, got: #{inspect(invalid_values)}")
         else
-          msg =
-            "expected #{inspect(key)} to be a list of type #{inspect(type)}, got: #{
-              inspect(values)
-            }"
-
-          {:error, msg}
+          error_tuple("expected #{inspect(key)} to be a list of #{type}, got: #{inspect(invalid_values)}")
         end
     end
   end
 
   defp validate_type({:list, type}, key, value) do
-    {:error,
-     "expected #{inspect(key)} to be a list of type #{inspect(type)}, got: #{inspect(value)}"}
+    error_tuple("expected #{inspect(key)} to be a list of #{type}, got: #{inspect(value)}")
   end
 
   defp validate_type(nil, key, value) do
@@ -510,7 +503,7 @@ defmodule NimbleOptions do
   defp available_types() do
     types =
       Enum.map(@basic_types, &inspect/1) ++
-        ["{:fun, arity}", "{:one_of, choices}", "{:custom, mod, fun, args}", "{:list, type}"]
+        ["{:fun, arity}", "{:one_of, choices}", "{:list, type}", "{:custom, mod, fun, args}"]
 
     Enum.join(types, ", ")
   end

@@ -35,7 +35,7 @@ defmodule NimbleOptionsTest do
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
-      :pid, {:fun, arity}, {:one_of, choices}, {:custom, mod, fun, args} (in options [:stages])\
+      :pid, {:fun, arity}, {:one_of, choices}, {:list, type}, {:custom, mod, fun, args} (in options [:stages])\
       """
 
       assert_raise ArgumentError, message, fn ->
@@ -528,12 +528,19 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                "expected :hosts to be a list of type :string, got: [\"hex.pm\", :localhost, \"127.0.0.1\", 127]"}
+                %ValidationError{
+                  keys_path: [],
+                  message: "expected :hosts to be a list of string, got: [:localhost, 127]"
+                }}
 
       opts = [hosts: :not_a_list]
 
       assert NimbleOptions.validate(opts, schema) ==
-               {:error, "expected :hosts to be a list of type :string, got: :not_a_list"}
+               {:error,
+                %ValidationError{
+                  keys_path: [],
+                  message: "expected :hosts to be a list of string, got: :not_a_list"
+                }}
 
       schema = [ports: [type: {:list, :invalid}]]
       opts = [ports: [1, 2, 3]]
@@ -547,10 +554,10 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                [
-                  "expected an integer or a string, got: :not_a_port",
-                  "expected an integer or a string, got: NimbleOptionsTest"
-                ]}
+               %ValidationError{
+                 keys_path: [],
+                 message: "expected :ports to be a list, got: [:not_a_port, NimbleOptionsTest]"
+               }}
     end
   end
 
