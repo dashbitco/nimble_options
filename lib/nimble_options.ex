@@ -83,6 +83,8 @@ defmodule NimbleOptions do
 
     * `:boolean` - A boolean.
 
+    * `:integer` - An integer
+
     * `:non_neg_integer` - A non-negative integer.
 
     * `:pos_integer` - A positive integer.
