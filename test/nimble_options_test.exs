@@ -34,7 +34,7 @@ defmodule NimbleOptionsTest do
       Reason: invalid option type :foo.
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
-      :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
+      :integer, :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
       :pid, {:fun, arity}, {:one_of, choices}, {:custom, mod, fun, args} (in options [:stages])\
       """
 
@@ -184,6 +184,29 @@ defmodule NimbleOptionsTest do
                {:error,
                 %ValidationError{
                   message: "expected :stages to be a positive integer, got: :an_atom"
+                }}
+    end
+
+    test "valid integer" do
+      schema = [min_demand: [type: :integer]]
+      opts = [min_demand: 12]
+
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid integer" do
+      schema = [min_demand: [type: :integer]]
+
+      assert NimbleOptions.validate([min_demand: 1.5], schema) ==
+               {:error,
+                %ValidationError{
+                  message: "expected :min_demand to be an integer, got: 1.5"
+                }}
+
+      assert NimbleOptions.validate([min_demand: :an_atom], schema) ==
+               {:error,
+                %ValidationError{
+                  message: "expected :min_demand to be an integer, got: :an_atom"
                 }}
     end
 

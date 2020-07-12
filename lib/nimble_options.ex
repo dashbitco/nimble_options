@@ -174,6 +174,7 @@ defmodule NimbleOptions do
     :keyword_list,
     :non_empty_keyword_list,
     :atom,
+    :integer,
     :non_neg_integer,
     :pos_integer,
     :mfa,
@@ -334,6 +335,10 @@ defmodule NimbleOptions do
       true ->
         :no_value
     end
+  end
+
+  defp validate_type(:integer, key, value) when not is_integer(value) do
+    error_tuple("expected #{inspect(key)} to be an integer, got: #{inspect(value)}")
   end
 
   defp validate_type(:non_neg_integer, key, value) when not is_integer(value) or value < 0 do
