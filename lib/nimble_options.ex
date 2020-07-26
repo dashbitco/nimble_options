@@ -196,10 +196,10 @@ defmodule NimbleOptions do
 
   If the validation is successful, this function returns `{:ok, validated_options}`
   where `validated_options` is a keyword list. If the validation fails, this
-  function returns `{:error, validation_error}` where `validation_error` is a
-  `NimbleOptions.ValidationError` struct explaining the first error encountered
-  in the options. You can use `raise/1` with that struct or
-  `Exception.message/1` to turn it into a string.
+  function returns `{:error, validation_errors}` where `validation_errors` is a
+  list of `NimbleOptions.ValidationError` structs explaining errors encountered
+  in the options. The list is in the same order as the options. You can use
+  `raise/1` with a struct or `Exception.message/1` to turn it into a string.
   """
   @spec validate(keyword(), schema()) ::
           {:ok, validated_options :: keyword()} | {:error, [ValidationError.t()]}
