@@ -129,7 +129,7 @@ defmodule NimbleOptions do
       ...>   ]
       ...> ]
       ...>
-      ...> {:error, %NimbleOptions.ValidationError{} = error} = NimbleOptions.validate(config, schema)
+      ...> {:error, [%NimbleOptions.ValidationError{} = error]} = NimbleOptions.validate(config, schema)
       ...> Exception.message(error)
       "required option :module not found, received options: [:concurrency] (in options [:producer])"
 
@@ -163,7 +163,7 @@ defmodule NimbleOptions do
       ...>   ]
       ...> ]
       ...>
-      ...> {:error, %NimbleOptions.ValidationError{} = error} = NimbleOptions.validate(config, schema)
+      ...> {:error, [%NimbleOptions.ValidationError{} = error]} = NimbleOptions.validate(config, schema)
       ...> Exception.message(error)
       "expected :interval to be a positive integer, got: :oops! (in options [:producer, :rate_limiting])"
 
@@ -197,17 +197,21 @@ defmodule NimbleOptions do
   If the validation is successful, this function returns `{:ok, validated_options}`
   where `validated_options` is a keyword list. If the validation fails, this
   function returns `{:error, validation_error}` where `validation_error` is a
-  `NimbleOptions.ValidationError` struct explaining what's wrong with the options.
-  You can use `raise/1` with that struct or `Exception.message/1` to turn it into a string.
+  `NimbleOptions.ValidationError` struct explaining the first error encountered
+  in the options. You can use `raise/1` with that struct or
+  `Exception.message/1` to turn it into a string.
   """
   @spec validate(keyword(), schema()) ::
-          {:ok, validated_options :: keyword()} | {:error, ValidationError.t()}
+          {:ok, validated_options :: keyword()} | {:error, [ValidationError.t()]}
   def validate(options, schema) when is_list(options) and is_list(schema) do
     case validate_options_with_schema(schema, options_schema()) do
       {:ok, _validated_schema} ->
-        validate_options_with_schema(options, schema)
+        case validate_options_with_schema(options, schema) do
+          {:ok, _} = ok -> ok
+          {:error, errors} -> {:error, Enum.reverse(errors)}
+        end
 
-      {:error, %ValidationError{} = error} ->
+      {:error, [%ValidationError{} = error | _errors]} ->
         raise ArgumentError,
               "invalid schema given to NimbleOptions.validate/2. " <>
                 "Reason: #{Exception.message(error)}"
@@ -218,13 +222,14 @@ defmodule NimbleOptions do
   Validates the given `options` with the given `schema` and raises if they're not valid.
 
   This function behaves exactly like `validate/2`, but returns the options directly
-  if they're valid or raises a `NimbleOptions.ValidationError` exception otherwise.
+  if they're valid or raises a `NimbleOptions.ValidationError` exception for the
+  first invalid option otherwise.
   """
   @spec validate!(keyword(), schema()) :: validated_options :: keyword()
   def validate!(options, schema) do
     case validate(options, schema) do
       {:ok, options} -> options
-      {:error, %ValidationError{} = error} -> raise error
+      {:error, [%ValidationError{} = error | _errors]} -> raise error
     end
   end
 
@@ -266,8 +271,13 @@ defmodule NimbleOptions do
          {:ok, options} <- validate_options(schema, opts) do
       {:ok, options}
     else
-      {:error, %ValidationError{} = error} ->
-        {:error, %ValidationError{error | keys_path: path ++ error.keys_path}}
+      {:error, errors} when is_list(errors) ->
+        errors =
+          Enum.map(errors, fn error ->
+            %ValidationError{error | keys_path: path ++ error.keys_path}
+          end)
+
+        {:error, errors}
     end
   end
 
@@ -279,31 +289,44 @@ defmodule NimbleOptions do
         :ok
 
       keys ->
-        error_tuple("unknown options #{inspect(keys)}, valid options are: #{inspect(valid_opts)}")
+        errors =
+          Enum.reduce(keys, [], fn key, acc ->
+            error =
+              error("unknown option #{inspect(key)}, valid options are: #{inspect(valid_opts)}")
+
+            [error | acc]
+          end)
+
+        {:error, errors}
     end
   end
 
   defp validate_options(schema, opts) do
-    case Enum.reduce_while(schema, opts, &reduce_options/2) do
-      {:error, %ValidationError{}} = result -> result
-      result -> {:ok, result}
+    errors = []
+
+    case Enum.reduce(schema, {opts, errors}, &reduce_options/2) do
+      {result, []} -> {:ok, result}
+      {_result, errors} -> {:error, errors}
     end
   end
 
-  defp reduce_options({key, schema_opts}, opts) do
+  defp reduce_options({key, schema_opts}, {opts, errors}) do
     case validate_option(opts, key, schema_opts) do
-      {:error, %ValidationError{}} = result ->
-        {:halt, result}
+      {:error, new_errors} when is_list(new_errors) ->
+        {opts, new_errors ++ errors}
+
+      {:error, %ValidationError{} = error} ->
+        {opts, [error | errors]}
 
       {:ok, value} ->
         actual_key = schema_opts[:rename_to] || key
-        {:cont, Keyword.update(opts, actual_key, value, fn _ -> value end)}
+        {Keyword.update(opts, actual_key, value, fn _ -> value end), errors}
 
       :no_value ->
         if Keyword.has_key?(schema_opts, :default) do
-          {:cont, Keyword.put(opts, key, schema_opts[:default])}
+          {Keyword.put(opts, key, schema_opts[:default]), errors}
         else
-          {:cont, opts}
+          {opts, errors}
         end
     end
   end
@@ -510,6 +533,10 @@ defmodule NimbleOptions do
   end
 
   defp error_tuple(message) do
-    {:error, %ValidationError{message: message}}
+    {:error, error(message)}
+  end
+
+  defp error(message) do
+    %ValidationError{message: message}
   end
 end
