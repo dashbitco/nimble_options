@@ -1,5 +1,9 @@
 # Changelog for NimbleOptions
 
+## v0.4.0
+
+  * **Breaking change**: return `{:error, error_list}` tuples when there's a validation error in `NimbleOptions.validate/2` instead of a single validation error.
+
 ## v0.3.0
 
   * **Breaking change**: return `{:error, %NimbleOptions.ValidationError{}}` tuples when there's a validation error in `NimbleOptions.validate/2` instead of `{:error, message}` (with `message` being a string). You can use `Exception.message/1` to turn the `NimbleOptions.ValidationError` struct into a string.

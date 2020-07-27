@@ -18,10 +18,16 @@ defmodule NimbleOptionsTest do
 
     assert NimbleOptions.validate(opts, schema) ==
              {:error,
-              %ValidationError{
-                message:
-                  "unknown options [:not_an_option1, :not_an_option2], valid options are: [:an_option, :other_option]"
-              }}
+              [
+                %ValidationError{
+                  message:
+                    "unknown option :not_an_option1, valid options are: [:an_option, :other_option]"
+                },
+                %ValidationError{
+                  message:
+                    "unknown option :not_an_option2, valid options are: [:an_option, :other_option]"
+                }
+              ]}
   end
 
   describe "validate the schema itself before validating the options" do
@@ -62,7 +68,7 @@ defmodule NimbleOptionsTest do
       message = """
       invalid schema given to NimbleOptions.validate/2. \
       Reason: \
-      unknown options [:unknown_schema_option], \
+      unknown option :unknown_schema_option, \
       valid options are: [:type, :required, :default, :keys, \
       :deprecated, :rename_to, :doc, :subsection] \
       (in options [:producers, :keys, :*, :keys, :module])\
@@ -100,10 +106,12 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                %ValidationError{
-                  message:
-                    "required option :name not found, received options: [:an_option, :other_option]"
-                }}
+                [
+                  %ValidationError{
+                    message:
+                      "required option :name not found, received options: [:an_option, :other_option]"
+                  }
+                ]}
     end
   end
 
@@ -178,13 +186,15 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate([stages: 0], schema) ==
                {:error,
-                %ValidationError{message: "expected :stages to be a positive integer, got: 0"}}
+                [%ValidationError{message: "expected :stages to be a positive integer, got: 0"}]}
 
       assert NimbleOptions.validate([stages: :an_atom], schema) ==
                {:error,
-                %ValidationError{
-                  message: "expected :stages to be a positive integer, got: :an_atom"
-                }}
+                [
+                  %ValidationError{
+                    message: "expected :stages to be a positive integer, got: :an_atom"
+                  }
+                ]}
     end
 
     test "valid integer" do
@@ -199,15 +209,19 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate([min_demand: 1.5], schema) ==
                {:error,
-                %ValidationError{
-                  message: "expected :min_demand to be an integer, got: 1.5"
-                }}
+                [
+                  %ValidationError{
+                    message: "expected :min_demand to be an integer, got: 1.5"
+                  }
+                ]}
 
       assert NimbleOptions.validate([min_demand: :an_atom], schema) ==
                {:error,
-                %ValidationError{
-                  message: "expected :min_demand to be an integer, got: :an_atom"
-                }}
+                [
+                  %ValidationError{
+                    message: "expected :min_demand to be an integer, got: :an_atom"
+                  }
+                ]}
     end
 
     test "valid non negative integer" do
@@ -222,15 +236,19 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate([min_demand: -1], schema) ==
                {:error,
-                %ValidationError{
-                  message: "expected :min_demand to be a non negative integer, got: -1"
-                }}
+                [
+                  %ValidationError{
+                    message: "expected :min_demand to be a non negative integer, got: -1"
+                  }
+                ]}
 
       assert NimbleOptions.validate([min_demand: :an_atom], schema) ==
                {:error,
-                %ValidationError{
-                  message: "expected :min_demand to be a non negative integer, got: :an_atom"
-                }}
+                [
+                  %ValidationError{
+                    message: "expected :min_demand to be a non negative integer, got: :an_atom"
+                  }
+                ]}
     end
 
     test "valid atom" do
@@ -243,7 +261,7 @@ defmodule NimbleOptionsTest do
       schema = [name: [type: :atom]]
 
       assert NimbleOptions.validate([name: 1], schema) ==
-               {:error, %ValidationError{message: "expected :name to be an atom, got: 1"}}
+               {:error, [%ValidationError{message: "expected :name to be an atom, got: 1"}]}
     end
 
     test "valid string" do
@@ -256,7 +274,8 @@ defmodule NimbleOptionsTest do
       schema = [doc: [type: :string]]
 
       assert NimbleOptions.validate([doc: :an_atom], schema) ==
-               {:error, %ValidationError{message: "expected :doc to be an string, got: :an_atom"}}
+               {:error,
+                [%ValidationError{message: "expected :doc to be an string, got: :an_atom"}]}
     end
 
     test "valid boolean" do
@@ -274,7 +293,7 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate([required: :an_atom], schema) ==
                {:error,
-                %ValidationError{message: "expected :required to be an boolean, got: :an_atom"}}
+                [%ValidationError{message: "expected :required to be an boolean, got: :an_atom"}]}
     end
 
     test "valid timeout" do
@@ -297,18 +316,22 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                %ValidationError{
-                  message: "expected :timeout to be non-negative integer or :infinity, got: -1"
-                }}
+                [
+                  %ValidationError{
+                    message: "expected :timeout to be non-negative integer or :infinity, got: -1"
+                  }
+                ]}
 
       opts = [timeout: :invalid]
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                %ValidationError{
-                  message:
-                    "expected :timeout to be non-negative integer or :infinity, got: :invalid"
-                }}
+                [
+                  %ValidationError{
+                    message:
+                      "expected :timeout to be non-negative integer or :infinity, got: :invalid"
+                  }
+                ]}
     end
 
     test "valid pid" do
@@ -321,7 +344,7 @@ defmodule NimbleOptionsTest do
       schema = [name: [type: :pid]]
 
       assert NimbleOptions.validate([name: 1], schema) ==
-               {:error, %ValidationError{message: "expected :name to be a pid, got: 1"}}
+               {:error, [%ValidationError{message: "expected :name to be a pid, got: 1"}]}
     end
 
     test "valid mfa" do
@@ -341,39 +364,48 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) == {
                :error,
-               %ValidationError{
-                 message:
-                   ~s(expected :transformer to be a tuple {Mod, Fun, Args}, got: {"not_a_module", :func, []})
-               }
+               [
+                 %ValidationError{
+                   message:
+                     ~s(expected :transformer to be a tuple {Mod, Fun, Args}, got: {"not_a_module", :func, []})
+                 }
+               ]
              }
 
       opts = [transformer: {SomeMod, "not_a_func", []}]
 
       assert NimbleOptions.validate(opts, schema) == {
                :error,
-               %ValidationError{
-                 message:
-                   ~s(expected :transformer to be a tuple {Mod, Fun, Args}, got: {SomeMod, "not_a_func", []})
-               }
+               [
+                 %ValidationError{
+                   message:
+                     ~s(expected :transformer to be a tuple {Mod, Fun, Args}, got: {SomeMod, "not_a_func", []})
+                 }
+               ]
              }
 
       opts = [transformer: {SomeMod, :func, "not_a_list"}]
 
       assert NimbleOptions.validate(opts, schema) == {
                :error,
-               %ValidationError{
-                 message:
-                   ~s(expected :transformer to be a tuple {Mod, Fun, Args}, got: {SomeMod, :func, "not_a_list"})
-               }
+               [
+                 %ValidationError{
+                   message:
+                     ~s(expected :transformer to be a tuple {Mod, Fun, Args}, got: {SomeMod, :func, "not_a_list"})
+                 }
+               ]
              }
 
       opts = [transformer: NotATuple]
 
       assert NimbleOptions.validate(opts, schema) == {
                :error,
-               %ValidationError{
-                 message: ~s(expected :transformer to be a tuple {Mod, Fun, Args}, got: NotATuple)
-               }
+               [
+                 %ValidationError{
+                   message:
+                     ~s(expected :transformer to be a tuple {Mod, Fun, Args}, got: NotATuple)
+                 }
+               ]
              }
     end
 
@@ -394,19 +426,23 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) == {
                :error,
-               %ValidationError{
-                 message: ~s(expected :producer to be a tuple {Mod, Arg}, got: NotATuple)
-               }
+               [
+                 %ValidationError{
+                   message: ~s(expected :producer to be a tuple {Mod, Arg}, got: NotATuple)
+                 }
+               ]
              }
 
       opts = [producer: {"not_a_module", []}]
 
       assert NimbleOptions.validate(opts, schema) == {
                :error,
-               %ValidationError{
-                 message:
-                   ~s(expected :producer to be a tuple {Mod, Arg}, got: {"not_a_module", []})
-               }
+               [
+                 %ValidationError{
+                   message:
+                     ~s(expected :producer to be a tuple {Mod, Arg}, got: {"not_a_module", []})
+                 }
+               ]
              }
     end
 
@@ -427,19 +463,24 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) == {
                :error,
-               %ValidationError{
-                 message: ~s(expected :partition_by to be a function of arity 1, got: :not_a_fun)
-               }
+               [
+                 %ValidationError{
+                   message:
+                     ~s(expected :partition_by to be a function of arity 1, got: :not_a_fun)
+                 }
+               ]
              }
 
       opts = [partition_by: fn x, y -> x * y end]
 
       assert NimbleOptions.validate(opts, schema) == {
                :error,
-               %ValidationError{
-                 message:
-                   ~s(expected :partition_by to be a function of arity 1, got: function of arity 2)
-               }
+               [
+                 %ValidationError{
+                   message:
+                     ~s(expected :partition_by to be a function of arity 1, got: function of arity 2)
+                 }
+               ]
              }
     end
 
@@ -460,9 +501,11 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                %ValidationError{
-                  message: "expected :batch_mode to be one of [:flush, :bulk], got: :invalid"
-                }}
+                [
+                  %ValidationError{
+                    message: "expected :batch_mode to be one of [:flush, :bulk], got: :invalid"
+                  }
+                ]}
     end
 
     test "{:custom, mod, fun, args} with empty args" do
@@ -478,7 +521,7 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) == {
                :error,
-               %ValidationError{message: ~s(expected :first or :last, got: :unknown)}
+               [%ValidationError{message: ~s(expected :first or :last, got: :unknown)}]
              }
     end
 
@@ -495,7 +538,7 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) == {
                :error,
-               %ValidationError{message: ~s(expected one of [:first, :last], got: :unknown)}
+               [%ValidationError{message: ~s(expected one of [:first, :last], got: :unknown)}]
              }
     end
 
@@ -547,11 +590,18 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                %ValidationError{
-                  keys_path: [:processors],
-                  message:
-                    "unknown options [:unknown_option1, :unknown_option2], valid options are: [:stages, :min_demand]"
-                }}
+                [
+                  %ValidationError{
+                    keys_path: [:processors],
+                    message:
+                      "unknown option :unknown_option1, valid options are: [:stages, :min_demand]"
+                  },
+                  %ValidationError{
+                    keys_path: [:processors],
+                    message:
+                      "unknown option :unknown_option2, valid options are: [:stages, :min_demand]"
+                  }
+                ]}
     end
 
     test "options with default values" do
@@ -600,10 +650,12 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                %ValidationError{
-                  keys_path: [:processors],
-                  message: "required option :stages not found, received options: [:max_demand]"
-                }}
+                [
+                  %ValidationError{
+                    keys_path: [:processors],
+                    message: "required option :stages not found, received options: [:max_demand]"
+                  }
+                ]}
     end
 
     test "nested options types" do
@@ -621,10 +673,12 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                %ValidationError{
-                  keys_path: [:processors],
-                  message: "expected :stages to be a positive integer, got: :an_atom"
-                }}
+                [
+                  %ValidationError{
+                    keys_path: [:processors],
+                    message: "expected :stages to be a positive integer, got: :an_atom"
+                  }
+                ]}
     end
   end
 
@@ -670,10 +724,12 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                %ValidationError{
-                  keys_path: [:producers, :producer1],
-                  message: "unknown options [:unknown_option], valid options are: [:module, :arg]"
-                }}
+                [
+                  %ValidationError{
+                    keys_path: [:producers, :producer1],
+                    message: "unknown option :unknown_option, valid options are: [:module, :arg]"
+                  }
+                ]}
     end
 
     test "options with default values" do
@@ -737,10 +793,12 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                %ValidationError{
-                  keys_path: [:producers, :default],
-                  message: "required option :arg not found, received options: [:module]"
-                }}
+                [
+                  %ValidationError{
+                    keys_path: [:producers, :default],
+                    message: "required option :arg not found, received options: [:module]"
+                  }
+                ]}
     end
 
     test "nested options types" do
@@ -770,10 +828,12 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                %ValidationError{
-                  keys_path: [:producers, :producer1],
-                  message: "expected :stages to be a positive integer, got: :an_atom"
-                }}
+                [
+                  %ValidationError{
+                    keys_path: [:producers, :producer1],
+                    message: "expected :stages to be a positive integer, got: :an_atom"
+                  }
+                ]}
     end
 
     test "validate empty keys for :non_empty_keyword_list" do
@@ -798,9 +858,11 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                %ValidationError{
-                  message: "expected :producers to be a non-empty keyword list, got: []"
-                }}
+                [
+                  %ValidationError{
+                    message: "expected :producers to be a non-empty keyword list, got: []"
+                  }
+                ]}
     end
 
     test "allow empty keys for :keyword_list" do
@@ -869,10 +931,95 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
-                %ValidationError{
-                  keys_path: [:socket_options, :certificates],
-                  message: "expected :path to be an string, got: :not_a_string"
-                }}
+                [
+                  %ValidationError{
+                    keys_path: [:socket_options, :certificates],
+                    message: "expected :path to be an string, got: :not_a_string"
+                  }
+                ]}
+    end
+  end
+
+  describe "multiple errors" do
+    test "on a single level" do
+      schema = [name: [type: :atom], age: [type: :integer]]
+      opts = [name: "bob", age: "30"]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                [
+                  %ValidationError{
+                    message: "expected :name to be an atom, got: \"bob\""
+                  },
+                  %ValidationError{
+                    message: "expected :age to be an integer, got: \"30\""
+                  }
+                ]}
+    end
+
+    test "when nested" do
+      schema = [
+        socket_options: [
+          type: :keyword_list,
+          keys: [
+            certificates: [
+              type: :keyword_list,
+              keys: [
+                path: [type: :string],
+                count: [type: :integer]
+              ]
+            ]
+          ]
+        ]
+      ]
+
+      opts = [socket_options: [certificates: [path: :not_a_string, count: "not an integer"]]]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                [
+                  %ValidationError{
+                    keys_path: [:socket_options, :certificates],
+                    message: "expected :path to be an string, got: :not_a_string"
+                  },
+                  %ValidationError{
+                    keys_path: [:socket_options, :certificates],
+                    message: "expected :count to be an integer, got: \"not an integer\""
+                  }
+                ]}
+    end
+
+    test "nested and single-level" do
+      schema = [
+        age: [
+          type: :pos_integer
+        ],
+        socket_options: [
+          type: :keyword_list,
+          keys: [
+            certificates: [
+              type: :keyword_list,
+              keys: [
+                path: [type: :string]
+              ]
+            ]
+          ]
+        ]
+      ]
+
+      opts = [age: -1, socket_options: [certificates: [path: :not_a_string]]]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                [
+                  %ValidationError{
+                    message: "expected :age to be a positive integer, got: -1"
+                  },
+                  %ValidationError{
+                    keys_path: [:socket_options, :certificates],
+                    message: "expected :path to be an string, got: :not_a_string"
+                  }
+                ]}
     end
   end
 
@@ -1049,8 +1196,7 @@ defmodule NimbleOptionsTest do
       schema = [an_option: [], other_option: []]
       opts = [an_option: 1, not_an_option1: 1, not_an_option2: 1]
 
-      message =
-        "unknown options [:not_an_option1, :not_an_option2], valid options are: [:an_option, :other_option]"
+      message = "unknown option :not_an_option1, valid options are: [:an_option, :other_option]"
 
       assert_raise NimbleOptions.ValidationError, message, fn ->
         NimbleOptions.validate!(opts, schema)
