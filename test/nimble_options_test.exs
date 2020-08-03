@@ -184,7 +184,8 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :stages,
                   value: 0,
-                  message: "expected :stages to be a positive integer, got: 0"}}
+                  message: "expected :stages to be a positive integer, got: 0"
+                }}
 
       assert NimbleOptions.validate([stages: :an_atom], schema) ==
                {:error,
@@ -259,7 +260,12 @@ defmodule NimbleOptionsTest do
       schema = [name: [type: :atom]]
 
       assert NimbleOptions.validate([name: 1], schema) ==
-               {:error, %ValidationError{key: :name, value: 1, message: "expected :name to be an atom, got: 1"}}
+               {:error,
+                %ValidationError{
+                  key: :name,
+                  value: 1,
+                  message: "expected :name to be an atom, got: 1"
+                }}
     end
 
     test "valid string" do
@@ -272,7 +278,12 @@ defmodule NimbleOptionsTest do
       schema = [doc: [type: :string]]
 
       assert NimbleOptions.validate([doc: :an_atom], schema) ==
-               {:error, %ValidationError{key: :doc, value: :an_atom, message: "expected :doc to be an string, got: :an_atom"}}
+               {:error,
+                %ValidationError{
+                  key: :doc,
+                  value: :an_atom,
+                  message: "expected :doc to be an string, got: :an_atom"
+                }}
     end
 
     test "valid boolean" do
@@ -290,7 +301,11 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate([required: :an_atom], schema) ==
                {:error,
-                %ValidationError{key: :required, value: :an_atom, message: "expected :required to be an boolean, got: :an_atom"}}
+                %ValidationError{
+                  key: :required,
+                  value: :an_atom,
+                  message: "expected :required to be an boolean, got: :an_atom"
+                }}
     end
 
     test "valid timeout" do
@@ -341,7 +356,12 @@ defmodule NimbleOptionsTest do
       schema = [name: [type: :pid]]
 
       assert NimbleOptions.validate([name: 1], schema) ==
-               {:error, %ValidationError{key: :name, value: 1, message: "expected :name to be a pid, got: 1"}}
+               {:error,
+                %ValidationError{
+                  key: :name,
+                  value: 1,
+                  message: "expected :name to be a pid, got: 1"
+                }}
     end
 
     test "valid mfa" do
@@ -497,8 +517,8 @@ defmodule NimbleOptionsTest do
       assert NimbleOptions.validate(opts, schema) ==
                {:error,
                 %ValidationError{
-                 key: :batch_mode,
-                 value: :invalid,
+                  key: :batch_mode,
+                  value: :invalid,
                   message: "expected :batch_mode to be one of [:flush, :bulk], got: :invalid"
                 }}
     end
@@ -516,7 +536,11 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) == {
                :error,
-               %ValidationError{key: :buffer_keep, value: :unknown, message: ~s(expected :first or :last, got: :unknown)}
+               %ValidationError{
+                 key: :buffer_keep,
+                 value: :unknown,
+                 message: ~s(expected :first or :last, got: :unknown)
+               }
              }
     end
 
@@ -533,7 +557,11 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) == {
                :error,
-               %ValidationError{key: :buffer_keep, value: :unknown, message: ~s(expected one of [:first, :last], got: :unknown)}
+               %ValidationError{
+                 key: :buffer_keep,
+                 value: :unknown,
+                 message: ~s(expected one of [:first, :last], got: :unknown)
+               }
              }
     end
 

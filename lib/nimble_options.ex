@@ -279,7 +279,11 @@ defmodule NimbleOptions do
         :ok
 
       keys ->
-        error_tuple(keys, nil, "unknown options #{inspect(keys)}, valid options are: #{inspect(valid_opts)}")
+        error_tuple(
+          keys,
+          nil,
+          "unknown options #{inspect(keys)}, valid options are: #{inspect(valid_opts)}"
+        )
     end
   end
 
@@ -346,11 +350,19 @@ defmodule NimbleOptions do
   end
 
   defp validate_type(:non_neg_integer, key, value) when not is_integer(value) or value < 0 do
-    error_tuple(key, value, "expected #{inspect(key)} to be a non negative integer, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "expected #{inspect(key)} to be a non negative integer, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(:pos_integer, key, value) when not is_integer(value) or value < 1 do
-    error_tuple(key, value, "expected #{inspect(key)} to be a positive integer, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "expected #{inspect(key)} to be a positive integer, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(:atom, key, value) when not is_atom(value) do
@@ -360,7 +372,9 @@ defmodule NimbleOptions do
   defp validate_type(:timeout, key, value)
        when not (value == :infinity or (is_integer(value) and value >= 0)) do
     error_tuple(
-      key, value, "expected #{inspect(key)} to be non-negative integer or :infinity, got: #{inspect(value)}"
+      key,
+      value,
+      "expected #{inspect(key)} to be non-negative integer or :infinity, got: #{inspect(value)}"
     )
   end
 
@@ -376,7 +390,11 @@ defmodule NimbleOptions do
     if keyword_list?(value) do
       :ok
     else
-      error_tuple(key, value, "expected #{inspect(key)} to be a keyword list, got: #{inspect(value)}")
+      error_tuple(
+        key,
+        value,
+        "expected #{inspect(key)} to be a keyword list, got: #{inspect(value)}"
+      )
     end
   end
 
@@ -405,7 +423,11 @@ defmodule NimbleOptions do
   end
 
   defp validate_type(:mfa, key, value) when not is_nil(value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be a tuple {Mod, Fun, Args}, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "expected #{inspect(key)} to be a tuple {Mod, Fun, Args}, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(:mod_arg, _key, {m, _arg}) when is_atom(m) do
@@ -413,7 +435,11 @@ defmodule NimbleOptions do
   end
 
   defp validate_type(:mod_arg, key, value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be a tuple {Mod, Arg}, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "expected #{inspect(key)} to be a tuple {Mod, Arg}, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type({:fun, arity}, key, value) do
