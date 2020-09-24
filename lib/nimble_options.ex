@@ -305,7 +305,8 @@ defmodule NimbleOptions do
 
       :no_value ->
         if Keyword.has_key?(schema_opts, :default) do
-          {:cont, Keyword.put(opts, key, schema_opts[:default])}
+          opts_with_default = Keyword.put(opts, key, schema_opts[:default])
+          reduce_options({key, schema_opts}, opts_with_default)
         else
           {:cont, opts}
         end
