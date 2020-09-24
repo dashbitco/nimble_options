@@ -86,6 +86,30 @@ defmodule NimbleOptionsTest do
       schema = [context: [default: :ok]]
       assert NimbleOptions.validate([context: :given], schema) == {:ok, [context: :given]}
     end
+
+    test "is validated" do
+      schema = [
+        processors: [
+          type: :keyword_list,
+          default: [],
+          keys: [
+            stages: [type: :integer, default: "10"]
+          ]
+        ]
+      ]
+
+      opts = [processors: []]
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %ValidationError{
+                 key: :stages,
+                 keys_path: [:processors],
+                 message: "expected :stages to be an integer, got: \"10\"",
+                 value: "10"
+               }
+             }
+    end
   end
 
   describe "required options" do
@@ -122,11 +146,6 @@ defmodule NimbleOptionsTest do
       schema = [context: [rename_to: :new_context], new_context: []]
       assert NimbleOptions.validate([], schema) == {:ok, []}
     end
-
-    test "is ignored with default" do
-      schema = [context: [rename_to: :new_context, default: 1], new_context: []]
-      assert NimbleOptions.validate([], schema) == {:ok, [context: 1]}
-    end
   end
 
   describe "doc" do
@@ -161,10 +180,12 @@ defmodule NimbleOptionsTest do
       assert NimbleOptions.validate([], schema) == {:ok, []}
     end
 
-    test "does not warn when using default" do
+    test "warns when using default" do
       schema = [context: [deprecated: "Use something else", default: :ok]]
 
-      assert NimbleOptions.validate([], schema) == {:ok, [context: :ok]}
+      assert capture_io(:stderr, fn ->
+               assert NimbleOptions.validate([], schema) == {:ok, [context: :ok]}
+             end) =~ ":context is deprecated. Use something else"
     end
   end
 
@@ -634,6 +655,20 @@ defmodule NimbleOptionsTest do
       opts = [processors: []]
 
       assert NimbleOptions.validate(opts, schema) == {:ok, [processors: [stages: 10]]}
+    end
+
+    test "empty default option with default values" do
+      schema = [
+        processors: [
+          type: :keyword_list,
+          default: [],
+          keys: [
+            stages: [default: 10]
+          ]
+        ]
+      ]
+
+      assert NimbleOptions.validate([], schema) == {:ok, [processors: [stages: 10]]}
     end
 
     test "all required options present" do
