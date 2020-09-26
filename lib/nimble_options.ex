@@ -504,11 +504,15 @@ defmodule NimbleOptions do
         invalid_values = Enum.reverse(invalid_values)
 
         if match?({:custom, _, _, _}, type) do
-          error_tuple(key, invalid_values, "expected #{inspect(key)} to be a list, got: #{inspect(invalid_values)}")
+          error_tuple(
+            key,
+            invalid_values,
+            "expected #{inspect(key)} to be a list, got: #{inspect(invalid_values)}"
+          )
         else
           error_tuple(
             key,
-            invalid_values, 
+            invalid_values,
             "expected #{inspect(key)} to be a list of #{type}, got: #{inspect(invalid_values)}"
           )
         end
@@ -516,7 +520,11 @@ defmodule NimbleOptions do
   end
 
   defp validate_type({:list, type}, key, value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be a list of #{type}, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "expected #{inspect(key)} to be a list of #{type}, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(nil, key, value) do
