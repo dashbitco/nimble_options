@@ -21,8 +21,10 @@ defmodule NimbleOptions do
           type: :keyword_list,
           doc: """
           Available for types `:keyword_list` and `:non_empty_keyword_list`,
-          it defines which set of keys are accepted for the option item. Use `:*` as
-          the key to allow multiple arbitrary keys.
+          it defines which set of keys are accepted for the option item. The value of the
+          `:keys` option is a schema itself. For example: `keys: [foo: [type: :atom]]`.
+          Use `:*` as the key to allow multiple arbitrary keys and specify their schema:
+          `keys: [*: [type: :integer]]`.
           """,
           keys: &__MODULE__.options_schema/0
         ],
