@@ -1,8 +1,9 @@
 # Changelog for NimbleOptions
 
-## Unreleased
+## v0.3.1
 
   * Return `:key` and `:value` on `%NimbleOptions.ValidationError{}` to allow programmatic use of errors.
+  * Validate default values according to the specified type.
 
 ## v0.3.0
 
