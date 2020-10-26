@@ -1,5 +1,9 @@
 # Changelog for NimbleOptions
 
+## v0.3.2
+
+  * Fix a small bug with docs for nested schemas.
+
 ## v0.3.1
 
   * Return `:key` and `:value` on `%NimbleOptions.ValidationError{}` to allow programmatic use of errors.
