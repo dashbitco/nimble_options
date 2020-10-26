@@ -1023,7 +1023,8 @@ defmodule NimbleOptionsTest do
               ]
             ]
           ]
-        ]
+        ],
+        other_key: [type: :string]
       ]
 
       docs = """
@@ -1036,6 +1037,8 @@ defmodule NimbleOptionsTest do
             * `:allowed_messages` - Number of messages per interval.
 
             * `:interval` - Required. The interval.
+
+        * `:other_key`
 
       """
 
@@ -1059,13 +1062,16 @@ defmodule NimbleOptionsTest do
             module: [type: :mod_arg, doc: "The module."],
             concurrency: [type: :pos_integer, doc: "The concurrency."]
           ]
-        ]
+        ],
+        other_key: [type: :string]
       ]
 
       docs = """
         * `:name` - Required. The name.
 
         * `:producer` - This is the producer summary. See "Producers options" section below.
+
+        * `:other_key`
 
       ### Producers options
 

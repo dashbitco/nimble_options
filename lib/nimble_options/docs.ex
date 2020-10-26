@@ -57,7 +57,8 @@ defmodule NimbleOptions.Docs do
         build_docs_with_subsection(schema[:subsection], schema[:keys], {docs, sections, level})
 
       schema[:keys] ->
-        build_docs(schema[:keys], {docs, sections, level + 1})
+        {docs, sections, _level} = build_docs(schema[:keys], {docs, sections, level + 1})
+        {docs, sections, level}
 
       true ->
         {docs, sections, level}
