@@ -544,6 +544,46 @@ defmodule NimbleOptionsTest do
                 }}
     end
 
+    test "valid {:or, subtypes} with simple subtypes" do
+      schema = [docs: [type: {:or, [:string, :boolean]}]]
+
+      opts = [docs: false]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [docs: true]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [docs: "a string"]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "valid {:or, subtypes} with compound subtypes" do
+      schema = [docs: [type: {:or, [{:custom, __MODULE__, :string_to_integer, []}, :string]}]]
+
+      opts = [docs: "a string"]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [docs: "123"]
+      assert NimbleOptions.validate(opts, schema) == {:ok, [docs: 123]}
+    end
+
+    test "invalid {:or, subtypes}" do
+      schema = [docs: [type: {:or, [:string, :boolean]}]]
+
+      opts = [docs: :invalid]
+
+      expected_message = """
+      expected :docs to match at least one given type, but didn't match any. Here are the \
+      reasons why it didn't match each of the allowed types:
+
+        * expected :docs to be a boolean, got: :invalid
+        * expected :docs to be a string, got: :invalid\
+      """
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error, %ValidationError{key: :docs, value: :invalid, message: expected_message}}
+    end
+
     test "{:custom, mod, fun, args} with empty args" do
       schema = [buffer_keep: [type: {:custom, __MODULE__, :buffer_keep, []}]]
 
@@ -1194,7 +1234,10 @@ defmodule NimbleOptionsTest do
   end
 
   def string_to_integer(value) do
-    {:ok, String.to_integer(value)}
+    case Integer.parse(value) do
+      {int, ""} -> {:ok, int}
+      _other -> {:error, "expected string to be convertable to integer"}
+    end
   end
 
   defp recursive_schema() do

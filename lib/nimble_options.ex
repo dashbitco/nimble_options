@@ -480,6 +480,33 @@ defmodule NimbleOptions do
     end
   end
 
+  defp validate_type({:or, subtypes}, key, value) do
+    result =
+      Enum.reduce_while(subtypes, _errors = [], fn subtype, errors_acc ->
+        case validate_type(subtype, key, value) do
+          :ok -> {:halt, :ok}
+          {:ok, value} -> {:halt, {:ok, value}}
+          {:error, %ValidationError{} = reason} -> {:cont, [reason | errors_acc]}
+        end
+      end)
+
+    case result do
+      :ok ->
+        :ok
+
+      {:ok, value} ->
+        {:ok, value}
+
+      errors when is_list(errors) ->
+        message =
+          "expected #{inspect(key)} to match at least one given type, but didn't match " <>
+            "any. Here are the reasons why it didn't match each of the allowed types:\n\n" <>
+            Enum.map_join(errors, "\n", &("  * " <> Exception.message(&1)))
+
+        error_tuple(key, value, message)
+    end
+  end
+
   defp validate_type(nil, key, value) do
     validate_type(:any, key, value)
   end
@@ -529,6 +556,15 @@ defmodule NimbleOptions do
   def type({:custom, mod, fun, args} = value)
       when is_atom(mod) and is_atom(fun) and is_list(args) do
     {:ok, value}
+  end
+
+  def type({:or, subtypes} = value) when is_list(subtypes) do
+    Enum.reduce_while(subtypes, {:ok, value}, fn subtype, acc ->
+      case type(subtype) do
+        {:ok, _value} -> {:cont, acc}
+        {:error, reason} -> {:halt, {:error, "invalid type in :or for reaso: #{reason}"}}
+      end
+    end)
   end
 
   def type(value) do
