@@ -39,7 +39,8 @@ defmodule NimbleOptionsTest do
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :integer, :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
-      :pid, {:fun, arity}, {:in, choices}, {:custom, mod, fun, args} (in options [:stages])\
+      :pid, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args} \
+      (in options [:stages])\
       """
 
       assert_raise ArgumentError, message, fn ->

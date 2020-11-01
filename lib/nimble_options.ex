@@ -537,7 +537,7 @@ defmodule NimbleOptions do
   defp available_types() do
     types =
       Enum.map(@basic_types, &inspect/1) ++
-        ["{:fun, arity}", "{:in, choices}", "{:custom, mod, fun, args}"]
+        ["{:fun, arity}", "{:in, choices}", "{:or, subtypes}", "{:custom, mod, fun, args}"]
 
     Enum.join(types, ", ")
   end
