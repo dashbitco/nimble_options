@@ -303,7 +303,7 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :doc,
                   value: :an_atom,
-                  message: "expected :doc to be an string, got: :an_atom"
+                  message: "expected :doc to be a string, got: :an_atom"
                 }}
     end
 
@@ -325,7 +325,7 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :required,
                   value: :an_atom,
-                  message: "expected :required to be an boolean, got: :an_atom"
+                  message: "expected :required to be a boolean, got: :an_atom"
                 }}
     end
 
@@ -984,7 +984,7 @@ defmodule NimbleOptionsTest do
                   key: :path,
                   value: :not_a_string,
                   keys_path: [:socket_options, :certificates],
-                  message: "expected :path to be an string, got: :not_a_string"
+                  message: "expected :path to be a string, got: :not_a_string"
                 }}
     end
   end

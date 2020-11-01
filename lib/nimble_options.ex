@@ -382,11 +382,11 @@ defmodule NimbleOptions do
   end
 
   defp validate_type(:string, key, value) when not is_binary(value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be an string, got: #{inspect(value)}")
+    error_tuple(key, value, "expected #{inspect(key)} to be a string, got: #{inspect(value)}")
   end
 
   defp validate_type(:boolean, key, value) when not is_boolean(value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be an boolean, got: #{inspect(value)}")
+    error_tuple(key, value, "expected #{inspect(key)} to be a boolean, got: #{inspect(value)}")
   end
 
   defp validate_type(:keyword_list, key, value) do
