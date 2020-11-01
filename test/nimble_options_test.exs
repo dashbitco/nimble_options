@@ -3,6 +3,8 @@ defmodule NimbleOptionsTest do
 
   doctest NimbleOptions
 
+  import ExUnit.CaptureIO
+
   alias NimbleOptions.ValidationError
 
   test "known options" do
@@ -37,7 +39,7 @@ defmodule NimbleOptionsTest do
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :integer, :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
-      :pid, {:fun, arity}, {:one_of, choices}, {:custom, mod, fun, args} (in options [:stages])\
+      :pid, {:fun, arity}, {:in, choices}, {:custom, mod, fun, args} (in options [:stages])\
       """
 
       assert_raise ArgumentError, message, fn ->
@@ -520,8 +522,8 @@ defmodule NimbleOptionsTest do
              }
     end
 
-    test "valid {:one_of, choices}" do
-      schema = [batch_mode: [type: {:one_of, [:flush, :bulk]}]]
+    test "valid {:in, choices}" do
+      schema = [batch_mode: [type: {:in, [:flush, :bulk]}]]
 
       opts = [batch_mode: :flush]
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
@@ -530,8 +532,8 @@ defmodule NimbleOptionsTest do
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
-    test "invalid {:one_of, choices}" do
-      schema = [batch_mode: [type: {:one_of, [:flush, :bulk]}]]
+    test "invalid {:in, choices}" do
+      schema = [batch_mode: [type: {:in, [:flush, :bulk]}]]
 
       opts = [batch_mode: :invalid]
 
@@ -542,6 +544,15 @@ defmodule NimbleOptionsTest do
                   value: :invalid,
                   message: "expected :batch_mode to be one of [:flush, :bulk], got: :invalid"
                 }}
+    end
+
+    test "deprecation of {:one_of, choices}" do
+      schema = [batch_mode: [type: {:one_of, [:flush, :bulk]}]]
+
+      assert capture_io(:stderr, fn ->
+               opts = [batch_mode: :flush]
+               assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+             end) =~ "the {:one_of, choices} type is deprecated"
     end
 
     test "valid {:or, subtypes} with simple subtypes" do

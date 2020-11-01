@@ -102,9 +102,9 @@ defmodule NimbleOptions do
 
     * `{:fun, arity}` - Any function with the specified arity.
 
-    * `{:one_of, choices}` - A value that is a member of one of the `choices`. `choices`
+    * `{:in, choices}` - A value that is a member of one of the `choices`. `choices`
       should be a list of terms. The value is an element in said list of terms,
-      that is, `value in choices` is `true`.
+      that is, `value in choices` is `true`. Previously called `:one_of`.
 
     * `{:custom, mod, fun, args}` - A custom type. The related value must be validated
       by `mod.fun(values, ...args)`. The function should return `{:ok, value}` or
@@ -468,7 +468,12 @@ defmodule NimbleOptions do
     end
   end
 
+  # TODO: remove on v0.5.
   defp validate_type({:one_of, choices}, key, value) do
+    validate_type({:in, choices}, key, value)
+  end
+
+  defp validate_type({:in, choices}, key, value) do
     if value in choices do
       :ok
     else
@@ -535,7 +540,7 @@ defmodule NimbleOptions do
   defp available_types() do
     types =
       Enum.map(@basic_types, &inspect/1) ++
-        ["{:fun, arity}", "{:one_of, choices}", "{:custom, mod, fun, args}"]
+        ["{:fun, arity}", "{:in, choices}", "{:custom, mod, fun, args}"]
 
     Enum.join(types, ", ")
   end
@@ -549,7 +554,13 @@ defmodule NimbleOptions do
     {:ok, value}
   end
 
-  def type({:one_of, choices} = value) when is_list(choices) do
+  # TODO: remove on v0.5.
+  def type({:one_of, choices}) do
+    IO.warn("the {:one_of, choices} type is deprecated. Use {:in, choices} instead.")
+    type({:in, choices})
+  end
+
+  def type({:in, choices} = value) when is_list(choices) do
     {:ok, value}
   end
 
