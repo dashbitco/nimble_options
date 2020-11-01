@@ -619,7 +619,6 @@ defmodule NimbleOptionsTest do
     end
 
     test "invalid {:or, subtypes} with nested :or" do
-      # Nested :or.
       schema = [
         docs: [
           type:

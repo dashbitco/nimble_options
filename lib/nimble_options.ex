@@ -489,16 +489,13 @@ defmodule NimbleOptions do
     result =
       Enum.reduce_while(subtypes, _errors = [], fn subtype, errors_acc ->
         case validate_type(subtype, key, value) do
-          :ok -> {:halt, :ok}
+          :ok -> {:halt, {:ok, value}}
           {:ok, value} -> {:halt, {:ok, value}}
           {:error, %ValidationError{} = reason} -> {:cont, [reason | errors_acc]}
         end
       end)
 
     case result do
-      :ok ->
-        :ok
-
       {:ok, value} ->
         {:ok, value}
 
