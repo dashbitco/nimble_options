@@ -562,7 +562,7 @@ defmodule NimbleOptions do
     Enum.reduce_while(subtypes, {:ok, value}, fn subtype, acc ->
       case type(subtype) do
         {:ok, _value} -> {:cont, acc}
-        {:error, reason} -> {:halt, {:error, "invalid type in :or for reaso: #{reason}"}}
+        {:error, reason} -> {:halt, {:error, "invalid type in :or for reason: #{reason}"}}
       end
     end)
   end
