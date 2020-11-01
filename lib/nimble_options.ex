@@ -102,13 +102,18 @@ defmodule NimbleOptions do
 
     * `{:fun, arity}` - Any function with the specified arity.
 
-    * `{:one_of, choices}` - A value that is a member of one of the `choices`. `choices`
+    * `{:in, choices}` - A value that is a member of one of the `choices`. `choices`
       should be a list of terms. The value is an element in said list of terms,
-      that is, `value in choices` is `true`.
+      that is, `value in choices` is `true`. Previously called `:one_of`.
 
     * `{:custom, mod, fun, args}` - A custom type. The related value must be validated
       by `mod.fun(values, ...args)`. The function should return `{:ok, value}` or
       `{:error, message}`.
+
+    * `{:or, subtypes}` - A value that matches one of the given `subtypes`. The value is
+      matched against the subtypes in the order specified in the list of `subtypes`. If
+      one of the subtypes matches and **updates** (casts) the given value, the updated
+      value is used. For example: `{:or, [:string, :boolean, {:fun, 2}]}`.
 
   ## Example
 
@@ -468,7 +473,12 @@ defmodule NimbleOptions do
     end
   end
 
+  # TODO: remove on v0.5.
   defp validate_type({:one_of, choices}, key, value) do
+    validate_type({:in, choices}, key, value)
+  end
+
+  defp validate_type({:in, choices}, key, value) do
     if value in choices do
       :ok
     else
@@ -477,6 +487,30 @@ defmodule NimbleOptions do
         value,
         "expected #{inspect(key)} to be one of #{inspect(choices)}, got: #{inspect(value)}"
       )
+    end
+  end
+
+  defp validate_type({:or, subtypes}, key, value) do
+    result =
+      Enum.reduce_while(subtypes, _errors = [], fn subtype, errors_acc ->
+        case validate_type(subtype, key, value) do
+          :ok -> {:halt, {:ok, value}}
+          {:ok, value} -> {:halt, {:ok, value}}
+          {:error, %ValidationError{} = reason} -> {:cont, [reason | errors_acc]}
+        end
+      end)
+
+    case result do
+      {:ok, value} ->
+        {:ok, value}
+
+      errors when is_list(errors) ->
+        message =
+          "expected #{inspect(key)} to match at least one given type, but didn't match " <>
+            "any. Here are the reasons why it didn't match each of the allowed types:\n\n" <>
+            Enum.map_join(errors, "\n", &("  * " <> Exception.message(&1)))
+
+        error_tuple(key, value, message)
     end
   end
 
@@ -508,7 +542,7 @@ defmodule NimbleOptions do
   defp available_types() do
     types =
       Enum.map(@basic_types, &inspect/1) ++
-        ["{:fun, arity}", "{:one_of, choices}", "{:custom, mod, fun, args}"]
+        ["{:fun, arity}", "{:in, choices}", "{:or, subtypes}", "{:custom, mod, fun, args}"]
 
     Enum.join(types, ", ")
   end
@@ -522,13 +556,28 @@ defmodule NimbleOptions do
     {:ok, value}
   end
 
-  def type({:one_of, choices} = value) when is_list(choices) do
+  # TODO: remove on v0.5.
+  def type({:one_of, choices}) do
+    IO.warn("the {:one_of, choices} type is deprecated. Use {:in, choices} instead.")
+    type({:in, choices})
+  end
+
+  def type({:in, choices} = value) when is_list(choices) do
     {:ok, value}
   end
 
   def type({:custom, mod, fun, args} = value)
       when is_atom(mod) and is_atom(fun) and is_list(args) do
     {:ok, value}
+  end
+
+  def type({:or, subtypes} = value) when is_list(subtypes) do
+    Enum.reduce_while(subtypes, {:ok, value}, fn subtype, acc ->
+      case type(subtype) do
+        {:ok, _value} -> {:cont, acc}
+        {:error, reason} -> {:halt, {:error, "invalid type in :or for reason: #{reason}"}}
+      end
+    end)
   end
 
   def type(value) do

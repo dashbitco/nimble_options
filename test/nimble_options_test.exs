@@ -3,6 +3,8 @@ defmodule NimbleOptionsTest do
 
   doctest NimbleOptions
 
+  import ExUnit.CaptureIO
+
   alias NimbleOptions.ValidationError
 
   test "known options" do
@@ -37,7 +39,8 @@ defmodule NimbleOptionsTest do
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :integer, :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
-      :pid, {:fun, arity}, {:one_of, choices}, {:custom, mod, fun, args} (in options [:stages])\
+      :pid, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args} \
+      (in options [:stages])\
       """
 
       assert_raise ArgumentError, message, fn ->
@@ -520,8 +523,8 @@ defmodule NimbleOptionsTest do
              }
     end
 
-    test "valid {:one_of, choices}" do
-      schema = [batch_mode: [type: {:one_of, [:flush, :bulk]}]]
+    test "valid {:in, choices}" do
+      schema = [batch_mode: [type: {:in, [:flush, :bulk]}]]
 
       opts = [batch_mode: :flush]
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
@@ -530,8 +533,8 @@ defmodule NimbleOptionsTest do
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
-    test "invalid {:one_of, choices}" do
-      schema = [batch_mode: [type: {:one_of, [:flush, :bulk]}]]
+    test "invalid {:in, choices}" do
+      schema = [batch_mode: [type: {:in, [:flush, :bulk]}]]
 
       opts = [batch_mode: :invalid]
 
@@ -542,6 +545,111 @@ defmodule NimbleOptionsTest do
                   value: :invalid,
                   message: "expected :batch_mode to be one of [:flush, :bulk], got: :invalid"
                 }}
+    end
+
+    test "deprecation of {:one_of, choices}" do
+      schema = [batch_mode: [type: {:one_of, [:flush, :bulk]}]]
+
+      assert capture_io(:stderr, fn ->
+               opts = [batch_mode: :flush]
+               assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+             end) =~ "the {:one_of, choices} type is deprecated"
+    end
+
+    test "valid {:or, subtypes} with simple subtypes" do
+      schema = [docs: [type: {:or, [:string, :boolean]}]]
+
+      opts = [docs: false]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [docs: true]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [docs: "a string"]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "valid {:or, subtypes} with compound subtypes" do
+      schema = [docs: [type: {:or, [{:custom, __MODULE__, :string_to_integer, []}, :string]}]]
+
+      opts = [docs: "a string"]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [docs: "123"]
+      assert NimbleOptions.validate(opts, schema) == {:ok, [docs: 123]}
+    end
+
+    test "valid {:or, subtypes} with nested :or" do
+      # Nested :or.
+      schema = [
+        docs: [
+          type:
+            {:or,
+             [
+               {:or, [{:custom, __MODULE__, :string_to_integer, []}, :boolean]},
+               {:or, [:string]}
+             ]}
+        ]
+      ]
+
+      opts = [docs: "123"]
+      assert NimbleOptions.validate(opts, schema) == {:ok, [docs: 123]}
+
+      opts = [docs: "a string"]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [docs: false]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid {:or, subtypes}" do
+      schema = [docs: [type: {:or, [:string, :boolean]}]]
+
+      opts = [docs: :invalid]
+
+      expected_message = """
+      expected :docs to match at least one given type, but didn't match any. Here are the \
+      reasons why it didn't match each of the allowed types:
+
+        * expected :docs to be a boolean, got: :invalid
+        * expected :docs to be a string, got: :invalid\
+      """
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error, %ValidationError{key: :docs, value: :invalid, message: expected_message}}
+    end
+
+    test "invalid {:or, subtypes} with nested :or" do
+      schema = [
+        docs: [
+          type:
+            {:or,
+             [
+               {:or, [{:custom, __MODULE__, :string_to_integer, []}, :boolean]},
+               {:or, [:string]}
+             ]}
+        ]
+      ]
+
+      opts = [docs: 1]
+
+      expected_message = """
+      expected :docs to match at least one given type, but didn't match any. \
+      Here are the reasons why it didn't match each of the allowed types:
+
+        * expected :docs to match at least one given type, but didn't match any. \
+      Here are the reasons why it didn't match each of the allowed types:
+
+        * expected :docs to be a string, got: 1
+        * expected :docs to match at least one given type, but didn't match any. \
+      Here are the reasons why it didn't match each of the allowed types:
+
+        * expected :docs to be a boolean, got: 1
+        * expected to be a string, got: 1\
+      """
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error, %ValidationError{key: :docs, value: 1, message: expected_message}}
     end
 
     test "{:custom, mod, fun, args} with empty args" do
@@ -1193,8 +1301,15 @@ defmodule NimbleOptionsTest do
     end
   end
 
-  def string_to_integer(value) do
-    {:ok, String.to_integer(value)}
+  def string_to_integer(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {int, ""} -> {:ok, int}
+      _other -> {:error, "expected string to be convertable to integer"}
+    end
+  end
+
+  def string_to_integer(other) do
+    {:error, "expected to be a string, got: #{inspect(other)}"}
   end
 
   defp recursive_schema() do
