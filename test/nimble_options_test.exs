@@ -567,6 +567,29 @@ defmodule NimbleOptionsTest do
       assert NimbleOptions.validate(opts, schema) == {:ok, [docs: 123]}
     end
 
+    test "valid {:or, subtypes} with nested :or" do
+      # Nested :or.
+      schema = [
+        docs: [
+          type:
+            {:or,
+             [
+               {:or, [{:custom, __MODULE__, :string_to_integer, []}, :boolean]},
+               {:or, [:string]}
+             ]}
+        ]
+      ]
+
+      opts = [docs: "123"]
+      assert NimbleOptions.validate(opts, schema) == {:ok, [docs: 123]}
+
+      opts = [docs: "a string"]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [docs: false]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
     test "invalid {:or, subtypes}" do
       schema = [docs: [type: {:or, [:string, :boolean]}]]
 
@@ -582,6 +605,40 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error, %ValidationError{key: :docs, value: :invalid, message: expected_message}}
+    end
+
+    test "invalid {:or, subtypes} with nested :or" do
+      # Nested :or.
+      schema = [
+        docs: [
+          type:
+            {:or,
+             [
+               {:or, [{:custom, __MODULE__, :string_to_integer, []}, :boolean]},
+               {:or, [:string]}
+             ]}
+        ]
+      ]
+
+      opts = [docs: 1]
+
+      expected_message = """
+      expected :docs to match at least one given type, but didn't match any. \
+      Here are the reasons why it didn't match each of the allowed types:
+
+        * expected :docs to match at least one given type, but didn't match any. \
+      Here are the reasons why it didn't match each of the allowed types:
+
+        * expected :docs to be a string, got: 1
+        * expected :docs to match at least one given type, but didn't match any. \
+      Here are the reasons why it didn't match each of the allowed types:
+
+        * expected :docs to be a boolean, got: 1
+        * expected to be a string, got: 1\
+      """
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error, %ValidationError{key: :docs, value: 1, message: expected_message}}
     end
 
     test "{:custom, mod, fun, args} with empty args" do
@@ -1233,11 +1290,15 @@ defmodule NimbleOptionsTest do
     end
   end
 
-  def string_to_integer(value) do
+  def string_to_integer(value) when is_binary(value) do
     case Integer.parse(value) do
       {int, ""} -> {:ok, int}
       _other -> {:error, "expected string to be convertable to integer"}
     end
+  end
+
+  def string_to_integer(other) do
+    {:error, "expected to be a string, got: #{inspect(other)}"}
   end
 
   defp recursive_schema() do
