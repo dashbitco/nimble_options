@@ -473,8 +473,15 @@ defmodule NimbleOptions do
 
   defp validate_type({:custom, mod, fun, args}, key, value) do
     case apply(mod, fun, [value | args]) do
-      {:ok, value} -> {:ok, value}
-      {:error, message} when is_binary(message) -> error_tuple(key, value, message)
+      {:ok, value} ->
+        {:ok, value}
+
+      {:error, message} when is_binary(message) ->
+        error_tuple(key, value, message)
+
+      other ->
+        raise "custom validation function #{inspect(mod)}.#{fun}/#{length(args) + 1} " <>
+                "must return {:ok, value} or {:error, message}, got: #{inspect(other)}"
     end
   end
 

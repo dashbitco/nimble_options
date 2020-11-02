@@ -763,6 +763,18 @@ defmodule NimbleOptionsTest do
       assert length(validated_opts) == 1
       assert validated_opts[:connections] == 5
     end
+
+    test "{:custom, mod, fun, args} enforces the returned value of the function" do
+      schema = [my_option: [type: {:custom, __MODULE__, :misbehaving_custom_validator, []}]]
+
+      message =
+        "custom validation function NimbleOptionsTest.misbehaving_custom_validator/1 " <>
+          "must return {:ok, value} or {:error, message}, got: :ok"
+
+      assert_raise RuntimeError, message, fn ->
+        assert NimbleOptions.validate([my_option: :whatever], schema)
+      end
+    end
   end
 
   describe "nested options with predefined keys" do
@@ -1371,6 +1383,10 @@ defmodule NimbleOptionsTest do
 
   def string_to_integer(other) do
     {:error, "expected to be a string, got: #{inspect(other)}"}
+  end
+
+  def misbehaving_custom_validator(_value) do
+    :ok
   end
 
   defp recursive_schema() do
