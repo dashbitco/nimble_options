@@ -160,7 +160,16 @@ defmodule NimbleOptionsTest do
     end
 
     test "invalid documentation for key" do
-      assert_raise ArgumentError, ~r/expected :doc to be a string or false, got: 1/, fn ->
+      message = """
+      invalid schema given to NimbleOptions.validate/2. Reason: expected :doc to match at least \
+      one given type, but didn't match any. Here are the reasons why it didn't match each of the \
+      allowed types:
+
+        * expected :doc to be one of [false], got: 1
+        * expected :doc to be a string, got: 1 (in options [:context])\
+      """
+
+      assert_raise ArgumentError, message, fn ->
         schema = [context: [doc: 1, default: 1]]
         NimbleOptions.validate([], schema)
       end

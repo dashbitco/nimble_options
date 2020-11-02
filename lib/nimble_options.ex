@@ -43,7 +43,7 @@ defmodule NimbleOptions do
           """
         ],
         doc: [
-          type: {:custom, __MODULE__, :validate_doc, []},
+          type: {:or, [:string, {:in, [false]}]},
           doc: "The documentation for the option item."
         ],
         subsection: [
@@ -619,15 +619,6 @@ defmodule NimbleOptions do
 
   def validate_type(value) do
     {:error, "invalid option type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
-  end
-
-  @doc false
-  def validate_doc(doc) do
-    if is_binary(doc) or doc == false do
-      {:ok, doc}
-    else
-      {:error, "expected :doc to be a string or false, got: #{inspect(doc)}"}
-    end
   end
 
   defp error_tuple(key, value, message) do
