@@ -113,7 +113,12 @@ defmodule NimbleOptions do
     * `{:or, subtypes}` - A value that matches one of the given `subtypes`. The value is
       matched against the subtypes in the order specified in the list of `subtypes`. If
       one of the subtypes matches and **updates** (casts) the given value, the updated
-      value is used. For example: `{:or, [:string, :boolean, {:fun, 2}]}`.
+      value is used. For example: `{:or, [:string, :boolean, {:fun, 2}]}`. If one of the
+      subtypes is a keyword list, you won't be able to pass `:keys` directly. For this reason,
+      keyword lists (`:keyword_list` and `:non_empty_keyword_list`) are special cased and can
+      be used as subtypes with `{:keyword_list, keys}` or `{:non_empty_keyword_list, keys}`.
+      For example, a type such as `{:or, [:boolean, {:keyword_list, enabled: [type: :boolean]}]}`
+      would match either a boolean or a keyword list with the `:enabled` option in it.
 
   ## Example
 
@@ -493,10 +498,30 @@ defmodule NimbleOptions do
   defp validate_type({:or, subtypes}, key, value) do
     result =
       Enum.reduce_while(subtypes, _errors = [], fn subtype, errors_acc ->
+        {subtype, nested_schema} =
+          case subtype do
+            {keyword_list, keys} when keyword_list in [:keyword_list, :non_empty_keyword_list] ->
+              {keyword_list, keys}
+
+            other ->
+              {other, _nested_schema = nil}
+          end
+
         case validate_type(subtype, key, value) do
-          :ok -> {:halt, {:ok, value}}
-          {:ok, value} -> {:halt, {:ok, value}}
-          {:error, %ValidationError{} = reason} -> {:cont, [reason | errors_acc]}
+          :ok when not is_nil(nested_schema) ->
+            case validate_options_with_schema_and_path(value, nested_schema, _path = [key]) do
+              {:ok, value} -> {:halt, {:ok, value}}
+              {:error, %ValidationError{} = error} -> {:cont, [error | errors_acc]}
+            end
+
+          :ok ->
+            {:halt, {:ok, value}}
+
+          {:ok, value} ->
+            {:halt, {:ok, value}}
+
+          {:error, %ValidationError{} = reason} ->
+            {:cont, [reason | errors_acc]}
         end
       end)
 
@@ -572,11 +597,16 @@ defmodule NimbleOptions do
   end
 
   def type({:or, subtypes} = value) when is_list(subtypes) do
-    Enum.reduce_while(subtypes, {:ok, value}, fn subtype, acc ->
-      case type(subtype) do
-        {:ok, _value} -> {:cont, acc}
-        {:error, reason} -> {:halt, {:error, "invalid type in :or for reason: #{reason}"}}
-      end
+    Enum.reduce_while(subtypes, {:ok, value}, fn
+      {keyword_list_type, _keys}, acc
+      when keyword_list_type in [:keyword_list, :non_empty_keyword_list] ->
+        {:cont, acc}
+
+      subtype, acc ->
+        case type(subtype) do
+          {:ok, _value} -> {:cont, acc}
+          {:error, reason} -> {:halt, {:error, "invalid type in :or for reason: #{reason}"}}
+        end
     end)
   end
 

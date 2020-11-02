@@ -602,6 +602,20 @@ defmodule NimbleOptionsTest do
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
+    test "valid {:or, subtypes} with nested keyword lists" do
+      schema = [
+        docs: [
+          type: {:or, [:boolean, {:keyword_list, enabled: [type: :boolean]}]}
+        ]
+      ]
+
+      opts = [docs: false]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [docs: [enabled: true]]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
     test "invalid {:or, subtypes}" do
       schema = [docs: [type: {:or, [:string, :boolean]}]]
 
@@ -650,6 +664,53 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.validate(opts, schema) ==
                {:error, %ValidationError{key: :docs, value: 1, message: expected_message}}
+    end
+
+    test "invalid {:or, subtypes} with nested keyword lists" do
+      schema = [
+        docs: [
+          type: {:or, [:boolean, {:keyword_list, enabled: [type: :boolean]}]}
+        ]
+      ]
+
+      opts = [docs: "123"]
+
+      expected_message = """
+      expected :docs to match at least one given type, but didn't match any. \
+      Here are the reasons why it didn't match each of the allowed types:
+
+        * expected :docs to be a keyword list, got: "123"
+        * expected :docs to be a boolean, got: "123"\
+      """
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: :docs,
+                  value: "123",
+                  keys_path: [],
+                  message: expected_message
+                }}
+
+      opts = [docs: [enabled: "not a boolean"]]
+
+      expected_message = """
+      expected :docs to match at least one given type, but didn't match any. \
+      Here are the reasons why it didn't match each of the allowed types:
+
+        * expected :enabled to be a boolean, got: "not a boolean" (in options [:docs])
+        * expected :docs to be a boolean, got: [enabled: "not a boolean"]\
+      """
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %NimbleOptions.ValidationError{
+                 key: :docs,
+                 value: [enabled: "not a boolean"],
+                 keys_path: [],
+                 message: expected_message
+               }
+             }
     end
 
     test "{:custom, mod, fun, args} with empty args" do
