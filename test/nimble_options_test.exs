@@ -39,8 +39,8 @@ defmodule NimbleOptionsTest do
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :integer, :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
-      :pid, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args} \
-      (in options [:stages])\
+      :pid, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:value, expected}, \
+      {:custom, mod, fun, args} (in options [:stages])\
       """
 
       assert_raise ArgumentError, message, fn ->
@@ -554,6 +554,30 @@ defmodule NimbleOptionsTest do
                opts = [batch_mode: :flush]
                assert NimbleOptions.validate(opts, schema) == {:ok, opts}
              end) =~ "the {:one_of, choices} type is deprecated"
+    end
+
+    test "valid {:value, expected}" do
+      schema = [doc: [type: {:value, false}]]
+      opts = [doc: false]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      schema = [number: [type: {:value, 1.0}]]
+      opts = [number: 1]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid {:value, expected}" do
+      schema = [doc: [type: {:value, false}]]
+      opts = [doc: true]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :doc,
+                  value: true,
+                  keys_path: [],
+                  message: "expected :doc to be exactly false, got: true"
+                }}
     end
 
     test "valid {:or, subtypes} with simple subtypes" do

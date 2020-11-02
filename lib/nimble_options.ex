@@ -106,6 +106,10 @@ defmodule NimbleOptions do
       should be a list of terms. The value is an element in said list of terms,
       that is, `value in choices` is `true`. Previously called `:one_of`.
 
+    * `{:value, expected}` - A value that is exactly equals to `expected`. Comparison is
+      executed using the `Kernel.==/2` operator. This is particularly useful in
+      combination with the `{:or, subtypes}` type.
+
     * `{:custom, mod, fun, args}` - A custom type. The related value must be validated
       by `mod.fun(values, ...args)`. The function should return `{:ok, value}` or
       `{:error, message}`.
@@ -474,6 +478,18 @@ defmodule NimbleOptions do
     end
   end
 
+  defp validate_type({:value, expected}, key, value) do
+    if expected == value do
+      {:ok, value}
+    else
+      error_tuple(
+        key,
+        value,
+        "expected #{inspect(key)} to be exactly #{inspect(expected)}, got: #{inspect(value)}"
+      )
+    end
+  end
+
   defp validate_type({:custom, mod, fun, args}, key, value) do
     case apply(mod, fun, [value | args]) do
       {:ok, value} ->
@@ -574,7 +590,13 @@ defmodule NimbleOptions do
   defp available_types() do
     types =
       Enum.map(@basic_types, &inspect/1) ++
-        ["{:fun, arity}", "{:in, choices}", "{:or, subtypes}", "{:custom, mod, fun, args}"]
+        [
+          "{:fun, arity}",
+          "{:in, choices}",
+          "{:or, subtypes}",
+          "{:value, expected}",
+          "{:custom, mod, fun, args}"
+        ]
 
     Enum.join(types, ", ")
   end
@@ -595,6 +617,10 @@ defmodule NimbleOptions do
   end
 
   def validate_type({:in, choices} = value) when is_list(choices) do
+    {:ok, value}
+  end
+
+  def validate_type({:value, _expected} = value) do
     {:ok, value}
   end
 
