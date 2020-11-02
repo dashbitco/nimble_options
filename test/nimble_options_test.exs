@@ -605,7 +605,7 @@ defmodule NimbleOptionsTest do
     test "valid {:or, subtypes} with nested keyword lists" do
       schema = [
         docs: [
-          type: {:or, [:boolean, {:keyword_list, enabled: [type: :boolean]}]}
+          type: {:or, [:boolean, keyword_list: [enabled: [type: :boolean]]]}
         ]
       ]
 
@@ -669,7 +669,7 @@ defmodule NimbleOptionsTest do
     test "invalid {:or, subtypes} with nested keyword lists" do
       schema = [
         docs: [
-          type: {:or, [:boolean, {:keyword_list, enabled: [type: :boolean]}]}
+          type: {:or, [:boolean, keyword_list: [enabled: [type: :boolean]]]}
         ]
       ]
 
