@@ -4,7 +4,7 @@ defmodule NimbleOptions do
       type: :keyword_list,
       keys: [
         type: [
-          type: {:custom, __MODULE__, :type, []},
+          type: {:custom, __MODULE__, :validate_type, []},
           default: :any,
           doc: "The type of the option item."
         ],
@@ -199,6 +199,9 @@ defmodule NimbleOptions do
     :pid
   ]
 
+  @typedoc """
+  A schema. See the module documentation for more information.
+  """
   @type schema() :: keyword()
 
   @doc """
@@ -554,11 +557,8 @@ defmodule NimbleOptions do
     :ok
   end
 
-  defp tagged_tuple?({key, _value}) when is_atom(key), do: true
-  defp tagged_tuple?(_), do: false
-
   defp keyword_list?(value) do
-    is_list(value) && Enum.all?(value, &tagged_tuple?/1)
+    is_list(value) and Enum.all?(value, &match?({key, _value} when is_atom(key), &1))
   end
 
   defp expand_star_to_option_keys(keys, opts) do
@@ -580,44 +580,44 @@ defmodule NimbleOptions do
   end
 
   @doc false
-  def type(value) when value in @basic_types do
+  def validate_type(value) when value in @basic_types do
     {:ok, value}
   end
 
-  def type({:fun, arity} = value) when is_integer(arity) and arity >= 0 do
+  def validate_type({:fun, arity} = value) when is_integer(arity) and arity >= 0 do
     {:ok, value}
   end
 
   # TODO: remove on v0.5.
-  def type({:one_of, choices}) do
+  def validate_type({:one_of, choices}) do
     IO.warn("the {:one_of, choices} type is deprecated. Use {:in, choices} instead.")
-    type({:in, choices})
+    validate_type({:in, choices})
   end
 
-  def type({:in, choices} = value) when is_list(choices) do
+  def validate_type({:in, choices} = value) when is_list(choices) do
     {:ok, value}
   end
 
-  def type({:custom, mod, fun, args} = value)
+  def validate_type({:custom, mod, fun, args} = value)
       when is_atom(mod) and is_atom(fun) and is_list(args) do
     {:ok, value}
   end
 
-  def type({:or, subtypes} = value) when is_list(subtypes) do
+  def validate_type({:or, subtypes} = value) when is_list(subtypes) do
     Enum.reduce_while(subtypes, {:ok, value}, fn
       {keyword_list_type, _keys}, acc
       when keyword_list_type in [:keyword_list, :non_empty_keyword_list] ->
         {:cont, acc}
 
       subtype, acc ->
-        case type(subtype) do
+        case validate_type(subtype) do
           {:ok, _value} -> {:cont, acc}
           {:error, reason} -> {:halt, {:error, "invalid type in :or for reason: #{reason}"}}
         end
     end)
   end
 
-  def type(value) do
+  def validate_type(value) do
     {:error, "invalid option type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
   end
 
