@@ -117,8 +117,8 @@ defmodule NimbleOptions do
       subtypes is a keyword list, you won't be able to pass `:keys` directly. For this reason,
       keyword lists (`:keyword_list` and `:non_empty_keyword_list`) are special cased and can
       be used as subtypes with `{:keyword_list, keys}` or `{:non_empty_keyword_list, keys}`.
-      For example, a type such as `{:or, [:boolean, {:keyword_list, enabled: [type: :boolean]}]}`
-      would match either a boolean or a keyword list with the `:enabled` option in it.
+      For example, a type such as `{:or, [:boolean, keyword_list: [enabled: [type: :boolean]]]}`
+      would match either a boolean or a keyword list with the `:enabled` boolean option in it.
 
   ## Example
 
