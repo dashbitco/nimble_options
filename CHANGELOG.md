@@ -1,5 +1,9 @@
 # Changelog for NimbleOptions
 
+## v0.3.3
+
+  * Add the `{:or, subtypes}` type.
+
 ## v0.3.2
 
   * Fix a small bug with docs for nested schemas.
