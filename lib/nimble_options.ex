@@ -69,7 +69,7 @@ defmodule NimbleOptions do
   These are the options supported in a *schema*. They are what
   defines the validation for the items in the given schema.
 
-  #{NimbleOptions.Docs.generate(@options_schema)}
+  #{NimbleOptions.Docs.generate(@options_schema, _nest_levels = 0)}
 
   ## Types
 
@@ -256,9 +256,10 @@ defmodule NimbleOptions do
       @doc "Supported options:\n#{NimbleOptions.docs(@options_schema)}"
 
   """
-  @spec docs(schema()) :: String.t()
-  def docs(schema) when is_list(schema) do
-    NimbleOptions.Docs.generate(schema)
+  @spec docs(schema(), non_neg_integer()) :: String.t()
+  def docs(schema, nest_levels \\ 0)
+      when is_list(schema) and is_integer(nest_levels) and nest_levels >= 0 do
+    NimbleOptions.Docs.generate(schema, nest_levels)
   end
 
   @doc false

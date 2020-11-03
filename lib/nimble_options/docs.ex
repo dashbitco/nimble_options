@@ -1,8 +1,8 @@
 defmodule NimbleOptions.Docs do
   @moduledoc false
 
-  def generate(schema) when is_list(schema) do
-    {docs, sections, _level} = build_docs(schema, {[], [], 0})
+  def generate(schema, nest_levels) when is_list(schema) do
+    {docs, sections, _level} = build_docs(schema, {[], [], nest_levels})
     to_string([Enum.reverse(docs), Enum.reverse(sections)])
   end
 

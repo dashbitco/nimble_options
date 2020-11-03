@@ -1237,6 +1237,38 @@ defmodule NimbleOptionsTest do
       assert NimbleOptions.docs(schema) == docs
     end
 
+    test "passing specific indentation" do
+      nested_schema = [
+        allowed_messages: [type: :pos_integer, doc: "Allowed messages."],
+        interval: [type: :pos_integer, doc: "Interval."]
+      ]
+
+      schema = [
+        producer: [
+          type: {:or, [:string, keyword_list: nested_schema]},
+          doc: """
+          The producer. Either a string or a keyword list with the following keys:
+
+          #{NimbleOptions.docs(nested_schema, _nest_levels = 1)}
+          """
+        ],
+        other_key: [type: :string]
+      ]
+
+      docs = """
+        * `:producer` - The producer. Either a string or a keyword list with the following keys:
+
+          * `:allowed_messages` - Allowed messages.
+
+          * `:interval` - Interval.
+
+        * `:other_key`
+
+      """
+
+      assert NimbleOptions.docs(schema) == docs
+    end
+
     test "generate subsections for nested options" do
       schema = [
         name: [required: true, type: :atom, doc: "The name."],
