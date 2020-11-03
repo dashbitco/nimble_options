@@ -7,25 +7,27 @@ defmodule NimbleOptionsTest do
 
   alias NimbleOptions.ValidationError
 
-  test "known options" do
-    schema = [name: [], context: []]
-    opts = [name: MyProducer, context: :ok]
+  describe "validate keys" do
+    test "known options without types" do
+      schema = [name: [], context: []]
+      opts = [name: MyProducer, context: :ok]
 
-    assert NimbleOptions.validate(opts, schema) == {:ok, opts}
-  end
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
 
-  test "unknown options" do
-    schema = [an_option: [], other_option: []]
-    opts = [an_option: 1, not_an_option1: 1, not_an_option2: 1]
+    test "unknown options" do
+      schema = [an_option: [], other_option: []]
+      opts = [an_option: 1, not_an_option1: 1, not_an_option2: 1]
 
-    assert NimbleOptions.validate(opts, schema) ==
-             {:error,
-              %ValidationError{
-                key: [:not_an_option1, :not_an_option2],
-                value: nil,
-                message:
-                  "unknown options [:not_an_option1, :not_an_option2], valid options are: [:an_option, :other_option]"
-              }}
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: [:not_an_option1, :not_an_option2],
+                  value: nil,
+                  message:
+                    "unknown options [:not_an_option1, :not_an_option2], valid options are: [:an_option, :other_option]"
+                }}
+    end
   end
 
   describe "validate the schema itself before validating the options" do
@@ -115,7 +117,7 @@ defmodule NimbleOptionsTest do
     end
   end
 
-  describe "required options" do
+  describe ":required" do
     test "when present" do
       schema = [name: [required: true, type: :atom]]
       opts = [name: MyProducer]
@@ -137,21 +139,21 @@ defmodule NimbleOptionsTest do
     end
   end
 
-  describe "rename_to" do
-    test "is renamed when given" do
+  describe ":rename_to" do
+    test "renames option when true" do
       schema = [context: [rename_to: :new_context], new_context: []]
 
       assert NimbleOptions.validate([context: :ok], schema) ==
                {:ok, [{:context, :ok}, {:new_context, :ok}]}
     end
 
-    test "is ignored when not given" do
+    test "is ignored when option is not present given" do
       schema = [context: [rename_to: :new_context], new_context: []]
       assert NimbleOptions.validate([], schema) == {:ok, []}
     end
   end
 
-  describe "doc" do
+  describe ":doc" do
     test "valid documentation for key" do
       schema = [context: [doc: "details", default: 1]]
       assert NimbleOptions.validate([], schema) == {:ok, [context: 1]}
@@ -176,7 +178,7 @@ defmodule NimbleOptionsTest do
     end
   end
 
-  describe "deprecated" do
+  describe ":deprecated" do
     import ExUnit.CaptureIO
 
     test "warns when given" do
@@ -1179,7 +1181,7 @@ defmodule NimbleOptionsTest do
     end
   end
 
-  describe "docs" do
+  describe "NimbleOptions.docs/1" do
     test "override docs for recursive keys" do
       docs = """
         * `:type` - Required. The type of the option item.
