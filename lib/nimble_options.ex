@@ -69,7 +69,7 @@ defmodule NimbleOptions do
   These are the options supported in a *schema*. They are what
   defines the validation for the items in the given schema.
 
-  #{NimbleOptions.Docs.generate(@options_schema, nest_levels: 0)}
+  #{NimbleOptions.Docs.generate(@options_schema, nest_level: 0)}
 
   ## Types
 
@@ -257,7 +257,7 @@ defmodule NimbleOptions do
 
   ## Options
 
-    * `:nest_levels` - an integer deciding the "nest level" of the generated
+    * `:nest_level` - an integer deciding the "nest level" of the generated
       docs. This is useful when, for example, you use `docs/2` inside the `:doc`
       option of another schema. For example, if you have the following nested schema:
 
@@ -273,7 +273,7 @@ defmodule NimbleOptions do
               type: {:or, [:string, keyword_list: nested_schema]},
               doc:
                 "Either a string or a keyword list with the following keys:\n\n" <>
-                  NimbleOptions.docs(nested_schema, nest_levels: 1)
+                  NimbleOptions.docs(nested_schema, nest_level: 1)
             ],
             other_key: [type: :string]
           ]

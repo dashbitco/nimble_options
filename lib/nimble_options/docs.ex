@@ -2,8 +2,8 @@ defmodule NimbleOptions.Docs do
   @moduledoc false
 
   def generate(schema, options) when is_list(schema) and is_list(options) do
-    nest_levels = Keyword.get(options, :nest_levels, 0)
-    {docs, sections, _level} = build_docs(schema, {[], [], nest_levels})
+    nest_level = Keyword.get(options, :nest_level, 0)
+    {docs, sections, _level} = build_docs(schema, {[], [], nest_level})
     to_string([Enum.reverse(docs), Enum.reverse(sections)])
   end
 
