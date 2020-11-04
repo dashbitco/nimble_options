@@ -69,7 +69,7 @@ defmodule NimbleOptions do
   These are the options supported in a *schema*. They are what
   defines the validation for the items in the given schema.
 
-  #{NimbleOptions.Docs.generate(@options_schema, _nest_levels = 0)}
+  #{NimbleOptions.Docs.generate(@options_schema, nest_levels: 0)}
 
   ## Types
 
@@ -255,11 +255,33 @@ defmodule NimbleOptions do
 
       @doc "Supported options:\n#{NimbleOptions.docs(@options_schema)}"
 
+  ## Options
+
+    * `:nest_levels` - an integer deciding the "nest level" of the generated
+      docs. This is useful when, for example, you use `docs/2` inside the `:doc`
+      option of another schema. For example, if you have the following nested schema:
+
+          nested_schema = [
+            allowed_messages: [type: :pos_integer, doc: "Allowed messages."],
+            interval: [type: :pos_integer, doc: "Interval."]
+          ]
+
+      then you can document it inside another schema with its nesting level increased:
+
+          schema = [
+            producer: [
+              type: {:or, [:string, keyword_list: nested_schema]},
+              doc:
+                "Either a string or a keyword list with the following keys:\n\n" <>
+                  NimbleOptions.docs(nested_schema, nest_levels: 1)
+            ],
+            other_key: [type: :string]
+          ]
+
   """
-  @spec docs(schema(), non_neg_integer()) :: String.t()
-  def docs(schema, nest_levels \\ 0)
-      when is_list(schema) and is_integer(nest_levels) and nest_levels >= 0 do
-    NimbleOptions.Docs.generate(schema, nest_levels)
+  @spec docs(schema(), keyword()) :: String.t()
+  def docs(schema, options \\ []) when is_list(schema) and is_list(options) do
+    NimbleOptions.Docs.generate(schema, options)
   end
 
   @doc false

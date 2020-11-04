@@ -1249,7 +1249,7 @@ defmodule NimbleOptionsTest do
           doc: """
           The producer. Either a string or a keyword list with the following keys:
 
-          #{NimbleOptions.docs(nested_schema, _nest_levels = 1)}
+          #{NimbleOptions.docs(nested_schema, nest_levels: 1)}
           """
         ],
         other_key: [type: :string]
