@@ -1,5 +1,11 @@
 # Changelog for NimbleOptions
 
+## v0.3.4
+
+  * Support nested schemas in the `{:or, subtypes}` type as `{:or, [:string, keyword_list: [enabled: [type: :boolean]]]}`.
+  * Improve validation of the return value of `{:custom, module, function, args}` functions.
+  * Support options in `NimbleOptions.docs/2`. For now only the `:nest_level` option is supported.
+
 ## v0.3.3
 
   * Add the `{:or, subtypes}` type.
