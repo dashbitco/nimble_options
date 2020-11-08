@@ -360,7 +360,7 @@ defmodule NimbleOptions do
 
   defp validate_option(opts, key, schema) do
     with {:ok, value} <- validate_value(opts, key, schema),
-         :ok <- validate_type(schema[:type], key, value) do
+         {:ok, value} <- validate_type(schema[:type], key, value) do
       if nested_schema = schema[:keys] do
         validate_options_with_schema_and_path(value, nested_schema, _path = [key])
       else
@@ -434,7 +434,7 @@ defmodule NimbleOptions do
 
   defp validate_type(:keyword_list, key, value) do
     if keyword_list?(value) do
-      :ok
+      {:ok, value}
     else
       error_tuple(
         key,
@@ -445,8 +445,8 @@ defmodule NimbleOptions do
   end
 
   defp validate_type(:non_empty_keyword_list, key, value) do
-    if keyword_list?(value) && value != [] do
-      :ok
+    if keyword_list?(value) and value != [] do
+      {:ok, value}
     else
       error_tuple(
         key,
@@ -457,15 +457,16 @@ defmodule NimbleOptions do
   end
 
   defp validate_type(:pid, _key, value) when is_pid(value) do
-    :ok
+    {:ok, value}
   end
 
   defp validate_type(:pid, key, value) do
     error_tuple(key, value, "expected #{inspect(key)} to be a pid, got: #{inspect(value)}")
   end
 
-  defp validate_type(:mfa, _key, {m, f, args}) when is_atom(m) and is_atom(f) and is_list(args) do
-    :ok
+  defp validate_type(:mfa, _key, {mod, fun, args} = value)
+       when is_atom(mod) and is_atom(fun) and is_list(args) do
+    {:ok, value}
   end
 
   defp validate_type(:mfa, key, value) when not is_nil(value) do
@@ -476,8 +477,8 @@ defmodule NimbleOptions do
     )
   end
 
-  defp validate_type(:mod_arg, _key, {m, _arg}) when is_atom(m) do
-    :ok
+  defp validate_type(:mod_arg, _key, {mod, _arg} = value) when is_atom(mod) do
+    {:ok, value}
   end
 
   defp validate_type(:mod_arg, key, value) do
@@ -494,7 +495,7 @@ defmodule NimbleOptions do
     if is_function(value) do
       case :erlang.fun_info(value, :arity) do
         {:arity, ^arity} ->
-          :ok
+          {:ok, value}
 
         {:arity, fun_arity} ->
           error_tuple(key, value, expected <> "got: function of arity #{inspect(fun_arity)}")
@@ -525,7 +526,7 @@ defmodule NimbleOptions do
 
   defp validate_type({:in, choices}, key, value) do
     if value in choices do
-      :ok
+      {:ok, value}
     else
       error_tuple(
         key,
@@ -548,14 +549,11 @@ defmodule NimbleOptions do
           end
 
         case validate_type(subtype, key, value) do
-          :ok when not is_nil(nested_schema) ->
+          {:ok, value} when not is_nil(nested_schema) ->
             case validate_options_with_schema_and_path(value, nested_schema, _path = [key]) do
               {:ok, value} -> {:halt, {:ok, value}}
               {:error, %ValidationError{} = error} -> {:cont, [error | errors_acc]}
             end
-
-          :ok ->
-            {:halt, {:ok, value}}
 
           {:ok, value} ->
             {:halt, {:ok, value}}
@@ -583,9 +581,6 @@ defmodule NimbleOptions do
     updated_elements =
       for {elem, index} <- Stream.with_index(value) do
         case validate_type(subtype, "list element", elem) do
-          :ok ->
-            elem
-
           {:ok, updated_elem} ->
             updated_elem
 
@@ -611,8 +606,8 @@ defmodule NimbleOptions do
     validate_type(:any, key, value)
   end
 
-  defp validate_type(_type, _key, _value) do
-    :ok
+  defp validate_type(_type, _key, value) do
+    {:ok, value}
   end
 
   defp keyword_list?(value) do
