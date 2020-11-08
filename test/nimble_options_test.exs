@@ -41,7 +41,8 @@ defmodule NimbleOptionsTest do
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :integer, :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
-      :pid, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args} \
+      :pid, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
+      {:list, subtype} \
       (in options [:stages])\
       """
 
@@ -785,6 +786,73 @@ defmodule NimbleOptionsTest do
       assert_raise RuntimeError, message, fn ->
         assert NimbleOptions.validate([my_option: :whatever], schema)
       end
+    end
+
+    test "valid {:list, subtype}" do
+      schema = [metadata: [type: {:list, :atom}]]
+
+      opts = [metadata: [:foo, :bar, :baz]]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid {:list, subtype}" do
+      schema = [metadata: [type: {:list, :atom}]]
+
+      # Not a list
+      opts = [metadata: "not a list"]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: :metadata,
+                  keys_path: [],
+                  message: "expected :metadata to be a list, got: \"not a list\"",
+                  value: "not a list"
+                }}
+
+      # List with invalid elements
+      opts = [metadata: [:foo, :bar, "baz", :bong, "another invalid value"]]
+
+      message = """
+      list element at position 2 in :metadata failed validation: expected "list element" \
+      to be an atom, got: "baz"\
+      """
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %NimbleOptions.ValidationError{
+                 key: :metadata,
+                 keys_path: [],
+                 message: message,
+                 value: [:foo, :bar, "baz", :bong, "another invalid value"]
+               }
+             }
+    end
+
+    test "{:list, subtype} with custom subtype" do
+      schema = [metadata: [type: {:list, {:custom, __MODULE__, :string_to_integer, []}}]]
+
+      # Valid
+      opts = [metadata: ["123", "456"]]
+      assert NimbleOptions.validate(opts, schema) == {:ok, [metadata: [123, 456]]}
+
+      # Invalid
+      opts = [metadata: ["123", "not an int"]]
+
+      message = """
+      list element at position 1 in :metadata failed validation: expected string to be \
+      convertable to integer\
+      """
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %NimbleOptions.ValidationError{
+                 key: :metadata,
+                 keys_path: [],
+                 message: message,
+                 value: ["123", "not an int"]
+               }
+             }
     end
   end
 

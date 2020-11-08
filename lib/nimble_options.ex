@@ -120,6 +120,13 @@ defmodule NimbleOptions do
       For example, a type such as `{:or, [:boolean, keyword_list: [enabled: [type: :boolean]]]}`
       would match either a boolean or a keyword list with the `:enabled` boolean option in it.
 
+    * `{:list, subtype}` - A list where all elements match `subtype`. `subtype` can be any
+      of the accepted types listed here. Empty lists are allowed. The resulting validated list
+      contains the validated (and possibly updated) elements, each as returned after validation
+      through `subtype`. For example, if `subtype` is a custom validator function that returns
+      an updated value, then that updated value is used in the resulting list. Validation
+      fails at the *first* element that is invalid according to `subtype`.
+
   ## Example
 
       iex> schema = [
@@ -572,6 +579,34 @@ defmodule NimbleOptions do
     end
   end
 
+  defp validate_type({:list, subtype}, key, value) when is_list(value) do
+    updated_elements =
+      for {elem, index} <- Stream.with_index(value) do
+        case validate_type(subtype, "list element", elem) do
+          :ok ->
+            elem
+
+          {:ok, updated_elem} ->
+            updated_elem
+
+          {:error, %ValidationError{} = error} ->
+            throw({:error, index, error})
+        end
+      end
+
+    {:ok, updated_elements}
+  catch
+    {:error, index, %ValidationError{} = error} ->
+      message =
+        "list element at position #{index} in #{inspect(key)} failed validation: #{error.message}"
+
+      error_tuple(key, value, message)
+  end
+
+  defp validate_type({:list, _subtype}, key, value) do
+    error_tuple(key, value, "expected #{inspect(key)} to be a list, got: #{inspect(value)}")
+  end
+
   defp validate_type(nil, key, value) do
     validate_type(:any, key, value)
   end
@@ -597,7 +632,13 @@ defmodule NimbleOptions do
   defp available_types() do
     types =
       Enum.map(@basic_types, &inspect/1) ++
-        ["{:fun, arity}", "{:in, choices}", "{:or, subtypes}", "{:custom, mod, fun, args}"]
+        [
+          "{:fun, arity}",
+          "{:in, choices}",
+          "{:or, subtypes}",
+          "{:custom, mod, fun, args}",
+          "{:list, subtype}"
+        ]
 
     Enum.join(types, ", ")
   end
@@ -638,6 +679,13 @@ defmodule NimbleOptions do
           {:error, reason} -> {:halt, {:error, "invalid type in :or for reason: #{reason}"}}
         end
     end)
+  end
+
+  def validate_type({:list, subtype}) do
+    case validate_type(subtype) do
+      {:ok, validated_subtype} -> {:ok, {:list, validated_subtype}}
+      {:error, reason} -> {:error, "invalid subtype for :list type: #{reason}"}
+    end
   end
 
   def validate_type(value) do
