@@ -793,6 +793,12 @@ defmodule NimbleOptionsTest do
 
       opts = [metadata: [:foo, :bar, :baz]]
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      # Nested lists
+      schema = [metadata: [type: {:list, {:list, :atom}}]]
+
+      opts = [metadata: [[:foo, :bar], [:baz]]]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
     test "invalid {:list, subtype}" do
@@ -825,6 +831,26 @@ defmodule NimbleOptionsTest do
                  keys_path: [],
                  message: message,
                  value: [:foo, :bar, "baz", :bong, "another invalid value"]
+               }
+             }
+
+      # Nested list with invalid elements
+      schema = [metadata: [type: {:list, {:list, :atom}}]]
+      opts = [metadata: [[:foo, :bar], ["baz", :bong, "another invalid value"]]]
+
+      message = """
+      list element at position 1 in :metadata failed validation: \
+      list element at position 0 in "list element" failed validation: \
+      expected "list element" to be an atom, got: "baz"\
+      """
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %NimbleOptions.ValidationError{
+                 key: :metadata,
+                 keys_path: [],
+                 message: message,
+                 value: [[:foo, :bar], ["baz", :bong, "another invalid value"]]
                }
              }
     end
