@@ -1,7 +1,7 @@
 defmodule NimbleOptions.MixProject do
   use Mix.Project
 
-  @version "0.3.4"
+  @version "0.3.5"
   @repo_url "https://github.com/dashbitco/nimble_options"
 
   def project do
@@ -32,7 +32,7 @@ defmodule NimbleOptions.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ex_doc, ">= 0.19.0", only: :docs}
+      {:ex_doc, ">= 0.19.0", only: :dev}
     ]
   end
 

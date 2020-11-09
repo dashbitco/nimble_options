@@ -1,5 +1,9 @@
 # Changelog for NimbleOptions
 
+## v0.3.5
+
+  * Add support for the `{:list, subtype}` type.
+
 ## v0.3.4
 
   * Support nested schemas in the `{:or, subtypes}` type as `{:or, [:string, keyword_list: [enabled: [type: :boolean]]]}`.
