@@ -12,6 +12,9 @@ defmodule NimbleOptions.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
 
+      # Tests
+      test_coverage: [tool: ExCoveralls],
+
       # Hex
       package: package(),
       description: "A tiny library for validating and documenting high-level options",
@@ -32,7 +35,8 @@ defmodule NimbleOptions.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ex_doc, ">= 0.19.0", only: :dev}
+      {:ex_doc, ">= 0.19.0", only: :dev},
+      {:excoveralls, "~> 0.13.3", only: :test}
     ]
   end
 
