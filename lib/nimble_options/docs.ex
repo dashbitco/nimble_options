@@ -18,7 +18,7 @@ defmodule NimbleOptions.Docs do
     if schema[:*] do
       build_docs(schema[:*][:keys], acc)
     else
-      Enum.reduce(schema, {docs, sections, level}, &maybe_option_doc/2)
+      Enum.reduce(schema || [], {docs, sections, level}, &maybe_option_doc/2)
     end
   end
 
