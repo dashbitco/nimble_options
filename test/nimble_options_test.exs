@@ -1472,6 +1472,25 @@ defmodule NimbleOptionsTest do
 
       assert NimbleOptions.docs(schema) == docs
     end
+
+    test "stop generating docs recursively if type has no :keys" do
+      schema = [
+        custom_keys: [
+          type: :keyword_list,
+          doc: "Custom keys",
+          keys: [*: [type: :atom, doc: "Won't be there!"]]
+        ]
+      ]
+
+      opts = [custom_keys: [key1: :a, key2: :b]]
+
+      assert {:ok, ^opts} = NimbleOptions.validate(opts, schema)
+
+      assert NimbleOptions.docs(schema) == """
+               * `:custom_keys` - Custom keys
+
+             """
+    end
   end
 
   describe "validate!/2 (raising version)" do
