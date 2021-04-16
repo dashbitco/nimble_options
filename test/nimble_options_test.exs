@@ -40,7 +40,7 @@ defmodule NimbleOptionsTest do
       Reason: invalid option type :foo.
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
-      :integer, :non_neg_integer, :pos_integer, :mfa, :mod_arg, :string, :boolean, :timeout, \
+      :integer, :non_neg_integer, :pos_integer, :float, :mfa, :mod_arg, :string, :boolean, :timeout, \
       :pid, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
       {:list, subtype} \
       (in options [:stages])\
@@ -283,6 +283,33 @@ defmodule NimbleOptionsTest do
                   key: :min_demand,
                   value: :an_atom,
                   message: "expected :min_demand to be a non negative integer, got: :an_atom"
+                }}
+    end
+
+    test "valid float" do
+      schema = [certainty: [type: :float]]
+      opts = [certainty: 0.5]
+
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid float" do
+      schema = [certainty: [type: :float]]
+
+      assert NimbleOptions.validate([certainty: 1], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :certainty,
+                  value: 1,
+                  message: "expected :certainty to be a float, got: 1"
+                }}
+
+      assert NimbleOptions.validate([certainty: :an_atom], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :certainty,
+                  value: :an_atom,
+                  message: "expected :certainty to be a float, got: :an_atom"
                 }}
     end
 
