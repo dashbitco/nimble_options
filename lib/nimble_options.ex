@@ -91,6 +91,8 @@ defmodule NimbleOptions do
 
     * `:pos_integer` - A positive integer.
 
+    * `:float` - A float.
+
     * `:timeout` - A non-negative integer or the atom `:infinity`.
 
     * `:pid` - A PID (process identifier).
@@ -198,6 +200,7 @@ defmodule NimbleOptions do
     :integer,
     :non_neg_integer,
     :pos_integer,
+    :float,
     :mfa,
     :mod_arg,
     :string,
@@ -409,6 +412,10 @@ defmodule NimbleOptions do
       value,
       "expected #{inspect(key)} to be a positive integer, got: #{inspect(value)}"
     )
+  end
+
+  defp validate_type(:float, key, value) when not is_float(value) do
+    error_tuple(key, value, "expected #{inspect(key)} to be a float, got: #{inspect(value)}")
   end
 
   defp validate_type(:atom, key, value) when not is_atom(value) do
