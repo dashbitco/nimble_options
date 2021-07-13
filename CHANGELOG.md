@@ -1,5 +1,10 @@
 # Changelog for NimbleOptions
 
+## v0.3.6
+
+  * Add `:float` type.
+  * Fix docs generation when custom key type has no keys.
+
 ## v0.3.5
 
   * Add support for the `{:list, subtype}` type.
