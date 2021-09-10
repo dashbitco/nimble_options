@@ -71,7 +71,7 @@ defmodule NimbleOptions.Docs do
   end
 
   defp get_required_str(schema) do
-    schema[:required] && "Required."
+    (schema[:required] && "Required.") || nil
   end
 
   defp get_default_str(schema) do

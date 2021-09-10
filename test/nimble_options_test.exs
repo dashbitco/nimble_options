@@ -1356,6 +1356,7 @@ defmodule NimbleOptionsTest do
       """
 
       assert NimbleOptions.docs(schema) == docs
+      assert NimbleOptions.docs(NimbleOptions.new!(schema)) == docs
     end
 
     test "passing specific indentation" do
@@ -1538,6 +1539,46 @@ defmodule NimbleOptionsTest do
       assert_raise NimbleOptions.ValidationError, message, fn ->
         NimbleOptions.validate!(opts, schema)
       end
+    end
+  end
+
+  @compile_time_wrapper NimbleOptions.new!(an_option: [])
+
+  describe "wrapper struct" do
+    test "can be built from a valid schema" do
+      valid_schema = [an_option: [], other_option: []]
+      assert %NimbleOptions{schema_valid?: true} = NimbleOptions.new!(valid_schema)
+
+      invalid_schema = [{"a_binary_key", []}]
+
+      assert_raise ArgumentError, fn ->
+        NimbleOptions.new!(invalid_schema)
+      end
+    end
+
+    test "can be built with a struct litteral" do
+      valid_schema = [an_option: [], other_option: []]
+      raw_struct = %NimbleOptions{schema_valid?: false, schema: valid_schema}
+      assert {:ok, [an_option: 1]} = NimbleOptions.validate([an_option: 1], raw_struct)
+    end
+
+    test "will not be validated if marked valid" do
+      invalid_schema = [{"a_binary_key", []}]
+      invalid_struct = %NimbleOptions{schema_valid?: true, schema: invalid_schema}
+
+      message = """
+      expected a keyword list, but an entry in the list is not a two-element \
+      tuple with an atom as its first element, got: {"a_binary_key", []}\
+      """
+
+      assert_raise ArgumentError, message, fn ->
+        NimbleOptions.validate([], invalid_struct)
+      end
+    end
+
+    test "can be built at compile time" do
+      assert %NimbleOptions{schema_valid?: true} = @compile_time_wrapper
+      assert {:ok, _} = NimbleOptions.validate([an_option: 1], @compile_time_wrapper)
     end
   end
 
