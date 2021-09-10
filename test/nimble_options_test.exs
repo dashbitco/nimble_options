@@ -1560,21 +1560,7 @@ defmodule NimbleOptionsTest do
       invalid_schema = [{"a_binary_key", []}]
       invalid_struct = %NimbleOptions{schema: invalid_schema}
 
-      # support elixir 1.6
-      try do
-        NimbleOptions.validate([], invalid_struct)
-        flunk("invalid schema was used to validate options")
-      rescue
-        e in FunctionClauseError ->
-          assert Exception.message(e) ==
-                   "no function clause matching in Keyword.has_key?/2"
-
-        e in ArgumentError ->
-          assert Exception.message(e) == """
-                 expected a keyword list, but an entry in the list is not a two-element \
-                 tuple with an atom as its first element, got: {"a_binary_key", []}\
-                 """
-      end
+      assert catch_error(NimbleOptions.validate([], invalid_struct))
     end
 
     test "can be built at compile time" do
