@@ -223,7 +223,6 @@ defmodule NimbleOptions do
   """
 
   alias NimbleOptions.ValidationError
-  alias __MODULE__
 
   defstruct schema: [], schema_valid?: false
 
