@@ -224,7 +224,7 @@ defmodule NimbleOptions do
 
   alias NimbleOptions.ValidationError
 
-  defstruct schema: [], schema_valid?: false
+  defstruct schema: []
 
   @basic_types [
     :any,
@@ -252,7 +252,7 @@ defmodule NimbleOptions do
   The `NimbleOptions` struct embedding a validated schema. See the
   Validating Schemas section in the module documentation.
   """
-  @type t() :: %NimbleOptions{schema: schema(), schema_valid?: boolean()}
+  @type t() :: %NimbleOptions{schema: schema()}
 
   @doc """
   Validate the given `options` with the given `schema`.
@@ -268,12 +268,8 @@ defmodule NimbleOptions do
   @spec validate(keyword(), schema() | t()) ::
           {:ok, validated_options :: keyword()} | {:error, ValidationError.t()}
 
-  def validate(options, %NimbleOptions{schema: schema, schema_valid?: true}) do
-    validate_options_with_schema(options, schema)
-  end
-
   def validate(options, %NimbleOptions{schema: schema}) do
-    validate(options, schema)
+    validate_options_with_schema(options, schema)
   end
 
   def validate(options, schema) when is_list(options) and is_list(schema) do
@@ -303,7 +299,7 @@ defmodule NimbleOptions do
   def new!(schema) when is_list(schema) do
     case validate_options_with_schema(schema, options_schema()) do
       {:ok, validated_schema} ->
-        %NimbleOptions{schema: validated_schema, schema_valid?: true}
+        %NimbleOptions{schema: validated_schema}
 
       {:error, %ValidationError{} = error} ->
         raise ArgumentError,
@@ -355,8 +351,7 @@ defmodule NimbleOptions do
     NimbleOptions.Docs.generate(schema, options)
   end
 
-  def docs(%NimbleOptions{schema: schema, schema_valid?: true}, options)
-      when is_list(schema) and is_list(options) do
+  def docs(%NimbleOptions{schema: schema}, options) when is_list(options) do
     NimbleOptions.Docs.generate(schema, options)
   end
 
