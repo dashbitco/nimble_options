@@ -210,10 +210,7 @@ defmodule NimbleOptions do
       ...> ]
       ...>
       ...> schema = NimbleOptions.new!(raw_schema)
-      ...>
-      ...> config = [hostname: "elixir-lang.org"]
-      ...>
-      ...> NimbleOptions.validate(config, schema)
+      ...> NimbleOptions.validate([hostname: "elixir-lang.org"], schema)
       {:ok, hostname: "elixir-lang.org"}
 
   Calling `new!/1` from a function that receives options will still validate the schema each time
@@ -303,7 +300,7 @@ defmodule NimbleOptions do
 
   If the given schema is not valid, raises a `NimbleOptions.ValidationError`.
   """
-  @spec new!(schema()) :: t() | {:error, ValidationError.t()}
+  @spec new!(schema()) :: t()
   def new!(schema) when is_list(schema) do
     case validate_options_with_schema(schema, options_schema()) do
       {:ok, validated_schema} ->
