@@ -1356,6 +1356,7 @@ defmodule NimbleOptionsTest do
       """
 
       assert NimbleOptions.docs(schema) == docs
+      assert NimbleOptions.docs(NimbleOptions.new!(schema)) == docs
     end
 
     test "passing specific indentation" do
@@ -1538,6 +1539,32 @@ defmodule NimbleOptionsTest do
       assert_raise NimbleOptions.ValidationError, message, fn ->
         NimbleOptions.validate!(opts, schema)
       end
+    end
+  end
+
+  @compile_time_wrapper NimbleOptions.new!(an_option: [])
+
+  describe "wrapper struct" do
+    test "can be built from a valid schema" do
+      valid_schema = [an_option: [], other_option: []]
+      assert %NimbleOptions{} = NimbleOptions.new!(valid_schema)
+
+      invalid_schema = [:atom]
+
+      assert_raise FunctionClauseError, fn ->
+        NimbleOptions.new!(invalid_schema)
+      end
+    end
+
+    test "will not be validated once built" do
+      invalid_schema = [{"a_binary_key", []}]
+      invalid_struct = %NimbleOptions{schema: invalid_schema}
+
+      assert catch_error(NimbleOptions.validate([], invalid_struct))
+    end
+
+    test "can be built at compile time" do
+      assert {:ok, _} = NimbleOptions.validate([an_option: 1], @compile_time_wrapper)
     end
   end
 

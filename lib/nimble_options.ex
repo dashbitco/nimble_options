@@ -188,9 +188,43 @@ defmodule NimbleOptions do
       ...> Exception.message(error)
       "expected :interval to be a positive integer, got: :oops! (in options [:producer, :rate_limiting])"
 
+  ## Validating Schemas
+
+  Each time `validate/2` is called, the given schema itself will be validated before validating
+  the options.
+
+  In most applications the schema will never change but validating options will be done
+  repeatedly.
+
+  To avoid the extra cost of validating the schema, it is possible to validate the schema once,
+  and then use that valid schema directly. This is done by using the `new!/1` function first, and
+  then passing the returned schema to `validate/2`.
+
+  ### Example
+
+      iex> raw_schema = [
+      ...>   hostname: [
+      ...>     required: true,
+      ...>     type: :string
+      ...>   ]
+      ...> ]
+      ...>
+      ...> schema = NimbleOptions.new!(raw_schema)
+      ...> NimbleOptions.validate([hostname: "elixir-lang.org"], schema)
+      {:ok, hostname: "elixir-lang.org"}
+
+  Calling `new!/1` from a function that receives options will still validate the schema each time
+  that function is called. Declaring the schema as a module attribute is supported:
+
+      @options_schema NimbleOptions.new!([...])
+
+  This schema will be validated at compile time. Calling `docs/1` on that schema is also
+  supported.
   """
 
   alias NimbleOptions.ValidationError
+
+  defstruct schema: []
 
   @basic_types [
     :any,
@@ -214,6 +248,12 @@ defmodule NimbleOptions do
   """
   @type schema() :: keyword()
 
+  @typedoc """
+  The `NimbleOptions` struct embedding a validated schema. See the
+  Validating Schemas section in the module documentation.
+  """
+  @type t() :: %NimbleOptions{schema: schema()}
+
   @doc """
   Validate the given `options` with the given `schema`.
 
@@ -225,18 +265,15 @@ defmodule NimbleOptions do
   `NimbleOptions.ValidationError` struct explaining what's wrong with the options.
   You can use `raise/1` with that struct or `Exception.message/1` to turn it into a string.
   """
-  @spec validate(keyword(), schema()) ::
+  @spec validate(keyword(), schema() | t()) ::
           {:ok, validated_options :: keyword()} | {:error, ValidationError.t()}
-  def validate(options, schema) when is_list(options) and is_list(schema) do
-    case validate_options_with_schema(schema, options_schema()) do
-      {:ok, _validated_schema} ->
-        validate_options_with_schema(options, schema)
 
-      {:error, %ValidationError{} = error} ->
-        raise ArgumentError,
-              "invalid schema given to NimbleOptions.validate/2. " <>
-                "Reason: #{Exception.message(error)}"
-    end
+  def validate(options, %NimbleOptions{schema: schema}) do
+    validate_options_with_schema(options, schema)
+  end
+
+  def validate(options, schema) when is_list(options) and is_list(schema) do
+    validate(options, new!(schema))
   end
 
   @doc """
@@ -245,11 +282,29 @@ defmodule NimbleOptions do
   This function behaves exactly like `validate/2`, but returns the options directly
   if they're valid or raises a `NimbleOptions.ValidationError` exception otherwise.
   """
-  @spec validate!(keyword(), schema()) :: validated_options :: keyword()
+  @spec validate!(keyword(), schema() | t()) :: validated_options :: keyword()
   def validate!(options, schema) do
     case validate(options, schema) do
       {:ok, options} -> options
       {:error, %ValidationError{} = error} -> raise error
+    end
+  end
+
+  @doc """
+  Validates the given `schema` and returns a wrapped schema to be used with `validate/2`.
+
+  If the given schema is not valid, raises a `NimbleOptions.ValidationError`.
+  """
+  @spec new!(schema()) :: t()
+  def new!(schema) when is_list(schema) do
+    case validate_options_with_schema(schema, options_schema()) do
+      {:ok, validated_schema} ->
+        %NimbleOptions{schema: validated_schema}
+
+      {:error, %ValidationError{} = error} ->
+        raise ArgumentError,
+              "invalid schema given to NimbleOptions.validate/2. " <>
+                "Reason: #{Exception.message(error)}"
     end
   end
 
@@ -289,8 +344,14 @@ defmodule NimbleOptions do
           ]
 
   """
-  @spec docs(schema(), keyword()) :: String.t()
-  def docs(schema, options \\ []) when is_list(schema) and is_list(options) do
+  @spec docs(schema(), keyword() | t()) :: String.t()
+  def docs(schema, options \\ [])
+
+  def docs(schema, options) when is_list(schema) and is_list(options) do
+    NimbleOptions.Docs.generate(schema, options)
+  end
+
+  def docs(%NimbleOptions{schema: schema}, options) when is_list(options) do
     NimbleOptions.Docs.generate(schema, options)
   end
 
