@@ -1,5 +1,9 @@
 # Changelog for NimbleOptions
 
+## v0.3.7
+
+  * Add `NimbleOptions.new!/1` to validate the schema once.
+
 ## v0.3.6
 
   * Add `:float` type.
