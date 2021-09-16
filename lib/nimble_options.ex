@@ -106,7 +106,8 @@ defmodule NimbleOptions do
 
     * `{:in, choices}` - A value that is a member of one of the `choices`. `choices`
       should be a list of terms. The value is an element in said list of terms,
-      that is, `value in choices` is `true`. Previously called `:one_of`.
+      that is, `value in choices` is `true`. This was previously called `:one_of` and
+      the `:in` name is available since version 0.3.3.
 
     * `{:custom, mod, fun, args}` - A custom type. The related value must be validated
       by `mod.fun(values, ...args)`. The function should return `{:ok, value}` or
