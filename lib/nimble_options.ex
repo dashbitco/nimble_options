@@ -97,7 +97,8 @@ defmodule NimbleOptions do
 
     * `:pid` - A PID (process identifier).
 
-    * `:mfa` - A named function in the format `{module, function, arity}`
+    * `:mfa` - A named function in the format `{module, function, arity}` where
+      `arity` is a list of arguments. For example, `{MyModule, :my_fun, [arg1, arg2]}`.
 
     * `:mod_arg` - A module along with arguments, e.g. `{MyModule, [arg1, arg2]}`.
       Usually used for process initialization using `start_link` and friends.
