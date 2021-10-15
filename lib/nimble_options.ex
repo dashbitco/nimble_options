@@ -106,9 +106,9 @@ defmodule NimbleOptions do
     * `{:fun, arity}` - Any function with the specified arity.
 
     * `{:in, choices}` - A value that is a member of one of the `choices`. `choices`
-      should be a list of terms. The value is an element in said list of terms,
-      that is, `value in choices` is `true`. This was previously called `:one_of` and
-      the `:in` name is available since version 0.3.3.
+      should be a list of terms or a `Range`. The value is an element in said
+      list of terms, that is, `value in choices` is `true`. This was previously
+      called `:one_of` and the `:in` name is available since version 0.3.3.
 
     * `{:custom, mod, fun, args}` - A custom type. The related value must be validated
       by `mod.fun(values, ...args)`. The function should return `{:ok, value}` or
@@ -724,6 +724,10 @@ defmodule NimbleOptions do
   end
 
   def validate_type({:in, choices} = value) when is_list(choices) do
+    {:ok, value}
+  end
+
+  def validate_type({:in, _first.._last} = value) do
     {:ok, value}
   end
 

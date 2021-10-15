@@ -572,6 +572,19 @@ defmodule NimbleOptionsTest do
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
+    test "valid {:in, choices} with Range" do
+      schema = [decimals: [type: {:in, 0..255}]]
+
+      opts = [decimals: 0]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [decimals: 100]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [decimals: 255]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
     test "invalid {:in, choices}" do
       schema = [batch_mode: [type: {:in, [:flush, :bulk]}]]
 
@@ -583,6 +596,20 @@ defmodule NimbleOptionsTest do
                   key: :batch_mode,
                   value: :invalid,
                   message: "expected :batch_mode to be one of [:flush, :bulk], got: :invalid"
+                }}
+    end
+
+    test "invalid {:in, choices} with Range" do
+      schema = [decimals: [type: {:in, 0..255}]]
+
+      opts = [decimals: -1]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: :decimals,
+                  value: -1,
+                  message: "expected :decimals to be one of 0..255, got: -1"
                 }}
     end
 
