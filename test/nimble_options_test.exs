@@ -168,7 +168,7 @@ defmodule NimbleOptionsTest do
       one given type, but didn't match any. Here are the reasons why it didn't match each of the \
       allowed types:
 
-        * expected :doc to be one of [false], got: 1
+        * expected :doc to be in [false], got: 1
         * expected :doc to be a string, got: 1 (in options [:context])\
       """
 
@@ -570,9 +570,8 @@ defmodule NimbleOptionsTest do
 
       opts = [batch_mode: :bulk]
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
-    end
 
-    test "valid {:in, choices} with Range" do
+      # With ranges
       schema = [decimals: [type: {:in, 0..255}]]
 
       opts = [decimals: 0]
@@ -581,7 +580,10 @@ defmodule NimbleOptionsTest do
       opts = [decimals: 100]
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
 
-      opts = [decimals: 255]
+      # With sets
+      schema = [mode: [type: {:in, MapSet.new([:active, :passive])}]]
+
+      opts = [mode: :active]
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
@@ -595,11 +597,10 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :batch_mode,
                   value: :invalid,
-                  message: "expected :batch_mode to be one of [:flush, :bulk], got: :invalid"
+                  message: "expected :batch_mode to be in [:flush, :bulk], got: :invalid"
                 }}
-    end
 
-    test "invalid {:in, choices} with Range" do
+      # With ranges
       schema = [decimals: [type: {:in, 0..255}]]
 
       opts = [decimals: -1]
@@ -609,7 +610,20 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :decimals,
                   value: -1,
-                  message: "expected :decimals to be one of 0..255, got: -1"
+                  message: "expected :decimals to be in 0..255, got: -1"
+                }}
+
+      # With sets
+      schema = [mode: [type: {:in, MapSet.new([:active, :passive])}]]
+
+      opts = [mode: :unknown]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: :mode,
+                  value: :unknown,
+                  message: "expected :mode to be in #MapSet<[:active, :passive]>, got: :unknown"
                 }}
     end
 
