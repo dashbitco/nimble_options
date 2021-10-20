@@ -601,7 +601,7 @@ defmodule NimbleOptions do
       error_tuple(
         key,
         value,
-        "expected #{inspect(key)} to be one of #{inspect(choices)}, got: #{inspect(value)}"
+        "expected #{inspect(key)} to be in #{inspect(choices)}, got: #{inspect(value)}"
       )
     end
   end
@@ -723,11 +723,8 @@ defmodule NimbleOptions do
     validate_type({:in, choices})
   end
 
-  def validate_type({:in, choices} = value) when is_list(choices) do
-    {:ok, value}
-  end
-
-  def validate_type({:in, _first.._last} = value) do
+  # "choices" here can be any enumerable so there's no easy and fast way to validate it.
+  def validate_type({:in, _choices} = value) do
     {:ok, value}
   end
 
