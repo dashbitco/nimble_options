@@ -935,7 +935,7 @@ defmodule NimbleOptionsTest do
 
       message = """
       list element at position 1 in :metadata failed validation: expected string to be \
-      convertable to integer\
+      convertible to integer\
       """
 
       assert NimbleOptions.validate(opts, schema) == {
@@ -1628,7 +1628,7 @@ defmodule NimbleOptionsTest do
   def string_to_integer(value) when is_binary(value) do
     case Integer.parse(value) do
       {int, ""} -> {:ok, int}
-      _other -> {:error, "expected string to be convertable to integer"}
+      _other -> {:error, "expected string to be convertible to integer"}
     end
   end
 
