@@ -411,8 +411,16 @@ defmodule NimbleOptions do
         {:halt, result}
 
       {:ok, value} ->
-        actual_key = schema_opts[:rename_to] || key
-        {:cont, Keyword.update(opts, actual_key, value, fn _ -> value end)}
+        if renamed_key = schema_opts[:rename_to] do
+          opts =
+            opts
+            |> Keyword.update(renamed_key, value, fn _ -> value end)
+            |> Keyword.delete(key)
+
+          {:cont, opts}
+        else
+          {:cont, Keyword.update(opts, key, value, fn _ -> value end)}
+        end
 
       :no_value ->
         if Keyword.has_key?(schema_opts, :default) do
