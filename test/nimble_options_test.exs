@@ -141,11 +141,14 @@ defmodule NimbleOptionsTest do
   end
 
   describe ":rename_to" do
-    test "renames option when true" do
-      schema = [context: [rename_to: :new_context], new_context: []]
+    test "renames option and removes the old option" do
+      schema = [
+        port: [rename_to: :new_port],
+        new_port: [type: {:custom, __MODULE__, :string_to_integer, []}]
+      ]
 
-      assert NimbleOptions.validate([context: :ok], schema) ==
-               {:ok, [{:context, :ok}, {:new_context, :ok}]}
+      assert NimbleOptions.validate([port: "4000"], schema) ==
+               {:ok, [new_port: 4000]}
     end
 
     test "is ignored when option is not present given" do
