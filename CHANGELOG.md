@@ -1,5 +1,11 @@
 # Changelog for NimbleOptions
 
+## v0.4.0
+
+  * Add support for all enumerables in `{:in, choices}` instead of just lists. You can now do things such as `{:in, 1..10}`.
+  * Deprecate the `:rename_to` schema option and emit a warning when used.
+  * Remove the `{:one_of, choices}` type which was deprecated in v0.3.3.
+
 ## v0.3.7
 
   * Add `NimbleOptions.new!/1` to validate the schema once.
