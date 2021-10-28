@@ -140,7 +140,7 @@ defmodule NimbleOptionsTest do
     end
   end
 
-  # TODO: remove on v0.6.0.
+  # TODO: remove on v0.5.
   describe ":rename_to (deprecated)" do
     import ExUnit.CaptureIO
 
@@ -635,15 +635,6 @@ defmodule NimbleOptionsTest do
                   value: :unknown,
                   message: "expected :mode to be in #MapSet<[:active, :passive]>, got: :unknown"
                 }}
-    end
-
-    test "deprecation of {:one_of, choices}" do
-      schema = [batch_mode: [type: {:one_of, [:flush, :bulk]}]]
-
-      assert capture_io(:stderr, fn ->
-               opts = [batch_mode: :flush]
-               assert NimbleOptions.validate(opts, schema) == {:ok, opts}
-             end) =~ "the {:one_of, choices} type is deprecated"
     end
 
     test "valid {:or, subtypes} with simple subtypes" do

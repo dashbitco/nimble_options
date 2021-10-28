@@ -43,7 +43,7 @@ defmodule NimbleOptions do
           type: :string,
           doc: "The title of separate subsection of the options' documentation"
         ],
-        # TODO: remove in v0.6.0.
+        # TODO: remove in v0.5.
         rename_to: [
           type: :atom,
           deprecated: "Handle renaming after validation.",
@@ -107,7 +107,8 @@ defmodule NimbleOptions do
     * `{:in, choices}` - A value that is a member of one of the `choices`. `choices`
       should be a list of terms or a `Range`. The value is an element in said
       list of terms, that is, `value in choices` is `true`. This was previously
-      called `:one_of` and the `:in` name is available since version 0.3.3.
+      called `:one_of` and the `:in` name is available since version 0.3.3 (`:one_of`
+      has been removed in v0.4.0).
 
     * `{:custom, mod, fun, args}` - A custom type. The related value must be validated
       by `mod.fun(values, ...args)`. The function should return `{:ok, value}` or
@@ -410,7 +411,7 @@ defmodule NimbleOptions do
         {:halt, result}
 
       {:ok, value} ->
-        # TODO: remove on v0.6.0 when we remove :rename_to.
+        # TODO: remove on v0.5 when we remove :rename_to.
         if renamed_key = schema_opts[:rename_to] do
           opts =
             opts
@@ -597,11 +598,6 @@ defmodule NimbleOptions do
     end
   end
 
-  # TODO: remove on v0.5.
-  defp validate_type({:one_of, choices}, key, value) do
-    validate_type({:in, choices}, key, value)
-  end
-
   defp validate_type({:in, choices}, key, value) do
     if value in choices do
       {:ok, value}
@@ -723,12 +719,6 @@ defmodule NimbleOptions do
 
   def validate_type({:fun, arity} = value) when is_integer(arity) and arity >= 0 do
     {:ok, value}
-  end
-
-  # TODO: remove on v0.5.
-  def validate_type({:one_of, choices}) do
-    IO.warn("the {:one_of, choices} type is deprecated. Use {:in, choices} instead.")
-    validate_type({:in, choices})
   end
 
   # "choices" here can be any enumerable so there's no easy and fast way to validate it.
