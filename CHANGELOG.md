@@ -22,6 +22,7 @@
 ## v0.3.3
 
   * Add the `{:or, subtypes}` type.
+  * Deprecate the `{:one_of, choices}` and replace it with `{:in, choices}`. Using `{:one_of, choices}` emits a warning now.
 
 ## v0.3.2
 
