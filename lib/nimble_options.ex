@@ -35,13 +35,6 @@ defmodule NimbleOptions do
           The message will be displayed as a warning when passing the item.
           """
         ],
-        rename_to: [
-          type: :atom,
-          doc: """
-          Renames a option item allowing one to use a normalized name \
-          internally, e.g. rename a deprecated item to the currently accepted name.
-          """
-        ],
         doc: [
           type: {:or, [:string, {:in, [false]}]},
           doc: "The documentation for the option item."
@@ -49,6 +42,12 @@ defmodule NimbleOptions do
         subsection: [
           type: :string,
           doc: "The title of separate subsection of the options' documentation"
+        ],
+        # TODO: remove in v0.6.0.
+        rename_to: [
+          type: :atom,
+          deprecated: "Handle renaming after validation.",
+          doc: "Deprecated in v0.5.0."
         ]
       ]
     ]
@@ -411,6 +410,7 @@ defmodule NimbleOptions do
         {:halt, result}
 
       {:ok, value} ->
+        # TODO: remove on v0.6.0 when we remove :rename_to.
         if renamed_key = schema_opts[:rename_to] do
           opts =
             opts
