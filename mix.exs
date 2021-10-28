@@ -52,7 +52,8 @@ defmodule NimbleOptions.MixProject do
     [
       main: "NimbleOptions",
       source_ref: "v#{@version}",
-      source_url: @repo_url
+      source_url: @repo_url,
+      extras: ["CHANGELOG.md": [title: "Changelog"]]
     ]
   end
 end
