@@ -346,7 +346,7 @@ defmodule NimbleOptions do
           ]
 
   """
-  @spec docs(schema(), keyword() | t()) :: String.t()
+  @spec docs(schema() | t(), keyword()) :: String.t()
   def docs(schema, options \\ [])
 
   def docs(schema, options) when is_list(schema) and is_list(options) do
