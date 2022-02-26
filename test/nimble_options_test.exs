@@ -42,7 +42,7 @@ defmodule NimbleOptionsTest do
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :integer, :non_neg_integer, :pos_integer, :float, :mfa, :mod_arg, :string, :boolean, :timeout, \
       :pid, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
-      {:list, subtype} \
+      {:list, subtype}, {:tuple, tuple_of_subtypes} \
       (in options [:stages])\
       """
 
@@ -946,6 +946,70 @@ defmodule NimbleOptionsTest do
                  keys_path: [],
                  message: message,
                  value: ["123", "not an int"]
+               }
+             }
+    end
+
+    test "valid {:tuple, tuple_def}" do
+      schema = [result: [type: {:tuple, {{:in, [:ok, :error]}, :string}}]]
+
+      opts = [result: {:ok, "it worked"}]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [result: {:error, "it did not work"}]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid {:tuple, tuple_def}" do
+      schema = [result: [type: {:tuple, {{:in, [:ok, :error]}, :string}}]]
+
+      # Not a list
+      opts = [result: "not a tuple"]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: :result,
+                  keys_path: [],
+                  message: "expected :result to be a tuple, got: \"not a tuple\"",
+                  value: "not a tuple"
+                }}
+
+      # List with invalid elements
+      opts = [result: {:ok, :not_a_string}]
+
+      message = """
+      tuple element at position 1 in :result failed validation: expected "tuple element" \
+      to be a string, got: :not_a_string\
+      """
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %NimbleOptions.ValidationError{
+                 key: :result,
+                 keys_path: [],
+                 message: message,
+                 value: {:ok, :not_a_string}
+               }
+             }
+
+      # Nested list with invalid elements
+      schema = [tup: [type: {:tuple, {{:tuple, {:string, :string}}, :integer}}]]
+      opts = [tup: {{"string", :not_a_string}, 1}]
+
+      message = """
+      tuple element at position 0 in :tup failed validation: \
+      tuple element at position 1 in "tuple element" failed validation: \
+      expected "tuple element" to be a string, got: :not_a_string\
+      """
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %NimbleOptions.ValidationError{
+                 key: :tup,
+                 keys_path: [],
+                 message: message,
+                 value: {{"string", :not_a_string}, 1}
                }
              }
     end
