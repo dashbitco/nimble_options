@@ -42,7 +42,7 @@ defmodule NimbleOptionsTest do
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :integer, :non_neg_integer, :pos_integer, :float, :mfa, :mod_arg, :string, :boolean, :timeout, \
       :pid, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
-      {:list, subtype}, {:tuple, tuple_of_subtypes} \
+      {:list, subtype}, {:tuple, list_of_subtypes} \
       (in options [:stages])\
       """
 
@@ -951,7 +951,7 @@ defmodule NimbleOptionsTest do
     end
 
     test "valid {:tuple, tuple_def}" do
-      schema = [result: [type: {:tuple, {{:in, [:ok, :error]}, :string}}]]
+      schema = [result: [type: {:tuple, [{:in, [:ok, :error]}, :string]}]]
 
       opts = [result: {:ok, "it worked"}]
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
@@ -961,7 +961,7 @@ defmodule NimbleOptionsTest do
     end
 
     test "invalid {:tuple, tuple_def}" do
-      schema = [result: [type: {:tuple, {{:in, [:ok, :error]}, :string}}]]
+      schema = [result: [type: {:tuple, [{:in, [:ok, :error]}, :string]}]]
 
       # Not a list
       opts = [result: "not a tuple"]
@@ -994,7 +994,7 @@ defmodule NimbleOptionsTest do
              }
 
       # Nested list with invalid elements
-      schema = [tup: [type: {:tuple, {{:tuple, {:string, :string}}, :integer}}]]
+      schema = [tup: [type: {:tuple, [{:tuple, [:string, :string]}, :integer]}]]
       opts = [tup: {{"string", :not_a_string}, 1}]
 
       message = """
