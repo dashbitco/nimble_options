@@ -131,6 +131,13 @@ defmodule NimbleOptions do
       an updated value, then that updated value is used in the resulting list. Validation
       fails at the *first* element that is invalid according to `subtype`.
 
+    * `{:tuple, list_of_subtypes}` - A tuple as described by `tuple_of_subtypes`.
+      `list_of_subtypes` must be a list with the same length as the expected tuple.
+      Each of the list's elements must be a subtype that should match the given element in that
+      same position. For example, to describe 3-element tuples with an atom, a string, and
+      a list of integers you would use the type `{:tuple, [:atom, :string, {:list, :integer}]}`.
+      *Available since v0.4.1*.
+
   ## Example
 
       iex> schema = [
@@ -676,6 +683,41 @@ defmodule NimbleOptions do
     error_tuple(key, value, "expected #{inspect(key)} to be a list, got: #{inspect(value)}")
   end
 
+  defp validate_type({:tuple, tuple_def}, key, value)
+       when is_tuple(value) and length(tuple_def) == tuple_size(value) do
+    updated_tuple =
+      tuple_def
+      |> Stream.with_index()
+      |> Enum.reduce({}, fn {subtype, index}, acc ->
+        elem = elem(value, index)
+
+        case validate_type(subtype, "tuple element", elem) do
+          {:ok, updated_elem} -> Tuple.append(acc, updated_elem)
+          {:error, %ValidationError{} = error} -> throw({:error, index, error})
+        end
+      end)
+
+    {:ok, updated_tuple}
+  catch
+    {:error, index, %ValidationError{} = error} ->
+      message =
+        "tuple element at position #{index} in #{inspect(key)} failed validation: #{error.message}"
+
+      error_tuple(key, value, message)
+  end
+
+  defp validate_type({:tuple, tuple_def}, key, value) when is_tuple(value) do
+    error_tuple(
+      key,
+      value,
+      "expected #{inspect(key)} to be a tuple with #{length(tuple_def)} elements, got: #{inspect(value)}"
+    )
+  end
+
+  defp validate_type({:tuple, _tuple_def}, key, value) do
+    error_tuple(key, value, "expected #{inspect(key)} to be a tuple, got: #{inspect(value)}")
+  end
+
   defp validate_type(nil, key, value) do
     validate_type(:any, key, value)
   end
@@ -706,7 +748,8 @@ defmodule NimbleOptions do
           "{:in, choices}",
           "{:or, subtypes}",
           "{:custom, mod, fun, args}",
-          "{:list, subtype}"
+          "{:list, subtype}",
+          "{:tuple, list_of_subtypes}"
         ]
 
     Enum.join(types, ", ")
@@ -750,6 +793,20 @@ defmodule NimbleOptions do
       {:ok, validated_subtype} -> {:ok, {:list, validated_subtype}}
       {:error, reason} -> {:error, "invalid subtype for :list type: #{reason}"}
     end
+  end
+
+  def validate_type({:tuple, tuple_def}) when is_list(tuple_def) do
+    validated_def =
+      Enum.map(tuple_def, fn subtype ->
+        case validate_type(subtype) do
+          {:ok, validated_subtype} -> validated_subtype
+          {:error, reason} -> throw({:error, "invalid subtype for :tuple type: #{reason}"})
+        end
+      end)
+
+    {:ok, {:tuple, validated_def}}
+  catch
+    {:error, reason} -> {:error, reason}
   end
 
   def validate_type(value) do
