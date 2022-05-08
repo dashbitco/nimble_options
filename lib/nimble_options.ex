@@ -15,7 +15,11 @@ defmodule NimbleOptions do
         ],
         default: [
           type: :any,
-          doc: "The default value for option item if not specified."
+          doc: """
+          The default value for the option item if that option is not specified. This value
+          is *validated* according to the given `:type`. This means that you cannot
+          have, for example, `type: :integer` and use `default: "a string"`.
+          """
         ],
         keys: [
           type: :keyword_list,
