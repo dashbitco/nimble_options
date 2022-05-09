@@ -41,7 +41,7 @@ defmodule NimbleOptionsTest do
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
       :integer, :non_neg_integer, :pos_integer, :float, :mfa, :mod_arg, :string, :boolean, :timeout, \
-      :pid, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
+      :pid, :reference, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
       {:list, subtype}, {:tuple, list_of_subtypes} \
       (in options [:stages])\
       """
@@ -434,6 +434,24 @@ defmodule NimbleOptionsTest do
                   key: :name,
                   value: 1,
                   message: "expected :name to be a pid, got: 1"
+                }}
+    end
+
+    test "valid reference" do
+      schema = [name: [type: :reference]]
+      opts = [name: make_ref()]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid reference" do
+      schema = [name: [type: :reference]]
+
+      assert NimbleOptions.validate([name: 1], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :name,
+                  value: 1,
+                  message: "expected :name to be a reference, got: 1"
                 }}
     end
 

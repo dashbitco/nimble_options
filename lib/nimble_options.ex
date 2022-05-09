@@ -100,6 +100,8 @@ defmodule NimbleOptions do
 
     * `:pid` - A PID (process identifier).
 
+    * `:reference` - A reference (see `t:reference/0`).
+
     * `:mfa` - A named function in the format `{module, function, arity}` where
       `arity` is a list of arguments. For example, `{MyModule, :my_fun, [arg1, arg2]}`.
 
@@ -253,7 +255,8 @@ defmodule NimbleOptions do
     :string,
     :boolean,
     :timeout,
-    :pid
+    :pid,
+    :reference
   ]
 
   @typedoc """
@@ -552,6 +555,14 @@ defmodule NimbleOptions do
 
   defp validate_type(:pid, key, value) do
     error_tuple(key, value, "expected #{inspect(key)} to be a pid, got: #{inspect(value)}")
+  end
+
+  defp validate_type(:reference, _key, value) when is_reference(value) do
+    {:ok, value}
+  end
+
+  defp validate_type(:reference, key, value) do
+    error_tuple(key, value, "expected #{inspect(key)} to be a reference, got: #{inspect(value)}")
   end
 
   defp validate_type(:mfa, _key, {mod, fun, args} = value)
