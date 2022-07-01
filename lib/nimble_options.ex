@@ -387,12 +387,37 @@ defmodule NimbleOptions do
   defp validate_options_with_schema_and_path(opts, schema, path) do
     schema = expand_star_to_option_keys(schema, opts)
 
-    with :ok <- validate_unknown_options(opts, schema),
+    with :ok <- validate_duplicated_options(opts),
+         :ok <- validate_unknown_options(opts, schema),
          {:ok, options} <- validate_options(schema, opts) do
       {:ok, options}
     else
       {:error, %ValidationError{} = error} ->
         {:error, %ValidationError{error | keys_path: path ++ error.keys_path}}
+    end
+  end
+
+  defp validate_duplicated_options(opts) do
+    {_, duplicated_keys} =
+      Enum.reduce(
+        opts,
+        {MapSet.new(), []},
+        fn {opt_key, _}, {existed_keys, duplicated_keys} ->
+          if MapSet.member?(existed_keys, opt_key) do
+            {existed_keys, [opt_key | duplicated_keys]}
+          else
+            {MapSet.put(existed_keys, opt_key), duplicated_keys}
+          end
+        end
+      )
+
+    case duplicated_keys do
+      [] ->
+        :ok
+
+      [_ | _] ->
+        keys = Enum.reverse(duplicated_keys)
+        error_tuple(keys, nil, "duplicated options #{inspect(keys)}")
     end
   end
 

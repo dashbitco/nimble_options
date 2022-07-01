@@ -28,6 +28,40 @@ defmodule NimbleOptionsTest do
                     "unknown options [:not_an_option1, :not_an_option2], valid options are: [:an_option, :other_option]"
                 }}
     end
+
+    test "duplicated options" do
+      schema = [an_option: [], other_option: []]
+      opts = [an_option: 1, other_option: 1, an_option: 2, other_option: 2]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: [:an_option, :other_option],
+                  value: nil,
+                  message: "duplicated options [:an_option, :other_option]"
+                }}
+    end
+
+    test "has duplicated and unknown options at the same time" do
+      schema = [an_option: [], other_option: []]
+
+      opts = [
+        an_option: 1,
+        other_option: 1,
+        an_option: 2,
+        other_option: 2,
+        not_an_option1: 1,
+        not_an_option1: 1
+      ]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: [:an_option, :other_option, :not_an_option1],
+                  value: nil,
+                  message: "duplicated options [:an_option, :other_option, :not_an_option1]"
+                }}
+    end
   end
 
   describe "validate the schema itself before validating the options" do
