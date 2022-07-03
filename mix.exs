@@ -35,7 +35,7 @@ defmodule NimbleOptions.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:dialyxir, "~> 1.1.0", only: :dev},
+      {:dialyxir, "~> 1.1.0", only: [:dev, :test]},
       {:ex_doc, ">= 0.19.0", only: :dev},
       {:excoveralls, "~> 0.13.3", only: :test}
     ]

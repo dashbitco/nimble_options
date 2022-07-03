@@ -39,7 +39,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-mix-
 
-      - run: mix deps.get
+      - run: mix deps.get --only test
 
       # Don't cache PLTs based on mix.lock hash, as Dialyzer can incrementally update even old ones
       # Cache key based on Elixir & Erlang version (also useful when running in matrix)
