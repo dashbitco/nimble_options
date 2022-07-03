@@ -36,7 +36,7 @@ defmodule NimbleOptions.MixProject do
   defp deps do
     [
       {:ex_doc, ">= 0.19.0", only: :dev},
-      {:excoveralls, "~> 0.13.3", only: :test}
+      {:excoveralls, "~> 0.14.5", only: :test}
     ]
   end
 

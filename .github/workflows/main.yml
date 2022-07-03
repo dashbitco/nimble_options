@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-18.04
     env:
       MIX_ENV: test
+      GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
     strategy:
       fail-fast: false
       matrix:
@@ -22,6 +23,7 @@ jobs:
               elixir: 1.13.4
               otp: 25.0.2
             lint: lint
+            coverage: true
     steps:
       - uses: actions/checkout@v2
 
@@ -53,3 +55,7 @@ jobs:
         if: ${{ matrix.lint }}
 
       - run: mix test
+        if: ${{ !matrix.coverage }}
+
+      - run: mix coveralls.github
+        if: ${{ matrix.coverage }}
