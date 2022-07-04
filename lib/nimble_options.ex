@@ -135,7 +135,13 @@ defmodule NimbleOptions do
       contains the validated (and possibly updated) elements, each as returned after validation
       through `subtype`. For example, if `subtype` is a custom validator function that returns
       an updated value, then that updated value is used in the resulting list. Validation
-      fails at the *first* element that is invalid according to `subtype`.
+      fails at the *first* element that is invalid according to `subtype`. If `subtype` is
+      a keyword list, you won't be able to pass `:keys` directly. For this reason,
+      keyword lists (`:keyword_list` and `:non_empty_keyword_list`) are special cased and can
+      be used as the subtype by using `{:keyword_list, keys}` or
+      `{:non_empty_keyword_list, keys}`. For example, a type such as
+      `{:list, {:keyword_list, enabled: [type: :boolean]}}` would a *list of keyword lists*,
+      where each keyword list in the list could have the `:enabled` boolean option in it.
 
     * `{:tuple, list_of_subtypes}` - A tuple as described by `tuple_of_subtypes`.
       `list_of_subtypes` must be a list with the same length as the expected tuple.
@@ -674,9 +680,24 @@ defmodule NimbleOptions do
   end
 
   defp validate_type({:list, subtype}, key, value) when is_list(value) do
+    {subtype, nested_schema} =
+      case subtype do
+        {keyword_list, keys} when keyword_list in [:keyword_list, :non_empty_keyword_list] ->
+          {keyword_list, keys}
+
+        other ->
+          {other, _nested_schema = nil}
+      end
+
     updated_elements =
       for {elem, index} <- Stream.with_index(value) do
         case validate_type(subtype, "list element", elem) do
+          {:ok, value} when not is_nil(nested_schema) ->
+            case validate_options_with_schema_and_path(value, nested_schema, _path = [key]) do
+              {:ok, updated_value} -> updated_value
+              {:error, %ValidationError{} = error} -> throw({:error, index, error})
+            end
+
           {:ok, updated_elem} ->
             updated_elem
 
@@ -801,6 +822,13 @@ defmodule NimbleOptions do
           {:error, reason} -> {:halt, {:error, "invalid type in :or for reason: #{reason}"}}
         end
     end)
+  end
+
+  # This is to support the special-cased "{:list, {:keyword_list, my_key: [type: ...]}}",
+  # like we do in the :or type.
+  def validate_type({:list, {type, keys}})
+      when type in [:keyword_list, :non_empty_keyword_list] and is_list(keys) do
+    {:ok, {:list, {type, keys}}}
   end
 
   def validate_type({:list, subtype}) do
