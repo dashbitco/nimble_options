@@ -1,6 +1,6 @@
 # NimbleOptions
 
-[![Coverage Status](https://coveralls.io/repos/github/dashbitco/nimble_options/badge.svg?branch=main)](https://coveralls.io/github/dashbitco/nimble_options?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/dashbitco/nimble_options/badge.svg?branch=master)](https://coveralls.io/github/dashbitco/nimble_options?branch=master)
 
 [Online Documentation](https://hexdocs.pm/nimble_options).
 
