@@ -968,6 +968,37 @@ defmodule NimbleOptionsTest do
              }
     end
 
+    for subtype <- [:keyword_list, :non_empty_keyword_list] do
+      test "{:list, subtype} with a #{inspect(subtype)} subtype" do
+        type = {:custom, __MODULE__, :string_to_integer, []}
+        schema = [opts_list: [type: {:list, {unquote(subtype), str: [type: type]}}]]
+
+        # Valid
+        opts = [opts_list: [[str: "1"], [str: "2"]]]
+
+        assert NimbleOptions.validate(opts, schema) ==
+                 {:ok, [opts_list: [[str: 1], [str: 2]]]}
+
+        # Invalid
+        opts = [opts_list: [[str: "123"], [str: "not an int"]]]
+
+        message = """
+        list element at position 1 in :opts_list failed validation: expected string to be \
+        convertible to integer\
+        """
+
+        assert NimbleOptions.validate(opts, schema) == {
+                 :error,
+                 %NimbleOptions.ValidationError{
+                   key: :opts_list,
+                   keys_path: [],
+                   message: message,
+                   value: [[str: "123"], [str: "not an int"]]
+                 }
+               }
+      end
+    end
+
     test "valid {:tuple, tuple_def}" do
       schema = [result: [type: {:tuple, [{:in, [:ok, :error]}, :string]}]]
 
