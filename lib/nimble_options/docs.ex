@@ -41,7 +41,10 @@ defmodule NimbleOptions.Docs do
 
   defp option_doc({key, schema}, {docs, sections, level}) do
     description =
-      [get_required_str(schema), get_doc_str(schema), get_default_str(schema)]
+      [
+        get_doc_str(schema),
+        get_default_str(schema)
+      ]
       |> Enum.reject(&is_nil/1)
       |> case do
         [] -> ""
@@ -49,7 +52,17 @@ defmodule NimbleOptions.Docs do
       end
 
     indent = String.duplicate("  ", level)
-    doc = indent_doc("  * `#{inspect(key)}`#{description}\n\n", indent)
+
+    type =
+      if schema[:type] do
+        required = get_required_str(schema)
+        type = get_type_str(schema)
+        " (#{required}#{type})"
+      else
+        ""
+      end
+
+    doc = indent_doc("  * `#{inspect(key)}`#{type}#{description}\n\n", indent)
 
     docs = [doc | docs]
 
@@ -71,12 +84,25 @@ defmodule NimbleOptions.Docs do
   end
 
   defp get_required_str(schema) do
-    if schema[:required], do: "Required."
+    if schema[:required], do: "required ", else: ""
   end
 
   defp get_default_str(schema) do
     if Keyword.has_key?(schema, :default) do
       "The default value is `#{inspect(schema[:default])}`."
+    end
+  end
+
+  defp get_type_str(schema) do
+    case schema[:type] do
+      {:custom, _module, _function, _args} -> "`custom`"
+      {:fun, arity} -> "`function/#{arity}`"
+      {:keyword_list, _} -> "`keyword`"
+      {:in, values} -> "one of `" <> Enum.map_join(values, "`, `", &get_type_str(type: &1)) <> "`"
+      {:list, subtype} -> "`list(#{subtype})`"
+      {:non_empty_keyword_list, _} -> "`keyword`"
+      {:or, values} -> Enum.map_join(values, " or ", &get_type_str(type: &1))
+      _type -> "`" <> String.trim(to_string(schema[:type])) <> "`"
     end
   end
 
