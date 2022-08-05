@@ -42,7 +42,6 @@ defmodule NimbleOptions.Docs do
   defp option_doc({key, schema}, {docs, sections, level}) do
     description =
       [
-        get_type_str(schema),
         get_required_str(schema),
         get_doc_str(schema),
         get_default_str(schema)
@@ -54,8 +53,8 @@ defmodule NimbleOptions.Docs do
       end
 
     indent = String.duplicate("  ", level)
-
-    doc = indent_doc("  * `#{inspect(key)}`#{description}\n\n", indent)
+    type = if type = get_type_str(schema), do: " (#{type})", else: ""
+    doc = indent_doc("  * `#{inspect(key)}`#{type}#{description}\n\n", indent)
 
     docs = [doc | docs]
 
@@ -87,18 +86,34 @@ defmodule NimbleOptions.Docs do
 
   defp get_type_str(schema) do
     case schema[:type] do
-      nil -> nil
-      {:custom, _module, _function, _args} -> nil
-      {:fun, arity} -> "function of arity #{arity}"
-      {:keyword_list, _} -> "keyword list"
-      {:in, values} -> "one of " <> Enum.map_join(values, ", ", &get_type_str(type: &1))
+      nil ->
+        nil
+
+      {:custom, _module, _function, _args} ->
+        nil
+
+      {:fun, arity} ->
+        "function of arity #{arity}"
+
+      {:keyword_list, _} ->
+        "keyword list"
+
+      {:in, values} ->
+        "one of " <> Enum.map_join(values, ", ", &get_type_str(type: &1))
+
       {:list, subtype} ->
         if subtype_str = get_type_str(subtype) do
-          "list of subtype_str"
+          "list of #{subtype_str}"
         end
-      {:non_empty_keyword_list, _} -> "non-empty keyword list"
-      {:or, values} -> Enum.map_join(values, " or ", &get_type_str(type: &1))
-      _type -> String.trim(to_string(schema[:type]))
+
+      {:non_empty_keyword_list, _} ->
+        "non-empty keyword list"
+
+      {:or, values} ->
+        Enum.map_join(values, " or ", &get_type_str(type: &1))
+
+      _type ->
+        String.trim(to_string(schema[:type]))
     end
   end
 
