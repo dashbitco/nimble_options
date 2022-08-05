@@ -90,7 +90,7 @@ defmodule NimbleOptions.Docs do
       nil -> nil
       {:custom, _module, _function, _args} -> nil
       {:fun, arity} -> "function/#{arity}"
-      {:keyword_list, _} -> "keyword"
+      {:keyword_list, _} -> "keyword list"
       {:in, values} -> "one of " <> Enum.map_join(values, ", ", &get_type_str(type: &1))
       {:list, subtype} ->
         if subtype_str = get_type_str(subtype) do
