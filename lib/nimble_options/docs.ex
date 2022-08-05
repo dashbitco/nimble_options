@@ -98,7 +98,7 @@ defmodule NimbleOptions.Docs do
         "one of " <> Enum.map_join(values, ", ", &get_type_str(type: &1))
 
       {:list, subtype} ->
-        if subtype_str = get_type_str(subtype) do
+        if subtype_str = get_type_str(type: subtype) do
           "list of #{subtype_str}"
         end
 
