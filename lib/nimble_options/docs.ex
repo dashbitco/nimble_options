@@ -96,7 +96,7 @@ defmodule NimbleOptions.Docs do
         if subtype_str = get_type_str(subtype) do
           "list of subtype_str"
         end
-      {:non_empty_keyword_list, _} -> "keyword"
+      {:non_empty_keyword_list, _} -> "non-empty keyword list"
       {:or, values} -> Enum.map_join(values, " or ", &get_type_str(type: &1))
       _type -> String.trim(to_string(schema[:type]))
     end
