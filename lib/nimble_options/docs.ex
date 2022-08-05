@@ -89,7 +89,7 @@ defmodule NimbleOptions.Docs do
     case schema[:type] do
       nil -> nil
       {:custom, _module, _function, _args} -> nil
-      {:fun, arity} -> "function/#{arity}"
+      {:fun, arity} -> "function of arity #{arity}"
       {:keyword_list, _} -> "keyword list"
       {:in, values} -> "one of " <> Enum.map_join(values, ", ", &get_type_str(type: &1))
       {:list, subtype} ->
