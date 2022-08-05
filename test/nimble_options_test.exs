@@ -1529,7 +1529,7 @@ defmodule NimbleOptionsTest do
           #{NimbleOptions.docs(nested_schema, nest_level: 1)}
           """
         ],
-        other_key: [type: :string]
+        other_key: [type: {:list, :atom}]
       ]
 
       docs = """
@@ -1539,7 +1539,7 @@ defmodule NimbleOptionsTest do
 
           * `:interval` (pos_integer) - Interval.
 
-        * `:other_key` (string)
+        * `:other_key` (list of atom)
 
       """
 
