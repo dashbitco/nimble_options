@@ -92,7 +92,10 @@ defmodule NimbleOptions.Docs do
       {:fun, arity} -> "function/#{arity}"
       {:keyword_list, _} -> "keyword"
       {:in, values} -> "one of " <> Enum.map_join(values, ", ", &get_type_str(type: &1))
-      {:list, subtype} -> "list(#{subtype})"
+      {:list, subtype} ->
+        if subtype_str = get_type_str(subtype) do
+          "list of subtype_str"
+        end
       {:non_empty_keyword_list, _} -> "keyword"
       {:or, values} -> Enum.map_join(values, " or ", &get_type_str(type: &1))
       _type -> String.trim(to_string(schema[:type]))
