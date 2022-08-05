@@ -112,6 +112,12 @@ defmodule NimbleOptions.Docs do
       {:or, values} ->
         Enum.map_join(values, " or ", &get_type_str(type: &1))
 
+      :keyword_list ->
+        "keyword list"
+
+      :non_empty_keyword_list ->
+        "non-empty keyword list"
+
       _type ->
         String.trim(to_string(schema[:type]))
     end

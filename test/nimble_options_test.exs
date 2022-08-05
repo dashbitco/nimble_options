@@ -1464,7 +1464,7 @@ defmodule NimbleOptionsTest do
 
         * `:required` (boolean) - Defines if the option item is required. The default value is `false`.
 
-        * `:keys` (keyword_list) - Defines which set of keys are accepted.
+        * `:keys` (keyword list) - Defines which set of keys are accepted.
 
         * `:default` - The default.
 
@@ -1496,11 +1496,11 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:producer` (non_empty_keyword_list) - The producer. Supported options:
+        * `:producer` (non-empty keyword list) - The producer. Supported options:
 
           * `:module` (mod_arg) - The module.
 
-          * `:rate_limiting` (non_empty_keyword_list) - A list of options to enable and configure rate limiting. Supported options:
+          * `:rate_limiting` (non-empty keyword list) - A list of options to enable and configure rate limiting. Supported options:
 
             * `:allowed_messages` (pos_integer) - Number of messages per interval.
 
@@ -1570,7 +1570,7 @@ defmodule NimbleOptionsTest do
       docs = """
         * `:name` (atom) - Required. The name.
 
-        * `:producer` (non_empty_keyword_list) - This is the producer summary. See "Producers options" section below.
+        * `:producer` (non-empty keyword list) - This is the producer summary. See "Producers options" section below.
 
         * `:other_key` (string)
 
@@ -1670,7 +1670,7 @@ defmodule NimbleOptionsTest do
       assert {:ok, ^opts} = NimbleOptions.validate(opts, schema)
 
       assert NimbleOptions.docs(schema) == """
-               * `:custom_keys` (keyword_list) - Custom keys
+               * `:custom_keys` (keyword list) - Custom keys
 
              """
     end
