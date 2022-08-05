@@ -41,11 +41,7 @@ defmodule NimbleOptions.Docs do
 
   defp option_doc({key, schema}, {docs, sections, level}) do
     description =
-      [
-        get_required_str(schema),
-        get_doc_str(schema),
-        get_default_str(schema)
-      ]
+      [get_required_str(schema), get_doc_str(schema), get_default_str(schema)]
       |> Enum.reject(&is_nil/1)
       |> case do
         [] -> ""
