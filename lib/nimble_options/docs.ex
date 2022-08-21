@@ -106,7 +106,7 @@ defmodule NimbleOptions.Docs do
         "non-empty keyword list"
 
       {:or, values} ->
-        Enum.map_join(values, " or ", &get_type_str(type: &1))
+        nil
 
       :keyword_list ->
         "keyword list"
