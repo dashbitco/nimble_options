@@ -95,7 +95,7 @@ defmodule NimbleOptions.Docs do
         "keyword list"
 
       {:in, values} ->
-        "one of " <> Enum.map_join(values, ", ", &get_type_str(type: &1))
+        "one of #{inspect(values)}"
 
       {:list, subtype} ->
         if subtype_str = get_type_str(type: subtype) do
