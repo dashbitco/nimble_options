@@ -91,7 +91,7 @@ defmodule NimbleOptions.Docs do
       {:fun, arity} ->
         "function of arity #{arity}"
 
-      {:keyword_list, _} ->
+      {:keyword_list, _keys} ->
         "keyword list"
 
       {:in, values} ->
@@ -114,7 +114,21 @@ defmodule NimbleOptions.Docs do
       :non_empty_keyword_list ->
         "non-empty keyword list"
 
-      _type ->
+      type
+      when type in [
+             :any,
+             :atom,
+             :boolean,
+             :integer,
+             :mfa,
+             :mod_arg,
+             :non_neg_integer,
+             :pid,
+             :pos_integer,
+             :float,
+             :timeout,
+             :string
+           ] ->
         String.trim(to_string(schema[:type]))
     end
   end
