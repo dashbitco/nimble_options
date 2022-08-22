@@ -1533,7 +1533,7 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:producer` (string or keyword list) - The producer. Either a string or a keyword list with the following keys:
+        * `:producer` - The producer. Either a string or a keyword list with the following keys:
 
           * `:allowed_messages` (pos_integer) - Allowed messages.
 

@@ -105,7 +105,7 @@ defmodule NimbleOptions.Docs do
       {:non_empty_keyword_list, _} ->
         "non-empty keyword list"
 
-      {:or, values} ->
+      {:or, _values} ->
         nil
 
       :keyword_list ->
