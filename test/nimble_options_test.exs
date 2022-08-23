@@ -39,7 +39,7 @@ defmodule NimbleOptionsTest do
       invalid schema given to NimbleOptions.validate/2. \
       Reason: invalid option type :foo.
 
-      Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
+      Available types: :any, :keyword_list, :non_empty_keyword_list, :map, :atom, \
       :integer, :non_neg_integer, :pos_integer, :float, :mfa, :mod_arg, :string, :boolean, :timeout, \
       :pid, :reference, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
       {:list, subtype}, {:tuple, list_of_subtypes} \
@@ -715,6 +715,20 @@ defmodule NimbleOptionsTest do
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
     end
 
+    test "valid {:or, subtypes} with nested map" do
+      schema = [
+        docs: [
+          type: {:or, [:boolean, map: [enabled: [type: :boolean]]]}
+        ]
+      ]
+
+      opts = [docs: false]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [docs: %{enabled: true}]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
     test "invalid {:or, subtypes}" do
       schema = [docs: [type: {:or, [:string, :boolean]}]]
 
@@ -999,6 +1013,33 @@ defmodule NimbleOptionsTest do
       end
     end
 
+    test "{:list, subtype} with a :map subtype" do
+      type = {:custom, __MODULE__, :string_to_integer, []}
+      schema = [map_list: [type: {:list, {:map, str: [type: type]}}]]
+
+      valid_opts = [map_list: [%{str: "1"}, %{str: "2"}]]
+
+      assert NimbleOptions.validate(valid_opts, schema) ==
+               {:ok, [map_list: [%{str: 1}, %{str: 2}]]}
+
+      invalid_opts = [map_list: [%{str: "123"}, %{str: "not an int"}]]
+
+      message = """
+      list element at position 1 in :map_list failed validation: expected string to be \
+      convertible to integer\
+      """
+
+      assert NimbleOptions.validate(invalid_opts, schema) == {
+               :error,
+               %NimbleOptions.ValidationError{
+                 key: :map_list,
+                 keys_path: [],
+                 message: message,
+                 value: [%{str: "123"}, %{str: "not an int"}]
+               }
+             }
+    end
+
     test "valid {:tuple, tuple_def}" do
       schema = [result: [type: {:tuple, [{:in, [:ok, :error]}, :string]}]]
 
@@ -1065,292 +1106,328 @@ defmodule NimbleOptionsTest do
   end
 
   describe "nested options with predefined keys" do
-    test "known options" do
-      schema = [
-        processors: [
-          type: :keyword_list,
-          keys: [
-            stages: [],
-            max_demand: []
+    for type <- [:keyword_list, :map] do
+      test "known options for #{type}" do
+        schema = [
+          processors: [
+            type: unquote(type),
+            keys: [
+              stages: [],
+              max_demand: []
+            ]
           ]
         ]
-      ]
 
-      opts = [processors: [stages: 1, max_demand: 2]]
-
-      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+        processors = opts_to_type(unquote(type), stages: 1, max_demand: 2)
+        opts = [processors: processors]
+        assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+      end
     end
 
-    test "unknown options" do
-      schema = [
-        processors: [
-          type: :keyword_list,
-          keys: [
-            stages: [],
-            min_demand: []
+    for type <- [:keyword_list, :map] do
+      test "unknown options for #{type}" do
+        schema = [
+          processors: [
+            type: unquote(type),
+            keys: [
+              stages: [],
+              min_demand: []
+            ]
           ]
         ]
-      ]
 
-      opts = [
-        processors: [
-          stages: 1,
-          unknown_option1: 1,
-          unknown_option2: 1
-        ]
-      ]
+        processors =
+          opts_to_type(unquote(type), stages: 1, unknown_option1: 1, unknown_option2: 1)
 
-      assert NimbleOptions.validate(opts, schema) ==
-               {:error,
-                %ValidationError{
-                  key: [:unknown_option1, :unknown_option2],
-                  keys_path: [:processors],
-                  message:
-                    "unknown options [:unknown_option1, :unknown_option2], valid options are: [:stages, :min_demand]"
-                }}
+        opts = [processors: processors]
+
+        assert NimbleOptions.validate(opts, schema) ==
+                 {:error,
+                  %ValidationError{
+                    key: [:unknown_option1, :unknown_option2],
+                    keys_path: [:processors],
+                    message:
+                      "unknown options [:unknown_option1, :unknown_option2], valid options are: [:stages, :min_demand]"
+                  }}
+      end
     end
 
-    test "options with default values" do
-      schema = [
-        processors: [
-          type: :keyword_list,
-          keys: [
-            stages: [default: 10]
+    for type <- [:keyword_list, :map] do
+      test "options with default values for #{type}" do
+        schema = [
+          processors: [
+            type: unquote(type),
+            keys: [
+              stages: [default: 10]
+            ]
           ]
         ]
-      ]
 
-      opts = [processors: []]
+        processors = opts_to_type(unquote(type), [])
+        opts = [processors: processors]
 
-      assert NimbleOptions.validate(opts, schema) == {:ok, [processors: [stages: 10]]}
+        assert NimbleOptions.validate(opts, schema) ==
+                 {:ok, [processors: opts_to_type(unquote(type), stages: 10)]}
+      end
     end
 
-    test "empty default option with default values" do
-      schema = [
-        processors: [
-          type: :keyword_list,
-          default: [],
-          keys: [
-            stages: [default: 10]
+    for type <- [:keyword_list, :map] do
+      test "empty default option with default values for #{type}" do
+        schema = [
+          processors: [
+            type: unquote(type),
+            default: opts_to_type(unquote(type), []),
+            keys: [
+              stages: [default: 10]
+            ]
           ]
         ]
-      ]
 
-      assert NimbleOptions.validate([], schema) == {:ok, [processors: [stages: 10]]}
+        processors = opts_to_type(unquote(type), stages: 10)
+        assert NimbleOptions.validate([], schema) == {:ok, [processors: processors]}
+      end
     end
 
-    test "all required options present" do
-      schema = [
-        processors: [
-          type: :keyword_list,
-          keys: [
-            stages: [required: true],
-            max_demand: [required: true]
+    for type <- [:keyword_list, :map] do
+      test "all required options present for type #{type}" do
+        schema = [
+          processors: [
+            type: unquote(type),
+            keys: [
+              stages: [required: true],
+              max_demand: [required: true]
+            ]
           ]
         ]
-      ]
 
-      opts = [processors: [stages: 1, max_demand: 2]]
+        processors = opts_to_type(unquote(type), stages: 1, max_demand: 2)
+        opts = [processors: processors]
 
-      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+        assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+      end
     end
 
-    test "required options missing" do
-      schema = [
-        processors: [
-          type: :keyword_list,
-          keys: [
-            stages: [required: true],
-            max_demand: [required: true]
+    for type <- [:keyword_list, :map] do
+      test "required options missing for #{type}" do
+        schema = [
+          processors: [
+            type: unquote(type),
+            keys: [
+              stages: [required: true],
+              max_demand: [required: true]
+            ]
           ]
         ]
-      ]
 
-      opts = [processors: [max_demand: 1]]
+        processors = opts_to_type(unquote(type), max_demand: 1)
+        opts = [processors: processors]
 
-      assert NimbleOptions.validate(opts, schema) ==
-               {:error,
-                %ValidationError{
-                  key: :stages,
-                  keys_path: [:processors],
-                  message: "required option :stages not found, received options: [:max_demand]"
-                }}
+        assert NimbleOptions.validate(opts, schema) ==
+                 {:error,
+                  %ValidationError{
+                    key: :stages,
+                    keys_path: [:processors],
+                    message: "required option :stages not found, received options: [:max_demand]"
+                  }}
+      end
     end
 
-    test "nested options types" do
-      schema = [
-        processors: [
-          type: :keyword_list,
-          keys: [
-            name: [type: :atom],
-            stages: [type: :pos_integer]
+    for type <- [:keyword_list, :map] do
+      test "nested options types for #{type}" do
+        schema = [
+          processors: [
+            type: unquote(type),
+            keys: [
+              name: [type: :atom],
+              stages: [type: :pos_integer]
+            ]
           ]
         ]
-      ]
 
-      opts = [processors: [name: MyModule, stages: :an_atom]]
+        processors = opts_to_type(unquote(type), name: MyModule, stages: :an_atom)
+        opts = [processors: processors]
 
-      assert NimbleOptions.validate(opts, schema) ==
-               {:error,
-                %ValidationError{
-                  key: :stages,
-                  value: :an_atom,
-                  keys_path: [:processors],
-                  message: "expected :stages to be a positive integer, got: :an_atom"
-                }}
+        assert NimbleOptions.validate(opts, schema) ==
+                 {:error,
+                  %ValidationError{
+                    key: :stages,
+                    value: :an_atom,
+                    keys_path: [:processors],
+                    message: "expected :stages to be a positive integer, got: :an_atom"
+                  }}
+      end
     end
   end
 
   describe "nested options with custom keys" do
-    test "known options" do
-      schema = [
-        producers: [
-          type: :keyword_list,
-          keys: [
-            *: [
-              type: :keyword_list,
-              keys: [
-                module: [],
-                arg: [type: :atom]
+    for type <- [:keyword_list, :map] do
+      test "known options for #{type}" do
+        schema = [
+          producers: [
+            type: unquote(type),
+            keys: [
+              *: [
+                type: unquote(type),
+                keys: [
+                  module: [],
+                  arg: [type: :atom]
+                ]
               ]
             ]
           ]
         ]
-      ]
 
-      opts = [producers: [producer1: [module: MyModule, arg: :atom]]]
+        producer1 = opts_to_type(unquote(type), module: MyModule, arg: :atom)
+        producers = opts_to_type(unquote(type), producer1: producer1)
+        opts = [producers: producers]
 
-      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+        assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+      end
     end
 
-    test "unknown options" do
-      schema = [
-        producers: [
-          type: :keyword_list,
-          keys: [
-            *: [
-              type: :keyword_list,
-              keys: [
-                module: [],
-                arg: []
+    for type <- [:keyword_list, :map] do
+      test "unknown options for #{type}" do
+        schema = [
+          producers: [
+            type: unquote(type),
+            keys: [
+              *: [
+                type: unquote(type),
+                keys: [
+                  module: [],
+                  arg: []
+                ]
               ]
             ]
           ]
         ]
-      ]
 
-      opts = [producers: [producer1: [module: MyModule, arg: :ok, unknown_option: 1]]]
+        producer1 = opts_to_type(unquote(type), module: MyModule, arg: :ok, unknown_option: 1)
+        producers = opts_to_type(unquote(type), producer1: producer1)
+        opts = [producers: producers]
 
-      assert NimbleOptions.validate(opts, schema) ==
-               {:error,
-                %ValidationError{
-                  key: [:unknown_option],
-                  keys_path: [:producers, :producer1],
-                  message: "unknown options [:unknown_option], valid options are: [:module, :arg]"
-                }}
+        assert NimbleOptions.validate(opts, schema) ==
+                 {:error,
+                  %ValidationError{
+                    key: [:unknown_option],
+                    keys_path: [:producers, :producer1],
+                    message:
+                      "unknown options [:unknown_option], valid options are: [:module, :arg]"
+                  }}
+      end
     end
 
-    test "options with default values" do
-      schema = [
-        producers: [
-          type: :keyword_list,
-          keys: [
-            *: [
-              type: :keyword_list,
-              keys: [
-                arg: [default: :ok]
+    for type <- [:keyword_list, :map] do
+      test "options with default values for #{type}" do
+        schema = [
+          producers: [
+            type: unquote(type),
+            keys: [
+              *: [
+                type: unquote(type),
+                keys: [
+                  arg: [default: :ok]
+                ]
               ]
             ]
           ]
         ]
-      ]
 
-      opts = [producers: [producer1: []]]
+        producer1 = opts_to_type(unquote(type), [])
+        producers = opts_to_type(unquote(type), producer1: producer1)
+        opts = [producers: producers]
 
-      assert NimbleOptions.validate(opts, schema) == {:ok, [producers: [producer1: [arg: :ok]]]}
+        {:ok, [producers: validated_producers]} = NimbleOptions.validate(opts, schema)
+        assert :ok == get_in(validated_producers, [:producer1, :arg])
+      end
     end
 
-    test "all required options present" do
-      schema = [
-        producers: [
-          type: :keyword_list,
-          keys: [
-            *: [
-              type: :keyword_list,
-              keys: [
-                module: [required: true],
-                arg: [required: true]
+    for type <- [:keyword_list, :map] do
+      test "all required options present for #{type}" do
+        schema = [
+          producers: [
+            type: unquote(type),
+            keys: [
+              *: [
+                type: unquote(type),
+                keys: [
+                  module: [required: true],
+                  arg: [required: true]
+                ]
               ]
             ]
           ]
         ]
-      ]
 
-      opts = [producers: [default: [module: MyModule, arg: :ok]]]
+        default = opts_to_type(unquote(type), module: MyModule, arg: :ok)
+        producers = opts_to_type(unquote(type), default: default)
+        opts = [producers: producers]
 
-      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+        assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+      end
     end
 
-    test "required options missing" do
-      schema = [
-        producers: [
-          type: :keyword_list,
-          keys: [
-            *: [
-              type: :keyword_list,
-              keys: [
-                module: [required: true],
-                arg: [required: true]
+    for type <- [:keyword_list, :map] do
+      test "required options missing for #{type}" do
+        schema = [
+          producers: [
+            type: unquote(type),
+            keys: [
+              *: [
+                type: unquote(type),
+                keys: [
+                  module: [required: true],
+                  arg: [required: true]
+                ]
               ]
             ]
           ]
         ]
-      ]
 
-      opts = [producers: [default: [module: MyModule]]]
+        default = opts_to_type(unquote(type), module: MyModule)
+        producers = opts_to_type(unquote(type), default: default)
+        opts = [producers: producers]
 
-      assert NimbleOptions.validate(opts, schema) ==
-               {:error,
-                %ValidationError{
-                  key: :arg,
-                  keys_path: [:producers, :default],
-                  message: "required option :arg not found, received options: [:module]"
-                }}
+        assert NimbleOptions.validate(opts, schema) ==
+                 {:error,
+                  %ValidationError{
+                    key: :arg,
+                    keys_path: [:producers, :default],
+                    message: "required option :arg not found, received options: [:module]"
+                  }}
+      end
     end
 
-    test "nested options types" do
-      schema = [
-        producers: [
-          type: :keyword_list,
-          keys: [
-            *: [
-              type: :keyword_list,
-              keys: [
-                module: [required: true, type: :atom],
-                stages: [type: :pos_integer]
+    for type <- [:keyword_list, :map] do
+      test "nested options types for #{type}" do
+        schema = [
+          producers: [
+            type: unquote(type),
+            keys: [
+              *: [
+                type: unquote(type),
+                keys: [
+                  module: [required: true, type: :atom],
+                  stages: [type: :pos_integer]
+                ]
               ]
             ]
           ]
         ]
-      ]
 
-      opts = [
-        producers: [
-          producer1: [
-            module: MyProducer,
-            stages: :an_atom
-          ]
-        ]
-      ]
+        producer1 = opts_to_type(unquote(type), module: MyProducer, stages: :an_atom)
+        producers = opts_to_type(unquote(type), producer1: producer1)
+        opts = [producers: producers]
 
-      assert NimbleOptions.validate(opts, schema) ==
-               {:error,
-                %ValidationError{
-                  key: :stages,
-                  value: :an_atom,
-                  keys_path: [:producers, :producer1],
-                  message: "expected :stages to be a positive integer, got: :an_atom"
-                }}
+        assert NimbleOptions.validate(opts, schema) ==
+                 {:error,
+                  %ValidationError{
+                    key: :stages,
+                    value: :an_atom,
+                    keys_path: [:producers, :producer1],
+                    message: "expected :stages to be a positive integer, got: :an_atom"
+                  }}
+      end
     end
 
     test "validate empty keys for :non_empty_keyword_list" do
@@ -1382,78 +1459,87 @@ defmodule NimbleOptionsTest do
                 }}
     end
 
-    test "allow empty keys for :keyword_list" do
-      schema = [
-        producers: [
-          type: :keyword_list,
-          keys: [
-            *: [
-              type: :keyword_list,
-              keys: [
-                module: [required: true, type: :atom],
-                stages: [type: :pos_integer]
+    for type <- [:keyword_list, :map] do
+      test "allow empty keys for #{type}" do
+        schema = [
+          producers: [
+            type: unquote(type),
+            keys: [
+              *: [
+                type: unquote(type),
+                keys: [
+                  module: [required: true, type: :atom],
+                  stages: [type: :pos_integer]
+                ]
               ]
             ]
           ]
         ]
-      ]
 
-      opts = [
-        producers: []
-      ]
+        producers = opts_to_type(unquote(type), [])
+        opts = [producers: producers]
 
-      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+        assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+      end
     end
 
-    test "default value for :keyword_list" do
-      schema = [
-        batchers: [
-          required: false,
-          default: [],
-          type: :keyword_list,
-          keys: [
-            *: [
-              type: :keyword_list,
-              keys: [
-                stages: [type: :pos_integer, default: 1]
+    for type <- [:keyword_list, :map] do
+      test "default value for #{type}" do
+        empty = opts_to_type(unquote(type), [])
+
+        schema = [
+          batchers: [
+            required: false,
+            default: empty,
+            type: unquote(type),
+            keys: [
+              *: [
+                type: unquote(type),
+                keys: [
+                  stages: [type: :pos_integer, default: 1]
+                ]
               ]
             ]
           ]
         ]
-      ]
 
-      opts = []
+        opts = []
 
-      assert NimbleOptions.validate(opts, schema) == {:ok, [batchers: []]}
+        assert NimbleOptions.validate(opts, schema) == {:ok, [batchers: empty]}
+      end
     end
   end
 
   describe "nested options show up in error messages" do
-    test "for options that we validate" do
-      schema = [
-        socket_options: [
-          type: :keyword_list,
-          keys: [
-            certificates: [
-              type: :keyword_list,
-              keys: [
-                path: [type: :string]
+    for type <- [:keyword_list, :map] do
+      test "for options that we validate for #{type}" do
+        schema = [
+          socket_options: [
+            type: unquote(type),
+            keys: [
+              certificates: [
+                type: unquote(type),
+                keys: [
+                  path: [type: :string]
+                ]
               ]
             ]
           ]
         ]
-      ]
 
-      opts = [socket_options: [certificates: [path: :not_a_string]]]
+        certificates = opts_to_type(unquote(type), path: :not_a_string)
+        socket_options = opts_to_type(unquote(type), certificates: certificates)
+        opts = [socket_options: socket_options]
 
-      assert NimbleOptions.validate(opts, schema) ==
-               {:error,
-                %ValidationError{
-                  key: :path,
-                  value: :not_a_string,
-                  keys_path: [:socket_options, :certificates],
-                  message: "expected :path to be a string, got: :not_a_string"
-                }}
+        assert NimbleOptions.validate(opts, schema) ==
+                 {:error,
+                  %ValidationError{
+                    key: :path,
+                    value: :not_a_string,
+                    keys_path: [:socket_options, :certificates],
+                    message: "expected :path to be a string, got: :not_a_string"
+                  }}
+      end
     end
   end
 
@@ -1781,4 +1867,7 @@ defmodule NimbleOptionsTest do
       ]
     ]
   end
+
+  defp opts_to_type(:keyword_list, opts), do: opts
+  defp opts_to_type(:map, opts), do: Map.new(opts)
 end
