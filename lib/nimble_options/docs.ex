@@ -49,7 +49,8 @@ defmodule NimbleOptions.Docs do
       end
 
     indent = String.duplicate("  ", level)
-    doc = indent_doc("  * `#{inspect(key)}`#{description}\n\n", indent)
+    type = if type = get_type_str(schema), do: " (#{type})", else: ""
+    doc = indent_doc("  * `#{inspect(key)}`#{type}#{description}\n\n", indent)
 
     docs = [doc | docs]
 
@@ -75,8 +76,60 @@ defmodule NimbleOptions.Docs do
   end
 
   defp get_default_str(schema) do
-    if Keyword.has_key?(schema, :default) do
-      "The default value is `#{inspect(schema[:default])}`."
+    if Keyword.has_key?(schema, :default),
+      do: "The default value is `#{inspect(schema[:default])}`."
+  end
+
+  defp get_type_str(schema) do
+    case schema[:type] do
+      nil ->
+        nil
+
+      {:custom, _module, _function, _args} ->
+        nil
+
+      {:fun, arity} ->
+        "function of arity #{arity}"
+
+      {:keyword_list, _keys} ->
+        "keyword list"
+
+      {:in, values} ->
+        "one of #{inspect(values)}"
+
+      {:list, subtype} ->
+        if subtype_str = get_type_str(type: subtype) do
+          "list of #{subtype_str}"
+        end
+
+      {:non_empty_keyword_list, _} ->
+        "non-empty keyword list"
+
+      {:or, _values} ->
+        nil
+
+      :keyword_list ->
+        "keyword list"
+
+      :non_empty_keyword_list ->
+        "non-empty keyword list"
+
+      type
+      when type in [
+             :any,
+             :atom,
+             :boolean,
+             :integer,
+             :mfa,
+             :mod_arg,
+             :non_neg_integer,
+             :pid,
+             :pos_integer,
+             :float,
+             :timeout,
+             :string
+           ] ->
+        String.trim(to_string(schema[:type]))
     end
   end
 

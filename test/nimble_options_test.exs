@@ -1460,11 +1460,11 @@ defmodule NimbleOptionsTest do
   describe "NimbleOptions.docs/1" do
     test "override docs for recursive keys" do
       docs = """
-        * `:type` - Required. The type of the option item.
+        * `:type` (atom) - Required. The type of the option item.
 
-        * `:required` - Defines if the option item is required. The default value is `false`.
+        * `:required` (boolean) - Defines if the option item is required. The default value is `false`.
 
-        * `:keys` - Defines which set of keys are accepted.
+        * `:keys` (keyword list) - Defines which set of keys are accepted.
 
         * `:default` - The default.
 
@@ -1496,17 +1496,17 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:producer` - The producer. Supported options:
+        * `:producer` (non-empty keyword list) - The producer. Supported options:
 
-          * `:module` - The module.
+          * `:module` (mod_arg) - The module.
 
-          * `:rate_limiting` - A list of options to enable and configure rate limiting. Supported options:
+          * `:rate_limiting` (non-empty keyword list) - A list of options to enable and configure rate limiting. Supported options:
 
-            * `:allowed_messages` - Number of messages per interval.
+            * `:allowed_messages` (pos_integer) - Number of messages per interval.
 
-            * `:interval` - Required. The interval.
+            * `:interval` (pos_integer) - Required. The interval.
 
-        * `:other_key`
+        * `:other_key` (string)
 
       """
 
@@ -1529,17 +1529,17 @@ defmodule NimbleOptionsTest do
           #{NimbleOptions.docs(nested_schema, nest_level: 1)}
           """
         ],
-        other_key: [type: :string]
+        other_key: [type: {:list, :atom}]
       ]
 
       docs = """
         * `:producer` - The producer. Either a string or a keyword list with the following keys:
 
-          * `:allowed_messages` - Allowed messages.
+          * `:allowed_messages` (pos_integer) - Allowed messages.
 
-          * `:interval` - Interval.
+          * `:interval` (pos_integer) - Interval.
 
-        * `:other_key`
+        * `:other_key` (list of atom)
 
       """
 
@@ -1568,11 +1568,11 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:name` - Required. The name.
+        * `:name` (atom) - Required. The name.
 
-        * `:producer` - This is the producer summary. See "Producers options" section below.
+        * `:producer` (non-empty keyword list) - This is the producer summary. See "Producers options" section below.
 
-        * `:other_key`
+        * `:other_key` (string)
 
       ### Producers options
 
@@ -1580,9 +1580,9 @@ defmodule NimbleOptionsTest do
 
       The available options are:
 
-        * `:module` - The module.
+        * `:module` (mod_arg) - The module.
 
-        * `:concurrency` - The concurrency.
+        * `:concurrency` (pos_integer) - The concurrency.
 
       """
 
@@ -1608,13 +1608,13 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:name` - The name.
+        * `:name` (string) - The name.
 
       This a multiline text.
 
       Another line.
 
-        * `:module` - The module.
+        * `:module` (atom) - The module.
 
       """
 
@@ -1629,9 +1629,9 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:name` - An atom.
+        * `:name` (atom) - An atom.
 
-        * `:count`
+        * `:count` (integer)
 
       """
 
@@ -1670,7 +1670,7 @@ defmodule NimbleOptionsTest do
       assert {:ok, ^opts} = NimbleOptions.validate(opts, schema)
 
       assert NimbleOptions.docs(schema) == """
-               * `:custom_keys` - Custom keys
+               * `:custom_keys` (keyword list) - Custom keys
 
              """
     end
