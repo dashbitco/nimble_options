@@ -1,6 +1,24 @@
 defmodule NimbleOptions.Docs do
   @moduledoc false
 
+  @basic_types [
+    :any,
+    :keyword_list,
+    :non_empty_keyword_list,
+    :atom,
+    :integer,
+    :non_neg_integer,
+    :pos_integer,
+    :float,
+    :mfa,
+    :mod_arg,
+    :string,
+    :boolean,
+    :timeout,
+    :pid,
+    :reference
+  ]
+
   def generate(schema, options) when is_list(schema) and is_list(options) do
     nest_level = Keyword.get(options, :nest_level, 0)
     {docs, sections, _level} = build_docs(schema, {[], [], nest_level})
@@ -49,7 +67,7 @@ defmodule NimbleOptions.Docs do
       end
 
     indent = String.duplicate("  ", level)
-    type = if type = get_type_str(schema), do: " (#{type})", else: ""
+    type = if type = get_type_str(schema[:type]), do: " (#{type})", else: ""
     doc = indent_doc("  * `#{inspect(key)}`#{type}#{description}\n\n", indent)
 
     docs = [doc | docs]
@@ -80,57 +98,19 @@ defmodule NimbleOptions.Docs do
       do: "The default value is `#{inspect(schema[:default])}`."
   end
 
-  defp get_type_str(schema) do
-    case schema[:type] do
-      nil ->
-        nil
+  defp get_type_str(nil), do: nil
+  defp get_type_str({:custom, _mod, _fun, _args}), do: nil
+  defp get_type_str({:or, _values}), do: nil
+  defp get_type_str({:fun, arity}), do: "function of arity #{arity}"
+  defp get_type_str(:keyword_list), do: "keyword list"
+  defp get_type_str(:non_empty_keyword_list), do: "non-empty keyword list"
+  defp get_type_str({:keyword_list, _keys}), do: "keyword list"
+  defp get_type_str({:non_empty_keyword_list, _keys}), do: "non-empty keyword list"
+  defp get_type_str({:in, enum}), do: "member of `#{inspect(enum)}`"
+  defp get_type_str(type) when type in @basic_types, do: Atom.to_string(type)
 
-      {:custom, _module, _function, _args} ->
-        nil
-
-      {:fun, arity} ->
-        "function of arity #{arity}"
-
-      {:keyword_list, _keys} ->
-        "keyword list"
-
-      {:in, values} ->
-        "one of #{inspect(values)}"
-
-      {:list, subtype} ->
-        if subtype_str = get_type_str(type: subtype) do
-          "list of #{subtype_str}"
-        end
-
-      {:non_empty_keyword_list, _} ->
-        "non-empty keyword list"
-
-      {:or, _values} ->
-        nil
-
-      :keyword_list ->
-        "keyword list"
-
-      :non_empty_keyword_list ->
-        "non-empty keyword list"
-
-      type
-      when type in [
-             :any,
-             :atom,
-             :boolean,
-             :integer,
-             :mfa,
-             :mod_arg,
-             :non_neg_integer,
-             :pid,
-             :pos_integer,
-             :float,
-             :timeout,
-             :string
-           ] ->
-        String.trim(to_string(schema[:type]))
-    end
+  defp get_type_str({:list, subtype}) do
+    if subtype_str = get_type_str(subtype), do: "list of: #{subtype_str}"
   end
 
   defp indent_doc(text, indent) do
