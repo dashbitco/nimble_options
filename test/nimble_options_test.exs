@@ -1744,6 +1744,65 @@ defmodule NimbleOptionsTest do
     end
   end
 
+  describe "option_type_union/1" do
+    test "all possible types" do
+      schema = [
+        any: [type: :any],
+        keyword_list: [type: :keyword_list],
+        non_empty_keyword_list: [type: :non_empty_keyword_list],
+        atom: [type: :atom],
+        integer: [type: :integer],
+        non_neg_integer: [type: :non_neg_integer],
+        pos_integer: [type: :pos_integer],
+        float: [type: :float],
+        mfa: [type: :mfa],
+        mod_arg: [type: :mod_arg],
+        string: [type: :string],
+        boolean: [type: :boolean],
+        timeout: [type: :timeout],
+        pid: [type: :pid],
+        reference: [type: :reference],
+        fun: [type: {:fun, 3}],
+        member: [type: {:in, 1..10}],
+        custom: [type: {:custom, __MODULE__, :fun, []}],
+        list_of_int: [type: {:list, :integer}],
+        list_of_list_of_int: [type: {:list, {:list, :integer}}],
+        list_of_kw: [type: {:list, {:keyword_list, []}}],
+        list_of_ne_kw: [type: {:list, {:non_empty_keyword_list, []}}],
+        union_scalar: [type: {:or, [:integer, :boolean, :float]}],
+        union_complex: [type: {:or, [{:or, [:integer, :float]}, :boolean]}]
+      ]
+
+      assert NimbleOptions.option_type_union(schema) ==
+               (quote do
+                  {:any, term()}
+                  | {:keyword_list, keyword()}
+                  | {:non_empty_keyword_list, keyword()}
+                  | {:atom, atom()}
+                  | {:integer, integer()}
+                  | {:non_neg_integer, non_neg_integer()}
+                  | {:pos_integer, pos_integer()}
+                  | {:float, float()}
+                  | {:mfa, {module(), atom(), [term()]}}
+                  | {:mod_arg, {module(), [term()]}}
+                  | {:string, binary()}
+                  | {:boolean, boolean()}
+                  | {:timeout, timeout()}
+                  | {:pid, pid()}
+                  | {:reference, reference()}
+                  | {:fun, (term(), term(), term() -> term())}
+                  | {:member, term()}
+                  | {:custom, term()}
+                  | {:list_of_int, [integer()]}
+                  | {:list_of_list_of_int, [[integer()]]}
+                  | {:list_of_kw, [keyword()]}
+                  | {:list_of_ne_kw, [keyword()]}
+                  | {:union_scalar, integer() | boolean() | float()}
+                  | {:union_complex, (integer() | float()) | boolean()}
+                end)
+    end
+  end
+
   @compile_time_wrapper NimbleOptions.new!(an_option: [])
 
   describe "wrapper struct" do

@@ -1,24 +1,6 @@
 defmodule NimbleOptions.Docs do
   @moduledoc false
 
-  @basic_types [
-    :any,
-    :keyword_list,
-    :non_empty_keyword_list,
-    :atom,
-    :integer,
-    :non_neg_integer,
-    :pos_integer,
-    :float,
-    :mfa,
-    :mod_arg,
-    :string,
-    :boolean,
-    :timeout,
-    :pid,
-    :reference
-  ]
-
   def generate(schema, options) when is_list(schema) and is_list(options) do
     nest_level = Keyword.get(options, :nest_level, 0)
     {docs, sections, _level} = build_docs(schema, {[], [], nest_level})
@@ -143,5 +125,55 @@ defmodule NimbleOptions.Docs do
       "" -> ""
       str -> "#{indent}#{str}"
     end)
+  end
+
+  def schema_to_spec(schema) do
+    schema
+    |> Enum.map(fn {key, opt_schema} ->
+      typespec = type_to_spec(opt_schema[:type])
+      quote do: {unquote(key), unquote(typespec)}
+    end)
+    |> unionize_quoted()
+  end
+
+  defp type_to_spec(type) do
+    case type do
+      :any -> quote(do: term())
+      :integer -> quote(do: integer())
+      :non_neg_integer -> quote(do: non_neg_integer())
+      :pos_integer -> quote(do: pos_integer())
+      :atom -> quote(do: atom())
+      :float -> quote(do: float())
+      :boolean -> quote(do: boolean())
+      :pid -> quote(do: pid())
+      :reference -> quote(do: reference())
+      :timeout -> quote(do: timeout())
+      :string -> quote(do: binary())
+      :mfa -> quote(do: {module(), atom(), [term()]})
+      :mod_arg -> quote(do: {module(), [term()]})
+      :keyword_list -> quote(do: keyword())
+      {:keyword_list, _keys} -> quote(do: keyword())
+      :non_empty_keyword_list -> quote(do: keyword())
+      {:non_empty_keyword_list, _keys} -> quote(do: keyword())
+      {:fun, arity} -> function_spec(arity)
+      {:in, _choices} -> quote(do: term())
+      {:custom, _mod, _fun, _args} -> quote(do: term())
+      {:list, subtype} -> quote(do: [unquote(type_to_spec(subtype))])
+      {:or, subtypes} -> subtypes |> Enum.map(&type_to_spec/1) |> unionize_quoted()
+    end
+  end
+
+  defp function_spec(arity) do
+    args = List.duplicate(quote(do: term()), arity)
+
+    quote do
+      unquote_splicing(args) -> term()
+    end
+  end
+
+  defp unionize_quoted(specs) do
+    specs
+    |> Enum.reverse()
+    |> Enum.reduce(&quote(do: unquote(&1) | unquote(&2)))
   end
 end

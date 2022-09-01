@@ -391,6 +391,65 @@ defmodule NimbleOptions do
     NimbleOptions.Docs.generate(schema, options)
   end
 
+  @doc """
+  Returns the quoted typespec for any option described by the given schema.
+
+  The returned quoted code represents the **type union** for all possible
+  keys in the schema, alongside their type. Nested keyword lists are
+  spec'ed as `t:keyword/0`.
+
+  ## Usage
+
+  Because of how typespecs are treated by the Elixir compiler, you have
+  to use `unquote/1` on the return value of this function to use it
+  in a typespec:
+
+      @type option() :: unquote(NimbleOptions.option_type_union(my_schema))
+
+  This function returns the type union for a single option, to give you
+  flexibility to combine it and use it in your own typespecs. For example,
+  if you only validate part of the options through NimbleOptions, you could
+  write a spec like this:
+
+      @type my_option() ::
+              {:my_opt1, integer()}
+              | {:my_opt2, boolean()}
+              | unquote(NimbleOptions.option_type_union(my_schema))
+
+  If you want to spec a whole schema, you could write something like this:
+
+      @type options() :: [unquote(NimbleOptions.option_type_union(my_schema))]
+
+  ## Example
+
+      schema = [
+        int: [type: :integer],
+        number: [type: {:or, [:integer, :float]}]
+      ]
+
+      @type option() :: unquote(NimbleOptions.option_type_union(schema))
+
+  The code above would essentially compile to:
+
+      @type option() :: {:int, integer()} | {:number, integer() | float()}
+
+  """
+  # TODO: remove when we depend on Elixir 1.7+
+  if Version.match?(System.version(), "~> 1.7") do
+    @doc since: "0.5.0"
+  end
+
+  @spec option_type_union(schema() | t()) :: Macro.t()
+  def option_type_union(schema)
+
+  def option_type_union(schema) when is_list(schema) do
+    NimbleOptions.Docs.schema_to_spec(schema)
+  end
+
+  def option_type_union(%NimbleOptions{schema: schema}) do
+    NimbleOptions.Docs.schema_to_spec(schema)
+  end
+
   @doc false
   def options_schema() do
     @options_schema
