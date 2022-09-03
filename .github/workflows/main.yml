@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       MIX_ENV: test
       GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
@@ -17,11 +17,11 @@ jobs:
       matrix:
         include:
           - pair:
-              elixir: 1.6.6
-              otp: 19.3.6.13
+              elixir: "1.9.4"
+              otp: "20.3"
           - pair:
-              elixir: 1.13.4
-              otp: 25.0.2
+              elixir: "1.14.0"
+              otp: "25.0.2"
             lint: lint
             coverage: true
     steps:
@@ -38,8 +38,6 @@ jobs:
             deps
             _build
           key: ${{ runner.os }}-mix-${{matrix.pair.elixir}}-${{matrix.pair.otp}}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-
 
       - run: mix deps.get
 
