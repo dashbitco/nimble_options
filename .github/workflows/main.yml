@@ -20,7 +20,7 @@ jobs:
               elixir: "1.9.4"
               otp: "20.3"
           - pair:
-              elixir: "1.14.0"
+              elixir: "1.14.0-otp25"
               otp: "25.0.2"
             lint: lint
             coverage: true
