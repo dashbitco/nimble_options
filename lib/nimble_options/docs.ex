@@ -108,11 +108,11 @@ defmodule NimbleOptions.Docs do
   defp get_raw_type_str(:non_neg_integer), do: "`t:non_neg_integer/0`"
   defp get_raw_type_str(:pos_integer), do: "`t:pos_integer/0`"
   defp get_raw_type_str(:float), do: "`t:float/0`"
-  defp get_raw_type_str(:string), do: "`t:binary/0`"
+  defp get_raw_type_str(:string), do: "`t:String.t/0`"
   defp get_raw_type_str(:keyword_list), do: "`t:keyword/0`"
-  defp get_raw_type_str(:non_empty_keyword_list), do: "`t:keyword/0`"
+  defp get_raw_type_str(:non_empty_keyword_list), do: "non-empty `t:keyword/0`"
   defp get_raw_type_str({:keyword_list, _keys}), do: "`t:keyword/0`"
-  defp get_raw_type_str({:non_empty_keyword_list, _keys}), do: "`t:keyword/0`"
+  defp get_raw_type_str({:non_empty_keyword_list, _keys}), do: "non-empty `t:keyword/0`"
 
   defp get_raw_type_str({:list, subtype}) do
     if subtype_str = get_raw_type_str(subtype), do: "list of #{subtype_str}"

@@ -1497,17 +1497,17 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:producer` (`t:keyword/0`) - The producer. Supported options:
+        * `:producer` (non-empty `t:keyword/0`) - The producer. Supported options:
 
           * `:module` (2-element tuple of `t:module/0` and `[term()]`) - The module.
 
-          * `:rate_limiting` (`t:keyword/0`) - A list of options to enable and configure rate limiting. Supported options:
+          * `:rate_limiting` (non-empty `t:keyword/0`) - A list of options to enable and configure rate limiting. Supported options:
 
             * `:allowed_messages` (`t:pos_integer/0`) - Number of messages per interval.
 
             * `:interval` (`t:pos_integer/0`) - Required. The interval.
 
-        * `:other_key` (`t:binary/0`)
+        * `:other_key` (`t:String.t/0`)
 
       """
 
@@ -1571,9 +1571,9 @@ defmodule NimbleOptionsTest do
       docs = """
         * `:name` (`t:atom/0`) - Required. The name.
 
-        * `:producer` (`t:keyword/0`) - This is the producer summary. See "Producers options" section below.
+        * `:producer` (non-empty `t:keyword/0`) - This is the producer summary. See "Producers options" section below.
 
-        * `:other_key` (`t:binary/0`)
+        * `:other_key` (`t:String.t/0`)
 
       ### Producers options
 
@@ -1609,7 +1609,7 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:name` (`t:binary/0`) - The name.
+        * `:name` (`t:String.t/0`) - The name.
 
       This a multiline text.
 
@@ -1704,7 +1704,7 @@ defmodule NimbleOptionsTest do
 
                * `:kw` (`t:keyword/0`)
 
-               * `:nonempty_kw` (`t:keyword/0`)
+               * `:nonempty_kw` (non-empty `t:keyword/0`)
 
                * `:in_range` (member of `1..10`)
 
@@ -1745,7 +1745,7 @@ defmodule NimbleOptionsTest do
     end
   end
 
-  describe "option_type_union/1" do
+  describe "option_typespec/1" do
     test "all possible types" do
       schema = [
         any: [type: :any],
@@ -1774,7 +1774,7 @@ defmodule NimbleOptionsTest do
         union_complex: [type: {:or, [{:or, [:integer, :float]}, :boolean]}]
       ]
 
-      assert NimbleOptions.option_type_union(schema) ==
+      assert NimbleOptions.option_typespec(schema) ==
                (quote do
                   {:any, term()}
                   | {:keyword_list, keyword()}
