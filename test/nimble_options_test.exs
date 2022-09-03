@@ -651,7 +651,8 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :mode,
                   value: :unknown,
-                  message: "expected :mode to be in #MapSet<[:active, :passive]>, got: :unknown"
+                  message:
+                    "expected :mode to be in #{inspect(MapSet.new([:active, :passive]))}, got: :unknown"
                 }}
     end
 
