@@ -72,7 +72,7 @@ defmodule NimbleOptionsTest do
       Reason: \
       unknown options [:unknown_schema_option], \
       valid options are: [:type, :required, :default, :keys, \
-      :deprecated, :doc, :subsection, :rename_to] \
+      :deprecated, :doc, :subsection, :type_doc, :rename_to] \
       (in options [:producers, :keys, :*, :keys, :module])\
       """
 
@@ -1461,11 +1461,11 @@ defmodule NimbleOptionsTest do
   describe "NimbleOptions.docs/1" do
     test "override docs for recursive keys" do
       docs = """
-        * `:type` (atom) - Required. The type of the option item.
+        * `:type` (`t:atom/0`) - Required. The type of the option item.
 
-        * `:required` (boolean) - Defines if the option item is required. The default value is `false`.
+        * `:required` (`t:boolean/0`) - Defines if the option item is required. The default value is `false`.
 
-        * `:keys` (keyword list) - Defines which set of keys are accepted.
+        * `:keys` (`t:keyword/0`) - Defines which set of keys are accepted.
 
         * `:default` - The default.
 
@@ -1497,17 +1497,17 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:producer` (non-empty keyword list) - The producer. Supported options:
+        * `:producer` (non-empty `t:keyword/0`) - The producer. Supported options:
 
-          * `:module` (mod_arg) - The module.
+          * `:module` (2-element tuple of `t:module/0` and `[term()]`) - The module.
 
-          * `:rate_limiting` (non-empty keyword list) - A list of options to enable and configure rate limiting. Supported options:
+          * `:rate_limiting` (non-empty `t:keyword/0`) - A list of options to enable and configure rate limiting. Supported options:
 
-            * `:allowed_messages` (pos_integer) - Number of messages per interval.
+            * `:allowed_messages` (`t:pos_integer/0`) - Number of messages per interval.
 
-            * `:interval` (pos_integer) - Required. The interval.
+            * `:interval` (`t:pos_integer/0`) - Required. The interval.
 
-        * `:other_key` (string)
+        * `:other_key` (`t:String.t/0`)
 
       """
 
@@ -1536,11 +1536,11 @@ defmodule NimbleOptionsTest do
       docs = """
         * `:producer` - The producer. Either a string or a keyword list with the following keys:
 
-          * `:allowed_messages` (pos_integer) - Allowed messages.
+          * `:allowed_messages` (`t:pos_integer/0`) - Allowed messages.
 
-          * `:interval` (pos_integer) - Interval.
+          * `:interval` (`t:pos_integer/0`) - Interval.
 
-        * `:other_key` (list of: atom)
+        * `:other_key` (list of `t:atom/0`)
 
       """
 
@@ -1569,11 +1569,11 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:name` (atom) - Required. The name.
+        * `:name` (`t:atom/0`) - Required. The name.
 
-        * `:producer` (non-empty keyword list) - This is the producer summary. See "Producers options" section below.
+        * `:producer` (non-empty `t:keyword/0`) - This is the producer summary. See "Producers options" section below.
 
-        * `:other_key` (string)
+        * `:other_key` (`t:String.t/0`)
 
       ### Producers options
 
@@ -1581,9 +1581,9 @@ defmodule NimbleOptionsTest do
 
       The available options are:
 
-        * `:module` (mod_arg) - The module.
+        * `:module` (2-element tuple of `t:module/0` and `[term()]`) - The module.
 
-        * `:concurrency` (pos_integer) - The concurrency.
+        * `:concurrency` (`t:pos_integer/0`) - The concurrency.
 
       """
 
@@ -1609,13 +1609,13 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:name` (string) - The name.
+        * `:name` (`t:String.t/0`) - The name.
 
       This a multiline text.
 
       Another line.
 
-        * `:module` (atom) - The module.
+        * `:module` (`t:atom/0`) - The module.
 
       """
 
@@ -1630,9 +1630,9 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:name` (atom) - An atom.
+        * `:name` (`t:atom/0`) - An atom.
 
-        * `:count` (integer)
+        * `:count` (`t:integer/0`)
 
       """
 
@@ -1671,7 +1671,7 @@ defmodule NimbleOptionsTest do
       assert {:ok, ^opts} = NimbleOptions.validate(opts, schema)
 
       assert NimbleOptions.docs(schema) == """
-               * `:custom_keys` (keyword list) - Custom keys
+               * `:custom_keys` (`t:keyword/0`) - Custom keys
 
              """
     end
@@ -1702,23 +1702,23 @@ defmodule NimbleOptionsTest do
 
                * `:f` (function of arity 3)
 
-               * `:kw` (keyword list)
+               * `:kw` (`t:keyword/0`)
 
-               * `:nonempty_kw` (non-empty keyword list)
+               * `:nonempty_kw` (non-empty `t:keyword/0`)
 
                * `:in_range` (member of `1..10`)
 
                * `:in_list` (member of `[:email, :username]`)
 
-               * `:int` (integer)
+               * `:int` (`t:integer/0`)
 
-               * `:ref` (reference)
+               * `:ref` (`t:reference/0`)
 
-               * `:list_of_ints` (list of: integer)
+               * `:list_of_ints` (list of `t:integer/0`)
 
-               * `:nested_list_of_ints` (list of: list of: integer)
+               * `:nested_list_of_ints` (list of list of `t:integer/0`)
 
-               * `:list_of_kws` (list of: keyword list)
+               * `:list_of_kws` (list of `t:keyword/0`)
 
              """
     end
@@ -1742,6 +1742,65 @@ defmodule NimbleOptionsTest do
       assert_raise NimbleOptions.ValidationError, message, fn ->
         NimbleOptions.validate!(opts, schema)
       end
+    end
+  end
+
+  describe "option_typespec/1" do
+    test "all possible types" do
+      schema = [
+        any: [type: :any],
+        keyword_list: [type: :keyword_list],
+        non_empty_keyword_list: [type: :non_empty_keyword_list],
+        atom: [type: :atom],
+        integer: [type: :integer],
+        non_neg_integer: [type: :non_neg_integer],
+        pos_integer: [type: :pos_integer],
+        float: [type: :float],
+        mfa: [type: :mfa],
+        mod_arg: [type: :mod_arg],
+        string: [type: :string],
+        boolean: [type: :boolean],
+        timeout: [type: :timeout],
+        pid: [type: :pid],
+        reference: [type: :reference],
+        fun: [type: {:fun, 3}],
+        member: [type: {:in, 1..10}],
+        custom: [type: {:custom, __MODULE__, :fun, []}],
+        list_of_int: [type: {:list, :integer}],
+        list_of_list_of_int: [type: {:list, {:list, :integer}}],
+        list_of_kw: [type: {:list, {:keyword_list, []}}],
+        list_of_ne_kw: [type: {:list, {:non_empty_keyword_list, []}}],
+        union_scalar: [type: {:or, [:integer, :boolean, :float]}],
+        union_complex: [type: {:or, [{:or, [:integer, :float]}, :boolean]}]
+      ]
+
+      assert NimbleOptions.option_typespec(schema) ==
+               (quote do
+                  {:any, term()}
+                  | {:keyword_list, keyword()}
+                  | {:non_empty_keyword_list, keyword()}
+                  | {:atom, atom()}
+                  | {:integer, integer()}
+                  | {:non_neg_integer, non_neg_integer()}
+                  | {:pos_integer, pos_integer()}
+                  | {:float, float()}
+                  | {:mfa, {module(), atom(), [term()]}}
+                  | {:mod_arg, {module(), [term()]}}
+                  | {:string, binary()}
+                  | {:boolean, boolean()}
+                  | {:timeout, timeout()}
+                  | {:pid, pid()}
+                  | {:reference, reference()}
+                  | {:fun, (term(), term(), term() -> term())}
+                  | {:member, term()}
+                  | {:custom, term()}
+                  | {:list_of_int, [integer()]}
+                  | {:list_of_list_of_int, [[integer()]]}
+                  | {:list_of_kw, [keyword()]}
+                  | {:list_of_ne_kw, [keyword()]}
+                  | {:union_scalar, integer() | boolean() | float()}
+                  | {:union_complex, (integer() | float()) | boolean()}
+                end)
     end
   end
 

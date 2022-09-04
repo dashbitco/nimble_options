@@ -1,24 +1,6 @@
 defmodule NimbleOptions.Docs do
   @moduledoc false
 
-  @basic_types [
-    :any,
-    :keyword_list,
-    :non_empty_keyword_list,
-    :atom,
-    :integer,
-    :non_neg_integer,
-    :pos_integer,
-    :float,
-    :mfa,
-    :mod_arg,
-    :string,
-    :boolean,
-    :timeout,
-    :pid,
-    :reference
-  ]
-
   def generate(schema, options) when is_list(schema) and is_list(options) do
     nest_level = Keyword.get(options, :nest_level, 0)
     {docs, sections, _level} = build_docs(schema, {[], [], nest_level})
@@ -58,8 +40,14 @@ defmodule NimbleOptions.Docs do
   end
 
   defp option_doc({key, schema}, {docs, sections, level}) do
+    type_str = if type_str = get_type_str(schema), do: " #{type_str}"
+
     description =
-      [get_required_str(schema), get_doc_str(schema), get_default_str(schema)]
+      [
+        get_required_str(schema),
+        get_doc_str(schema),
+        get_default_str(schema)
+      ]
       |> Enum.reject(&is_nil/1)
       |> case do
         [] -> ""
@@ -67,8 +55,7 @@ defmodule NimbleOptions.Docs do
       end
 
     indent = String.duplicate("  ", level)
-    type = if type = get_type_str(schema[:type]), do: " (#{type})", else: ""
-    doc = indent_doc("  * `#{inspect(key)}`#{type}#{description}\n\n", indent)
+    doc = indent_doc("  * `#{inspect(key)}`#{type_str}#{description}\n\n", indent)
 
     docs = [doc | docs]
 
@@ -98,19 +85,37 @@ defmodule NimbleOptions.Docs do
       do: "The default value is `#{inspect(schema[:default])}`."
   end
 
-  defp get_type_str(nil), do: nil
-  defp get_type_str({:custom, _mod, _fun, _args}), do: nil
-  defp get_type_str({:or, _values}), do: nil
-  defp get_type_str({:fun, arity}), do: "function of arity #{arity}"
-  defp get_type_str(:keyword_list), do: "keyword list"
-  defp get_type_str(:non_empty_keyword_list), do: "non-empty keyword list"
-  defp get_type_str({:keyword_list, _keys}), do: "keyword list"
-  defp get_type_str({:non_empty_keyword_list, _keys}), do: "non-empty keyword list"
-  defp get_type_str({:in, enum}), do: "member of `#{inspect(enum)}`"
-  defp get_type_str(type) when type in @basic_types, do: Atom.to_string(type)
+  defp get_type_str(schema) do
+    if str = get_raw_type_str(schema[:type]) do
+      "(#{str})"
+    end
+  end
 
-  defp get_type_str({:list, subtype}) do
-    if subtype_str = get_type_str(subtype), do: "list of: #{subtype_str}"
+  defp get_raw_type_str(nil), do: nil
+  defp get_raw_type_str({:custom, _mod, _fun, _args}), do: nil
+  defp get_raw_type_str(:mfa), do: "3-element tuple of `t:module/0`, `t:atom/0`, and `[term()]`"
+  defp get_raw_type_str(:mod_arg), do: "2-element tuple of `t:module/0` and `[term()]`"
+  defp get_raw_type_str({:or, _values}), do: nil
+  defp get_raw_type_str({:fun, arity}), do: "function of arity #{arity}"
+  defp get_raw_type_str({:in, enum}), do: "member of `#{inspect(enum)}`"
+  defp get_raw_type_str(:any), do: "`t:term/0`"
+  defp get_raw_type_str(:reference), do: "`t:reference/0`"
+  defp get_raw_type_str(:pid), do: "`t:pid/0`"
+  defp get_raw_type_str(:timeout), do: "`t:timeout/0`"
+  defp get_raw_type_str(:boolean), do: "`t:boolean/0`"
+  defp get_raw_type_str(:atom), do: "`t:atom/0`"
+  defp get_raw_type_str(:integer), do: "`t:integer/0`"
+  defp get_raw_type_str(:non_neg_integer), do: "`t:non_neg_integer/0`"
+  defp get_raw_type_str(:pos_integer), do: "`t:pos_integer/0`"
+  defp get_raw_type_str(:float), do: "`t:float/0`"
+  defp get_raw_type_str(:string), do: "`t:String.t/0`"
+  defp get_raw_type_str(:keyword_list), do: "`t:keyword/0`"
+  defp get_raw_type_str(:non_empty_keyword_list), do: "non-empty `t:keyword/0`"
+  defp get_raw_type_str({:keyword_list, _keys}), do: "`t:keyword/0`"
+  defp get_raw_type_str({:non_empty_keyword_list, _keys}), do: "non-empty `t:keyword/0`"
+
+  defp get_raw_type_str({:list, subtype}) do
+    if subtype_str = get_raw_type_str(subtype), do: "list of #{subtype_str}"
   end
 
   defp indent_doc(text, indent) do
@@ -120,5 +125,55 @@ defmodule NimbleOptions.Docs do
       "" -> ""
       str -> "#{indent}#{str}"
     end)
+  end
+
+  def schema_to_spec(schema) do
+    schema
+    |> Enum.map(fn {key, opt_schema} ->
+      typespec = type_to_spec(opt_schema[:type])
+      quote do: {unquote(key), unquote(typespec)}
+    end)
+    |> unionize_quoted()
+  end
+
+  defp type_to_spec(type) do
+    case type do
+      :any -> quote(do: term())
+      :integer -> quote(do: integer())
+      :non_neg_integer -> quote(do: non_neg_integer())
+      :pos_integer -> quote(do: pos_integer())
+      :atom -> quote(do: atom())
+      :float -> quote(do: float())
+      :boolean -> quote(do: boolean())
+      :pid -> quote(do: pid())
+      :reference -> quote(do: reference())
+      :timeout -> quote(do: timeout())
+      :string -> quote(do: binary())
+      :mfa -> quote(do: {module(), atom(), [term()]})
+      :mod_arg -> quote(do: {module(), [term()]})
+      :keyword_list -> quote(do: keyword())
+      {:keyword_list, _keys} -> quote(do: keyword())
+      :non_empty_keyword_list -> quote(do: keyword())
+      {:non_empty_keyword_list, _keys} -> quote(do: keyword())
+      {:fun, arity} -> function_spec(arity)
+      {:in, _choices} -> quote(do: term())
+      {:custom, _mod, _fun, _args} -> quote(do: term())
+      {:list, subtype} -> quote(do: [unquote(type_to_spec(subtype))])
+      {:or, subtypes} -> subtypes |> Enum.map(&type_to_spec/1) |> unionize_quoted()
+    end
+  end
+
+  defp function_spec(arity) do
+    args = List.duplicate(quote(do: term()), arity)
+
+    quote do
+      unquote_splicing(args) -> term()
+    end
+  end
+
+  defp unionize_quoted(specs) do
+    specs
+    |> Enum.reverse()
+    |> Enum.reduce(&quote(do: unquote(&1) | unquote(&2)))
   end
 end

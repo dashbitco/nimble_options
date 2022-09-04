@@ -47,6 +47,20 @@ defmodule NimbleOptions do
           type: :string,
           doc: "The title of separate subsection of the options' documentation"
         ],
+        type_doc: [
+          type: {:or, [:string, {:in, false}]},
+          doc: """
+          The type doc to use *in the documentation* for the option item. If `false`,
+          no type documentation is added to the item. If it's a string, it can be
+          anything. For example, you can use `"a list of PIDs"`, or you can use
+          a typespec reference that ExDoc can link to the type definition, such as
+          `` "`t:binary/0`" ``. You can use Markdown in this documentation. If the
+          `:type_doc` option is not present, NimbleOptions tries to produce a type
+          documentation automatically if it can do it unambiguously. For example,
+          if `type: :integer`, NimbleOptions will use `t:integer/0` as the
+          auto-generated type doc.
+          """
+        ],
         # TODO: remove in v0.5.
         rename_to: [
           type: :atom,
@@ -375,6 +389,61 @@ defmodule NimbleOptions do
 
   def docs(%NimbleOptions{schema: schema}, options) when is_list(options) do
     NimbleOptions.Docs.generate(schema, options)
+  end
+
+  @doc """
+  Returns the quoted typespec for any option described by the given schema.
+
+  The returned quoted code represents the **type union** for all possible
+  keys in the schema, alongside their type. Nested keyword lists are
+  spec'ed as `t:keyword/0`.
+
+  ## Usage
+
+  Because of how typespecs are treated by the Elixir compiler, you have
+  to use `unquote/1` on the return value of this function to use it
+  in a typespec:
+
+      @type option() :: unquote(NimbleOptions.option_typespec(my_schema))
+
+  This function returns the type union for a single option, to give you
+  flexibility to combine it and use it in your own typespecs. For example,
+  if you only validate part of the options through NimbleOptions, you could
+  write a spec like this:
+
+      @type my_option() ::
+              {:my_opt1, integer()}
+              | {:my_opt2, boolean()}
+              | unquote(NimbleOptions.option_typespec(my_schema))
+
+  If you want to spec a whole schema, you could write something like this:
+
+      @type options() :: [unquote(NimbleOptions.option_typespec(my_schema))]
+
+  ## Example
+
+      schema = [
+        int: [type: :integer],
+        number: [type: {:or, [:integer, :float]}]
+      ]
+
+      @type option() :: unquote(NimbleOptions.option_typespec(schema))
+
+  The code above would essentially compile to:
+
+      @type option() :: {:int, integer()} | {:number, integer() | float()}
+
+  """
+  @doc since: "0.5.0"
+  @spec option_typespec(schema() | t()) :: Macro.t()
+  def option_typespec(schema)
+
+  def option_typespec(schema) when is_list(schema) do
+    NimbleOptions.Docs.schema_to_spec(schema)
+  end
+
+  def option_typespec(%NimbleOptions{schema: schema}) do
+    NimbleOptions.Docs.schema_to_spec(schema)
   end
 
   @doc false
