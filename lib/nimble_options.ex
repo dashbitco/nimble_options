@@ -96,7 +96,11 @@ defmodule NimbleOptions do
 
     * `:non_empty_keyword_list` - A non-empty keyword list.
 
-    * `:map` - A map consisting of `:atom` keys.
+    * `:map` - A map consisting of `:atom` keys. Shorthand for `{:map, :atom, :any}`.
+      Keys can be specified using the `keys` option
+
+    * `{:map, key_type, value_type}` - A map consisting of `key_type` keys and
+      `value_type` values.
 
     * `:atom` - An atom.
 
@@ -637,15 +641,18 @@ defmodule NimbleOptions do
   end
 
   defp validate_type(:map, key, value) do
-    if is_map(value) and keyword_list?(Map.to_list(value)) do
+    validate_type({:map, :atom, :any}, key, value)
+  end
+
+  defp validate_type({:map, key_type, value_type}, key, value) when is_map(value) do
+    with {:ok, _keys} <- validate_map_keys(key_type, key, value),
+         {:ok, _values} <- validate_map_values(value_type, key, value) do
       {:ok, value}
-    else
-      error_tuple(
-        key,
-        value,
-        "expected #{inspect(key)} to be a map, got: #{inspect(value)}"
-      )
     end
+  end
+
+  defp validate_type({:map, _, _}, key, value) do
+    error_tuple(key, value, "expected #{inspect(key)} to be a map, got: #{inspect(value)}")
   end
 
   defp validate_type(:pid, _key, value) when is_pid(value) do
@@ -878,7 +885,8 @@ defmodule NimbleOptions do
           "{:or, subtypes}",
           "{:custom, mod, fun, args}",
           "{:list, subtype}",
-          "{:tuple, list_of_subtypes}"
+          "{:tuple, list_of_subtypes}",
+          "{:map, key_type, value_type}"
         ]
 
     Enum.join(types, ", ")
@@ -945,8 +953,45 @@ defmodule NimbleOptions do
     {:error, reason} -> {:error, reason}
   end
 
+  def validate_type({:map, key_type, value_type}) do
+    valid_key_type =
+      case validate_type(key_type) do
+        {:ok, validated_key_type} -> validated_key_type
+        {:error, reason} -> throw({:error, "invalid key_type for :map type: #{reason}"})
+      end
+
+    valid_values_type =
+      case validate_type(value_type) do
+        {:ok, validated_values_type} -> validated_values_type
+        {:error, reason} -> throw({:error, "invalid value_type for :map type: #{reason}"})
+      end
+
+    {:ok, {:map, valid_key_type, valid_values_type}}
+  catch
+    {:error, reason} -> {:error, reason}
+  end
+
   def validate_type(value) do
     {:error, "invalid option type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
+  end
+
+  defp validate_map_keys(type, key, value), do: validate_all(type, key, Map.keys(value), "key")
+
+  defp validate_map_values(type, key, value),
+    do: validate_all(type, key, Map.values(value), "value")
+
+  defp validate_all(type, key, values, attribute) when is_list(values) do
+    case Enum.reject(values, &match?({:ok, _}, validate_type(type, key, &1))) do
+      [] ->
+        {:ok, values}
+
+      unvalidated ->
+        error_tuple(
+          key,
+          values,
+          "expected #{inspect(key)} to have #{attribute}s of type #{inspect(type)}, got: #{Enum.map_join(unvalidated, ", and ", &inspect/1)}"
+        )
+    end
   end
 
   defp error_tuple(key, value, message) do

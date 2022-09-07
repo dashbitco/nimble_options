@@ -42,7 +42,7 @@ defmodule NimbleOptionsTest do
       Available types: :any, :keyword_list, :non_empty_keyword_list, :map, :atom, \
       :integer, :non_neg_integer, :pos_integer, :float, :mfa, :mod_arg, :string, :boolean, :timeout, \
       :pid, :reference, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
-      {:list, subtype}, {:tuple, list_of_subtypes} \
+      {:list, subtype}, {:tuple, list_of_subtypes}, {:map, key_type, value_type} \
       (in options [:stages])\
       """
 
@@ -1104,6 +1104,126 @@ defmodule NimbleOptionsTest do
                }
              }
     end
+
+    test "valid :map" do
+      schema = [map: [type: :map]]
+
+      opts = [map: %{}]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [map: %{atom_key: :value}]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      schema = [map: [type: :map, keys: [key: [type: :string]]]]
+
+      opts = [map: %{}]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [map: %{key: "string"}]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid :map" do
+      schema = [map: [type: :map]]
+
+      opts = [map: %{"string key" => :value}]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :map,
+                  keys_path: [],
+                  message: "expected :map to have keys of type :atom, got: \"string key\"",
+                  value: ["string key"]
+                }}
+
+      schema = [map: [type: :map, keys: [key: [type: :string]]]]
+
+      opts = [map: %{key: :atom_value}]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :key,
+                  keys_path: [:map],
+                  message: "expected :key to be a string, got: :atom_value",
+                  value: :atom_value
+                }}
+
+      opts = [map: %{unknown_key: "string"}]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  __exception__: true,
+                  key: [:unknown_key],
+                  keys_path: [:map],
+                  message: "unknown options [:unknown_key], valid options are: [:key]",
+                  value: nil
+                }}
+    end
+
+    test "valid {:map, key_type, value_type}" do
+      schema = [map: [type: {:map, :string, :string}]]
+
+      opts = [map: %{"valid_key" => "valid_value", "other_key" => "other_value"}]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      opts = [map: %{}]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      schema = [map: [type: {:map, {:in, [:a, :b, :c]}, {:list, :integer}}]]
+
+      opts = [map: %{a: [1, 2, 3], c: [4, 5, 6]}]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      schema = [map: [type: {:map, :any, :any}]]
+
+      opts = [map: %{%{map: :key} => {:and, :map, :value}}]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid {:map, key_type, value_type}" do
+      schema = [map: [type: {:map, :string, :string}]]
+
+      opts = [map: %{:invalid_key => "valid_value", :other_invalid_key => "other_value"}]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :map,
+                  keys_path: [],
+                  message:
+                    "expected :map to have keys of type :string, got: :invalid_key, and :other_invalid_key",
+                  value: [:invalid_key, :other_invalid_key]
+                }}
+
+      opts = [map: %{"valid_key" => :invalid_value, "other_key" => :other_invalid_value}]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :map,
+                  keys_path: [],
+                  message:
+                    "expected :map to have values of type :string, got: :other_invalid_value, and :invalid_value",
+                  value: [:other_invalid_value, :invalid_value]
+                }}
+
+      schema = [map: [type: {:map, {:in, [:a, :b, :c]}, {:list, :integer}}]]
+
+      opts = [map: %{invalid_key: [1, 2, 3], c: [4, 5, 6]}]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :map,
+                  keys_path: [],
+                  message:
+                    "expected :map to have keys of type {:in, [:a, :b, :c]}, got: :invalid_key",
+                  value: [:c, :invalid_key]
+                }}
+    end
   end
 
   describe "nested options with predefined keys" do
@@ -1616,6 +1736,10 @@ defmodule NimbleOptionsTest do
           #{NimbleOptions.docs(nested_schema, nest_level: 1)}
           """
         ],
+        map_with_keys: [
+          type: :map,
+          keys: [key_a: [type: :string, required: true], key_b: [type: {:map, :string, :integer}]]
+        ],
         other_key: [type: {:list, :atom}]
       ]
 
@@ -1625,6 +1749,12 @@ defmodule NimbleOptionsTest do
           * `:allowed_messages` (`t:pos_integer/0`) - Allowed messages.
 
           * `:interval` (`t:pos_integer/0`) - Interval.
+
+        * `:map_with_keys` (`t:map/0`)
+
+          * `:key_a` (`t:String.t/0`) - Required.
+
+          * `:key_b` (map of `t:String.t/0` keys and `t:integer/0` values)
 
         * `:other_key` (list of `t:atom/0`)
 
@@ -1776,7 +1906,9 @@ defmodule NimbleOptionsTest do
         ref: [type: :reference],
         list_of_ints: [type: {:list, :integer}],
         nested_list_of_ints: [type: {:list, {:list, :integer}}],
-        list_of_kws: [type: {:list, {:keyword_list, []}}]
+        list_of_kws: [type: {:list, {:keyword_list, []}}],
+        map: [type: :map],
+        map_of_strings: [type: {:map, :string, :string}]
       ]
 
       assert NimbleOptions.docs(schema) == """
@@ -1805,6 +1937,10 @@ defmodule NimbleOptionsTest do
                * `:nested_list_of_ints` (list of list of `t:integer/0`)
 
                * `:list_of_kws` (list of `t:keyword/0`)
+
+               * `:map` (`t:map/0`)
+
+               * `:map_of_strings` (map of `t:String.t/0` keys and `t:String.t/0` values)
 
              """
     end
