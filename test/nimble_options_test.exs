@@ -1461,13 +1461,13 @@ defmodule NimbleOptionsTest do
   describe "NimbleOptions.docs/1" do
     test "override docs for recursive keys" do
       docs = """
-        * `:type` (`t:atom/0`) - Required. The type of the option item.
+      * `:type` (`t:atom/0`) - Required. The type of the option item.
 
-        * `:required` (`t:boolean/0`) - Defines if the option item is required. The default value is `false`.
+      * `:required` (`t:boolean/0`) - Defines if the option item is required. The default value is `false`.
 
-        * `:keys` (`t:keyword/0`) - Defines which set of keys are accepted.
+      * `:keys` (`t:keyword/0`) - Defines which set of keys are accepted.
 
-        * `:default` - The default.
+      * `:default` - The default.
 
       """
 
@@ -1497,17 +1497,17 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:producer` (non-empty `t:keyword/0`) - The producer. Supported options:
+      * `:producer` (non-empty `t:keyword/0`) - The producer. Supported options:
 
-          * `:module` (2-element tuple of `t:module/0` and `[term()]`) - The module.
+        * `:module` - The module.
 
-          * `:rate_limiting` (non-empty `t:keyword/0`) - A list of options to enable and configure rate limiting. Supported options:
+        * `:rate_limiting` (non-empty `t:keyword/0`) - A list of options to enable and configure rate limiting. Supported options:
 
-            * `:allowed_messages` (`t:pos_integer/0`) - Number of messages per interval.
+          * `:allowed_messages` (`t:pos_integer/0`) - Number of messages per interval.
 
-            * `:interval` (`t:pos_integer/0`) - Required. The interval.
+          * `:interval` (`t:pos_integer/0`) - Required. The interval.
 
-        * `:other_key` (`t:String.t/0`)
+      * `:other_key` (`t:String.t/0`)
 
       """
 
@@ -1527,20 +1527,20 @@ defmodule NimbleOptionsTest do
           doc: """
           The producer. Either a string or a keyword list with the following keys:
 
-          #{NimbleOptions.docs(nested_schema, nest_level: 1)}
+          #{NimbleOptions.docs(nested_schema)}
           """
         ],
         other_key: [type: {:list, :atom}]
       ]
 
       docs = """
-        * `:producer` - The producer. Either a string or a keyword list with the following keys:
+      * `:producer` - The producer. Either a string or a keyword list with the following keys:
 
-          * `:allowed_messages` (`t:pos_integer/0`) - Allowed messages.
+        * `:allowed_messages` (`t:pos_integer/0`) - Allowed messages.
 
-          * `:interval` (`t:pos_integer/0`) - Interval.
+        * `:interval` (`t:pos_integer/0`) - Interval.
 
-        * `:other_key` (list of `t:atom/0`)
+      * `:other_key` (list of `t:atom/0`)
 
       """
 
@@ -1569,11 +1569,11 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:name` (`t:atom/0`) - Required. The name.
+      * `:name` (`t:atom/0`) - Required. The name.
 
-        * `:producer` (non-empty `t:keyword/0`) - This is the producer summary. See "Producers options" section below.
+      * `:producer` (non-empty `t:keyword/0`) - This is the producer summary. See "Producers options" section below.
 
-        * `:other_key` (`t:String.t/0`)
+      * `:other_key` (`t:String.t/0`)
 
       ### Producers options
 
@@ -1581,9 +1581,9 @@ defmodule NimbleOptionsTest do
 
       The available options are:
 
-        * `:module` (2-element tuple of `t:module/0` and `[term()]`) - The module.
+      * `:module` - The module.
 
-        * `:concurrency` (`t:pos_integer/0`) - The concurrency.
+      * `:concurrency` (`t:pos_integer/0`) - The concurrency.
 
       """
 
@@ -1600,7 +1600,8 @@ defmodule NimbleOptionsTest do
           This a multiline text.
 
           Another line.
-          """
+          """,
+          default: "HELLO"
         ],
         module: [
           type: :atom,
@@ -1609,13 +1610,15 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:name` (`t:String.t/0`) - The name.
+      * `:name` (`t:String.t/0`) - The name.
 
-      This a multiline text.
+        This a multiline text.
 
-      Another line.
+        Another line.
 
-        * `:module` (`t:atom/0`) - The module.
+        The default value is `"HELLO"`.
+
+      * `:module` (`t:atom/0`) - The module.
 
       """
 
@@ -1630,9 +1633,9 @@ defmodule NimbleOptionsTest do
       ]
 
       docs = """
-        * `:name` (`t:atom/0`) - An atom.
+      * `:name` (`t:atom/0`) - An atom.
 
-        * `:count` (`t:integer/0`)
+      * `:count` (`t:integer/0`)
 
       """
 
@@ -1671,7 +1674,7 @@ defmodule NimbleOptionsTest do
       assert {:ok, ^opts} = NimbleOptions.validate(opts, schema)
 
       assert NimbleOptions.docs(schema) == """
-               * `:custom_keys` (`t:keyword/0`) - Custom keys
+             * `:custom_keys` (`t:keyword/0`) - Custom keys
 
              """
     end
@@ -1684,8 +1687,6 @@ defmodule NimbleOptionsTest do
         f: [type: {:fun, 3}],
         kw: [type: :keyword_list],
         nonempty_kw: [type: :non_empty_keyword_list],
-        in_range: [type: {:in, 1..10}],
-        in_list: [type: {:in, [:email, :username]}],
         int: [type: :integer],
         ref: [type: :reference],
         list_of_ints: [type: {:list, :integer}],
@@ -1694,31 +1695,27 @@ defmodule NimbleOptionsTest do
       ]
 
       assert NimbleOptions.docs(schema) == """
-               * `:no_type`
+             * `:no_type`
 
-               * `:custom`
+             * `:custom`
 
-               * `:or`
+             * `:or`
 
-               * `:f` (function of arity 3)
+             * `:f` (function of arity 3)
 
-               * `:kw` (`t:keyword/0`)
+             * `:kw` (`t:keyword/0`)
 
-               * `:nonempty_kw` (non-empty `t:keyword/0`)
+             * `:nonempty_kw` (non-empty `t:keyword/0`)
 
-               * `:in_range` (member of `1..10`)
+             * `:int` (`t:integer/0`)
 
-               * `:in_list` (member of `[:email, :username]`)
+             * `:ref` (`t:reference/0`)
 
-               * `:int` (`t:integer/0`)
+             * `:list_of_ints` (list of `t:integer/0`)
 
-               * `:ref` (`t:reference/0`)
+             * `:nested_list_of_ints` (list of list of `t:integer/0`)
 
-               * `:list_of_ints` (list of `t:integer/0`)
-
-               * `:nested_list_of_ints` (list of list of `t:integer/0`)
-
-               * `:list_of_kws` (list of `t:keyword/0`)
+             * `:list_of_kws` (list of `t:keyword/0`)
 
              """
     end
