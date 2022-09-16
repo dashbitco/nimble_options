@@ -339,8 +339,7 @@ defmodule NimbleOptions do
 
       {:error, %ValidationError{} = error} ->
         raise ArgumentError,
-              "invalid schema given to NimbleOptions.validate/2. " <>
-                "Reason: #{Exception.message(error)}"
+              "invalid NimbleOptions schema. Reason: #{Exception.message(error)}"
     end
   end
 

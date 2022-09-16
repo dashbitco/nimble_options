@@ -36,7 +36,7 @@ defmodule NimbleOptionsTest do
       opts = [stages: 1]
 
       message = """
-      invalid schema given to NimbleOptions.validate/2. \
+      invalid NimbleOptions schema. \
       Reason: invalid option type :foo.
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :atom, \
@@ -68,7 +68,7 @@ defmodule NimbleOptionsTest do
       ]
 
       message = """
-      invalid schema given to NimbleOptions.validate/2. \
+      invalid NimbleOptions schema. \
       Reason: \
       unknown options [:unknown_schema_option], \
       valid options are: [:type, :required, :default, :keys, \
@@ -174,7 +174,7 @@ defmodule NimbleOptionsTest do
 
     test "invalid documentation for key" do
       message = """
-      invalid schema given to NimbleOptions.validate/2. Reason: expected :doc to match at least \
+      invalid NimbleOptions schema. Reason: expected :doc to match at least \
       one given type, but didn't match any. Here are the reasons why it didn't match each of the \
       allowed types:
 
