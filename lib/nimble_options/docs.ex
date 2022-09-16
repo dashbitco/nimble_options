@@ -120,7 +120,7 @@ defmodule NimbleOptions.Docs do
 
   defp indent_doc(text, indent) do
     text
-    |> String.split("\n")
+    |> String.split(["\r\n", "\n"])
     |> Enum.map_join("\n", fn
       "" -> ""
       str -> "#{indent}#{str}"
