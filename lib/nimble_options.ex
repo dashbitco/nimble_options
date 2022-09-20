@@ -193,7 +193,7 @@ defmodule NimbleOptions do
       ...>
       ...> {:error, %NimbleOptions.ValidationError{} = error} = NimbleOptions.validate(config, schema)
       ...> Exception.message(error)
-      "required option :module not found, received options: [:concurrency] (in options [:producer])"
+      "required :module option not found, received options: [:concurrency] (in options [:producer])"
 
   ## Nested option items
 
@@ -552,7 +552,7 @@ defmodule NimbleOptions do
     cond do
       Keyword.has_key?(opts, key) ->
         if message = Keyword.get(schema, :deprecated) do
-          IO.warn("#{inspect(key)} is deprecated. " <> message)
+          IO.warn("#{render_key(key)} is deprecated. " <> message)
         end
 
         {:ok, opts[key]}
@@ -561,7 +561,7 @@ defmodule NimbleOptions do
         error_tuple(
           key,
           nil,
-          "required option #{inspect(key)} not found, received options: " <>
+          "required #{render_key(key)} not found, received options: " <>
             inspect(Keyword.keys(opts))
         )
 
@@ -574,7 +574,7 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected integer, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected integer, got: #{inspect(value)}"
     )
   end
 
@@ -582,7 +582,7 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected non negative integer, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected non negative integer, got: #{inspect(value)}"
     )
   end
 
@@ -590,7 +590,7 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected positive integer, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected positive integer, got: #{inspect(value)}"
     )
   end
 
@@ -598,7 +598,7 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected float, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected float, got: #{inspect(value)}"
     )
   end
 
@@ -606,7 +606,7 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected atom, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected atom, got: #{inspect(value)}"
     )
   end
 
@@ -615,7 +615,7 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected non-negative integer or :infinity, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected non-negative integer or :infinity, got: #{inspect(value)}"
     )
   end
 
@@ -623,7 +623,7 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected string, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected string, got: #{inspect(value)}"
     )
   end
 
@@ -631,7 +631,7 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected boolean, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected boolean, got: #{inspect(value)}"
     )
   end
 
@@ -642,7 +642,7 @@ defmodule NimbleOptions do
       error_tuple(
         key,
         value,
-        "invalid value for #{inspect(key)} option: expected keyword list, got: #{inspect(value)}"
+        "invalid value for #{render_key(key)}: expected keyword list, got: #{inspect(value)}"
       )
     end
   end
@@ -654,7 +654,7 @@ defmodule NimbleOptions do
       error_tuple(
         key,
         value,
-        "invalid value for #{inspect(key)} option: expected non-empty keyword list, got: #{inspect(value)}"
+        "invalid value for #{render_key(key)}: expected non-empty keyword list, got: #{inspect(value)}"
       )
     end
   end
@@ -663,15 +663,31 @@ defmodule NimbleOptions do
     validate_type({:map, :atom, :any}, key, value)
   end
 
-  defp validate_type({:map, key_type, value_type}, key, value) when is_map(value) do
-    with {:ok, _keys} <- validate_map_keys(key_type, key, value),
-         {:ok, _values} <- validate_map_values(value_type, key, value) do
-      {:ok, value}
+  defp validate_type({:map, key_type, value_type}, key, map) when is_map(map) do
+    map
+    |> Enum.reduce_while([], fn {key, value}, acc ->
+      with {:ok, updated_key} <- validate_type(key_type, {__MODULE__, :key}, key),
+           {:ok, updated_value} <- validate_type(value_type, {__MODULE__, :value, key}, value) do
+        {:cont, [{updated_key, updated_value} | acc]}
+      else
+        {:error, %ValidationError{} = error} -> {:halt, error}
+      end
+    end)
+    |> case do
+      pairs when is_list(pairs) ->
+        {:ok, Map.new(pairs)}
+
+      %ValidationError{} = error ->
+        error_tuple(key, map, "invalid map in #{render_key(key)}: #{error.message}")
     end
   end
 
   defp validate_type({:map, _, _}, key, value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be a map, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "invalid value for #{render_key(key)}: expected map, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(:pid, _key, value) when is_pid(value) do
@@ -682,7 +698,7 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected pid, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected pid, got: #{inspect(value)}"
     )
   end
 
@@ -694,7 +710,7 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected reference, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected reference, got: #{inspect(value)}"
     )
   end
 
@@ -707,7 +723,7 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected tuple {mod, fun, args}, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected tuple {mod, fun, args}, got: #{inspect(value)}"
     )
   end
 
@@ -719,7 +735,7 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected tuple {mod, arg}, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected tuple {mod, arg}, got: #{inspect(value)}"
     )
   end
 
@@ -733,14 +749,14 @@ defmodule NimbleOptions do
           error_tuple(
             key,
             value,
-            "invalid value for #{inspect(key)} option: expected function of arity #{arity}, got: function of arity #{inspect(fun_arity)}"
+            "invalid value for #{render_key(key)}: expected function of arity #{arity}, got: function of arity #{inspect(fun_arity)}"
           )
       end
     else
       error_tuple(
         key,
         value,
-        "invalid value for #{inspect(key)} option: expected function of arity #{arity}, got: #{inspect(value)}"
+        "invalid value for #{render_key(key)}: expected function of arity #{arity}, got: #{inspect(value)}"
       )
     end
   end
@@ -751,7 +767,7 @@ defmodule NimbleOptions do
         {:ok, value}
 
       {:error, message} when is_binary(message) ->
-        error_tuple(key, value, "invalid value for #{inspect(key)} option: " <> message)
+        error_tuple(key, value, "invalid value for #{render_key(key)}: " <> message)
 
       other ->
         raise "custom validation function #{inspect(mod)}.#{fun}/#{length(args) + 1} " <>
@@ -766,7 +782,7 @@ defmodule NimbleOptions do
       error_tuple(
         key,
         value,
-        "invalid value for #{inspect(key)} option: expected one of #{inspect(choices)}, got: #{inspect(value)}"
+        "invalid value for #{render_key(key)}: expected one of #{inspect(choices)}, got: #{inspect(value)}"
       )
     end
   end
@@ -804,7 +820,7 @@ defmodule NimbleOptions do
 
       errors when is_list(errors) ->
         message =
-          "expected #{inspect(key)} to match at least one given type, but didn't match " <>
+          "expected #{render_key(key)} to match at least one given type, but didn't match " <>
             "any. Here are the reasons why it didn't match each of the allowed types:\n\n" <>
             Enum.map_join(errors, "\n", &("  * " <> Exception.message(&1)))
 
@@ -824,7 +840,7 @@ defmodule NimbleOptions do
 
     updated_elements =
       for {elem, index} <- Stream.with_index(value) do
-        case validate_type(subtype, "list element", elem) do
+        case validate_type(subtype, {__MODULE__, :list, index}, elem) do
           {:ok, value} when not is_nil(nested_schema) ->
             case validate_options_with_schema_and_path(value, nested_schema, _path = [key]) do
               {:ok, updated_value} -> updated_value
@@ -835,55 +851,57 @@ defmodule NimbleOptions do
             updated_elem
 
           {:error, %ValidationError{} = error} ->
-            throw({:error, index, error})
+            throw({:error, error})
         end
       end
 
     {:ok, updated_elements}
   catch
-    {:error, index, %ValidationError{} = error} ->
-      message =
-        "invalid list element at position #{index} in #{inspect(key)} option: #{error.message}"
+    {:error, %ValidationError{} = error} ->
+      error_tuple(key, value, "invalid list in #{render_key(key)}: #{error.message}")
 
-      error_tuple(key, value, message)
+    {:error, index, %ValidationError{} = error} ->
+      error_tuple(
+        key,
+        value,
+        "invalid list element at position #{index} in #{render_key(key)}: #{error.message}"
+      )
   end
 
   defp validate_type({:list, _subtype}, key, value) do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected list, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected list, got: #{inspect(value)}"
     )
   end
 
   defp validate_type({:tuple, tuple_def}, key, value)
        when is_tuple(value) and length(tuple_def) == tuple_size(value) do
-    updated_tuple =
-      tuple_def
-      |> Stream.with_index()
-      |> Enum.reduce({}, fn {subtype, index}, acc ->
-        elem = elem(value, index)
+    tuple_def
+    |> Stream.with_index()
+    |> Enum.reduce_while([], fn {subtype, index}, acc ->
+      elem = elem(value, index)
 
-        case validate_type(subtype, "tuple element", elem) do
-          {:ok, updated_elem} -> Tuple.append(acc, updated_elem)
-          {:error, %ValidationError{} = error} -> throw({:error, index, error})
-        end
-      end)
+      case validate_type(subtype, {__MODULE__, :tuple, index}, elem) do
+        {:ok, updated_elem} -> {:cont, [updated_elem | acc]}
+        {:error, %ValidationError{} = error} -> {:halt, error}
+      end
+    end)
+    |> case do
+      acc when is_list(acc) ->
+        {:ok, acc |> Enum.reverse() |> List.to_tuple()}
 
-    {:ok, updated_tuple}
-  catch
-    {:error, index, %ValidationError{} = error} ->
-      message =
-        "invalid tuple element at position #{index} in #{inspect(key)} option: #{error.message}"
-
-      error_tuple(key, value, message)
+      %ValidationError{} = error ->
+        error_tuple(key, value, "invalid tuple in #{render_key(key)}: #{error.message}")
+    end
   end
 
   defp validate_type({:tuple, tuple_def}, key, value) when is_tuple(value) do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected tuple with #{length(tuple_def)} elements, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected tuple with #{length(tuple_def)} elements, got: #{inspect(value)}"
     )
   end
 
@@ -891,7 +909,7 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "invalid value for #{inspect(key)} option: expected tuple, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected tuple, got: #{inspect(value)}"
     )
   end
 
@@ -1016,26 +1034,13 @@ defmodule NimbleOptions do
     {:error, "unknown type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
   end
 
-  defp validate_map_keys(type, key, value), do: validate_all(type, key, Map.keys(value), "key")
-
-  defp validate_map_values(type, key, value),
-    do: validate_all(type, key, Map.values(value), "value")
-
-  defp validate_all(type, key, values, attribute) when is_list(values) do
-    case Enum.reject(values, &match?({:ok, _}, validate_type(type, key, &1))) do
-      [] ->
-        {:ok, values}
-
-      unvalidated ->
-        error_tuple(
-          key,
-          values,
-          "expected #{inspect(key)} to have #{attribute}s of type #{inspect(type)}, got: #{Enum.map_join(unvalidated, ", and ", &inspect/1)}"
-        )
-    end
-  end
-
   defp error_tuple(key, value, message) do
     {:error, %ValidationError{key: key, message: message, value: value}}
   end
+
+  defp render_key({__MODULE__, :key}), do: "map key"
+  defp render_key({__MODULE__, :value, key}), do: "map key #{inspect(key)}"
+  defp render_key({__MODULE__, :tuple, index}), do: "tuple element at position #{index}"
+  defp render_key({__MODULE__, :list, index}), do: "list element at position #{index}"
+  defp render_key(key), do: inspect(key) <> " option"
 end
