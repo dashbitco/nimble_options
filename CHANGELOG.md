@@ -1,5 +1,16 @@
 # Changelog for NimbleOptions
 
+## v0.5.0
+
+  * Support `:map` which accepts the same `:keys` specification as keyword lists
+  * Normalize all error messages to include the key and expected value out of the box
+  * Do not nest options when rendered in Markdown and make sure multiline content is properly indented
+  * Handle \r\n style of line breaks in docs
+  * Automatically add types to generated docs
+  * Support lists of keyword lists in `:list`
+  * Add the `:reference` option type
+  * Add the `:tuple` option type
+
 ## v0.4.0
 
   * Add support for all enumerables in `{:in, choices}` instead of just lists. You can now do things such as `{:in, 1..10}`.
