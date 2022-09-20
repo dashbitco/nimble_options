@@ -125,9 +125,17 @@ defmodule NimbleOptions.Docs do
   defp get_raw_type_str(:non_empty_keyword_list), do: "non-empty `t:keyword/0`"
   defp get_raw_type_str({:keyword_list, _keys}), do: "`t:keyword/0`"
   defp get_raw_type_str({:non_empty_keyword_list, _keys}), do: "non-empty `t:keyword/0`"
+  defp get_raw_type_str(:map), do: "`t:map/0`"
 
   defp get_raw_type_str({:list, subtype}) do
     if subtype_str = get_raw_type_str(subtype), do: "list of #{subtype_str}"
+  end
+
+  defp get_raw_type_str({:map, key_type, value_type}) do
+    with key_type_str when is_binary(key_type_str) <- get_raw_type_str(key_type),
+         value_type_str when is_binary(value_type_str) <- get_raw_type_str(value_type) do
+      "map of #{key_type_str} keys and #{value_type_str} values"
+    end
   end
 
   defp indent_doc(text, indent) do

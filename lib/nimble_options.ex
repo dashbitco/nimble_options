@@ -24,7 +24,7 @@ defmodule NimbleOptions do
         keys: [
           type: :keyword_list,
           doc: """
-          Available for types `:keyword_list` and `:non_empty_keyword_list`,
+          Available for types `:keyword_list`, `:non_empty_keyword_list`, and `:map`,
           it defines which set of keys are accepted for the option item. The value of the
           `:keys` option is a schema itself. For example: `keys: [foo: [type: :atom]]`.
           Use `:*` as the key to allow multiple arbitrary keys and specify their schema:
@@ -96,6 +96,12 @@ defmodule NimbleOptions do
 
     * `:non_empty_keyword_list` - A non-empty keyword list.
 
+    * `:map` - A map consisting of `:atom` keys. Shorthand for `{:map, :atom, :any}`.
+      Keys can be specified using the `keys` option.
+
+    * `{:map, key_type, value_type}` - A map consisting of `key_type` keys and
+      `value_type` values.
+
     * `:atom` - An atom.
 
     * `:string` - A string.
@@ -138,9 +144,9 @@ defmodule NimbleOptions do
       matched against the subtypes in the order specified in the list of `subtypes`. If
       one of the subtypes matches and **updates** (casts) the given value, the updated
       value is used. For example: `{:or, [:string, :boolean, {:fun, 2}]}`. If one of the
-      subtypes is a keyword list, you won't be able to pass `:keys` directly. For this reason,
-      keyword lists (`:keyword_list` and `:non_empty_keyword_list`) are special cased and can
-      be used as subtypes with `{:keyword_list, keys}` or `{:non_empty_keyword_list, keys}`.
+      subtypes is a keyword list or map, you won't be able to pass `:keys` directly. For this reason,
+      `:keyword_list`, `:non_empty_keyword_list`, and `:map` are special cased and can
+      be used as subtypes with `{:keyword_list, keys}`, `{:non_empty_keyword_list, keys}` or `{:map, keys}`.
       For example, a type such as `{:or, [:boolean, keyword_list: [enabled: [type: :boolean]]]}`
       would match either a boolean or a keyword list with the `:enabled` boolean option in it.
 
@@ -150,10 +156,10 @@ defmodule NimbleOptions do
       through `subtype`. For example, if `subtype` is a custom validator function that returns
       an updated value, then that updated value is used in the resulting list. Validation
       fails at the *first* element that is invalid according to `subtype`. If `subtype` is
-      a keyword list, you won't be able to pass `:keys` directly. For this reason,
-      keyword lists (`:keyword_list` and `:non_empty_keyword_list`) are special cased and can
-      be used as the subtype by using `{:keyword_list, keys}` or
-      `{:non_empty_keyword_list, keys}`. For example, a type such as
+      a keyword list or map, you won't be able to pass `:keys` directly. For this reason,
+      `:keyword_list`, `:non_empty_keyword_list`, and `:map` are special cased and can
+      be used as the subtype by using `{:keyword_list, keys}`, `{:non_empty_keyword_list, keys}`
+      or `{:keyword_list, keys}`. For example, a type such as
       `{:list, {:keyword_list, enabled: [type: :boolean]}}` would a *list of keyword lists*,
       where each keyword list in the list could have the `:enabled` boolean option in it.
 
@@ -265,6 +271,7 @@ defmodule NimbleOptions do
     :any,
     :keyword_list,
     :non_empty_keyword_list,
+    :map,
     :atom,
     :integer,
     :non_neg_integer,
@@ -458,7 +465,16 @@ defmodule NimbleOptions do
     validate_options_with_schema_and_path(opts, fun.(), path)
   end
 
-  defp validate_options_with_schema_and_path(opts, schema, path) do
+  defp validate_options_with_schema_and_path(opts, schema, path) when is_map(opts) do
+    list_opts = Map.to_list(opts)
+
+    case validate_options_with_schema_and_path(list_opts, schema, path) do
+      {:ok, validated_list_opts} -> {:ok, Map.new(validated_list_opts)}
+      error -> error
+    end
+  end
+
+  defp validate_options_with_schema_and_path(opts, schema, path) when is_list(opts) do
     schema = expand_star_to_option_keys(schema, opts)
 
     with :ok <- validate_unknown_options(opts, schema),
@@ -643,6 +659,21 @@ defmodule NimbleOptions do
     end
   end
 
+  defp validate_type(:map, key, value) do
+    validate_type({:map, :atom, :any}, key, value)
+  end
+
+  defp validate_type({:map, key_type, value_type}, key, value) when is_map(value) do
+    with {:ok, _keys} <- validate_map_keys(key_type, key, value),
+         {:ok, _values} <- validate_map_values(value_type, key, value) do
+      {:ok, value}
+    end
+  end
+
+  defp validate_type({:map, _, _}, key, value) do
+    error_tuple(key, value, "expected #{inspect(key)} to be a map, got: #{inspect(value)}")
+  end
+
   defp validate_type(:pid, _key, value) when is_pid(value) do
     {:ok, value}
   end
@@ -745,8 +776,8 @@ defmodule NimbleOptions do
       Enum.reduce_while(subtypes, _errors = [], fn subtype, errors_acc ->
         {subtype, nested_schema} =
           case subtype do
-            {keyword_list, keys} when keyword_list in [:keyword_list, :non_empty_keyword_list] ->
-              {keyword_list, keys}
+            {type, keys} when type in [:keyword_list, :non_empty_keyword_list, :map] ->
+              {type, keys}
 
             other ->
               {other, _nested_schema = nil}
@@ -784,8 +815,8 @@ defmodule NimbleOptions do
   defp validate_type({:list, subtype}, key, value) when is_list(value) do
     {subtype, nested_schema} =
       case subtype do
-        {keyword_list, keys} when keyword_list in [:keyword_list, :non_empty_keyword_list] ->
-          {keyword_list, keys}
+        {type, keys} when type in [:keyword_list, :non_empty_keyword_list, :map] ->
+          {type, keys}
 
         other ->
           {other, _nested_schema = nil}
@@ -895,7 +926,8 @@ defmodule NimbleOptions do
           "{:or, subtypes}",
           "{:custom, mod, fun, args}",
           "{:list, subtype}",
-          "{:tuple, list_of_subtypes}"
+          "{:tuple, list_of_subtypes}",
+          "{:map, key_type, value_type}"
         ]
 
     Enum.join(types, ", ")
@@ -922,8 +954,8 @@ defmodule NimbleOptions do
 
   def validate_type({:or, subtypes} = value) when is_list(subtypes) do
     Enum.reduce_while(subtypes, {:ok, value}, fn
-      {keyword_list_type, _keys}, acc
-      when keyword_list_type in [:keyword_list, :non_empty_keyword_list] ->
+      {type, _keys}, acc
+      when type in [:keyword_list, :non_empty_keyword_list, :map] ->
         {:cont, acc}
 
       subtype, acc ->
@@ -937,7 +969,7 @@ defmodule NimbleOptions do
   # This is to support the special-cased "{:list, {:keyword_list, my_key: [type: ...]}}",
   # like we do in the :or type.
   def validate_type({:list, {type, keys}})
-      when type in [:keyword_list, :non_empty_keyword_list] and is_list(keys) do
+      when type in [:keyword_list, :non_empty_keyword_list, :map] and is_list(keys) do
     {:ok, {:list, {type, keys}}}
   end
 
@@ -962,8 +994,45 @@ defmodule NimbleOptions do
     {:error, reason} -> {:error, reason}
   end
 
+  def validate_type({:map, key_type, value_type}) do
+    valid_key_type =
+      case validate_type(key_type) do
+        {:ok, validated_key_type} -> validated_key_type
+        {:error, reason} -> throw({:error, "invalid key_type for :map type: #{reason}"})
+      end
+
+    valid_values_type =
+      case validate_type(value_type) do
+        {:ok, validated_values_type} -> validated_values_type
+        {:error, reason} -> throw({:error, "invalid value_type for :map type: #{reason}"})
+      end
+
+    {:ok, {:map, valid_key_type, valid_values_type}}
+  catch
+    {:error, reason} -> {:error, reason}
+  end
+
   def validate_type(value) do
     {:error, "unknown type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
+  end
+
+  defp validate_map_keys(type, key, value), do: validate_all(type, key, Map.keys(value), "key")
+
+  defp validate_map_values(type, key, value),
+    do: validate_all(type, key, Map.values(value), "value")
+
+  defp validate_all(type, key, values, attribute) when is_list(values) do
+    case Enum.reject(values, &match?({:ok, _}, validate_type(type, key, &1))) do
+      [] ->
+        {:ok, values}
+
+      unvalidated ->
+        error_tuple(
+          key,
+          values,
+          "expected #{inspect(key)} to have #{attribute}s of type #{inspect(type)}, got: #{Enum.map_join(unvalidated, ", and ", &inspect/1)}"
+        )
+    end
   end
 
   defp error_tuple(key, value, message) do
