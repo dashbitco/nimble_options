@@ -41,23 +41,19 @@ defmodule NimbleOptions.Docs do
 
   defp option_doc({key, schema}, {docs, sections, level}) do
     type_str = if type_str = get_type_str(schema), do: " #{type_str}"
+    desc_indent = String.duplicate("  ", level + 1)
 
     description =
-      [
-        get_required_str(schema),
-        get_doc_str(schema),
-        get_default_str(schema)
-      ]
-      |> Enum.reject(&is_nil/1)
+      get_required_str(schema)
+      |> get_doc_str(schema)
+      |> get_default_str(schema)
       |> case do
-        [] -> ""
-        parts -> " - " <> Enum.join(parts, " ")
+        nil -> ""
+        parts -> indent_doc(" - " <> parts, desc_indent)
       end
 
-    indent = String.duplicate("  ", level)
-    doc = indent_doc("  * `#{inspect(key)}`#{type_str}#{description}\n\n", indent)
-
-    docs = [doc | docs]
+    doc = [String.duplicate("  ", level), "* `#{inspect(key)}`#{type_str}", description, "\n\n"]
+    docs = [IO.iodata_to_binary(doc) | docs]
 
     cond do
       schema[:keys] && schema[:subsection] ->
@@ -72,17 +68,32 @@ defmodule NimbleOptions.Docs do
     end
   end
 
-  defp get_doc_str(schema) do
-    schema[:doc] && String.trim(schema[:doc])
-  end
+  defp space_concat(left, nil), do: left
+  defp space_concat(nil, right), do: right
+  defp space_concat(left, right), do: left <> " " <> right
 
   defp get_required_str(schema) do
     if schema[:required], do: "Required."
   end
 
-  defp get_default_str(schema) do
-    if Keyword.has_key?(schema, :default),
-      do: "The default value is `#{inspect(schema[:default])}`."
+  defp get_doc_str(prev_str, schema) do
+    space_concat(prev_str, schema[:doc] && String.trim(schema[:doc]))
+  end
+
+  defp get_default_str(prev_str, schema) do
+    if Keyword.has_key?(schema, :default) do
+      default_str = "The default value is `#{inspect(schema[:default])}`."
+
+      # If the documentation contains multiple lines,
+      # the default must be in a trailing line.
+      if prev_str && String.contains?(prev_str, ["\r\n", "\n\n"]) do
+        prev_str <> "\n\n" <> default_str
+      else
+        space_concat(prev_str, default_str)
+      end
+    else
+      prev_str
+    end
   end
 
   defp get_type_str(schema) do
@@ -91,13 +102,14 @@ defmodule NimbleOptions.Docs do
     end
   end
 
+  # Only shows types when they are concise.
   defp get_raw_type_str(nil), do: nil
   defp get_raw_type_str({:custom, _mod, _fun, _args}), do: nil
-  defp get_raw_type_str(:mfa), do: "3-element tuple of `t:module/0`, `t:atom/0`, and `[term()]`"
-  defp get_raw_type_str(:mod_arg), do: "2-element tuple of `t:module/0` and `[term()]`"
+  defp get_raw_type_str(:mfa), do: nil
+  defp get_raw_type_str(:mod_arg), do: nil
   defp get_raw_type_str({:or, _values}), do: nil
+  defp get_raw_type_str({:in, _}), do: nil
   defp get_raw_type_str({:fun, arity}), do: "function of arity #{arity}"
-  defp get_raw_type_str({:in, enum}), do: "member of `#{inspect(enum)}`"
   defp get_raw_type_str(:any), do: "`t:term/0`"
   defp get_raw_type_str(:reference), do: "`t:reference/0`"
   defp get_raw_type_str(:pid), do: "`t:pid/0`"
@@ -127,12 +139,15 @@ defmodule NimbleOptions.Docs do
   end
 
   defp indent_doc(text, indent) do
-    text
-    |> String.split("\n")
-    |> Enum.map_join("\n", fn
-      "" -> ""
-      str -> "#{indent}#{str}"
-    end)
+    [head | tail] = String.split(text, ["\r\n", "\n"])
+
+    tail =
+      Enum.map(tail, fn
+        "" -> "\n"
+        str -> [?\n, indent, str]
+      end)
+
+    [head | tail]
   end
 
   def schema_to_spec(schema) do

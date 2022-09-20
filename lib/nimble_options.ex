@@ -227,7 +227,7 @@ defmodule NimbleOptions do
       ...>
       ...> {:error, %NimbleOptions.ValidationError{} = error} = NimbleOptions.validate(config, schema)
       ...> Exception.message(error)
-      "expected :interval to be a positive integer, got: :oops! (in options [:producer, :rate_limiting])"
+      "invalid value for :interval option: expected positive integer, got: :oops! (in options [:producer, :rate_limiting])"
 
   ## Validating Schemas
 
@@ -346,8 +346,7 @@ defmodule NimbleOptions do
 
       {:error, %ValidationError{} = error} ->
         raise ArgumentError,
-              "invalid schema given to NimbleOptions.validate/2. " <>
-                "Reason: #{Exception.message(error)}"
+              "invalid NimbleOptions schema. Reason: #{Exception.message(error)}"
     end
   end
 
@@ -413,7 +412,7 @@ defmodule NimbleOptions do
 
       @type option() :: unquote(NimbleOptions.option_typespec(my_schema))
 
-  This function returns the type union for a single option, to give you
+  This function returns the type union for a single option: to give you
   flexibility to combine it and use it in your own typespecs. For example,
   if you only validate part of the options through NimbleOptions, you could
   write a spec like this:
@@ -572,14 +571,18 @@ defmodule NimbleOptions do
   end
 
   defp validate_type(:integer, key, value) when not is_integer(value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be an integer, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "invalid value for #{inspect(key)} option: expected integer, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(:non_neg_integer, key, value) when not is_integer(value) or value < 0 do
     error_tuple(
       key,
       value,
-      "expected #{inspect(key)} to be a non negative integer, got: #{inspect(value)}"
+      "invalid value for #{inspect(key)} option: expected non negative integer, got: #{inspect(value)}"
     )
   end
 
@@ -587,16 +590,24 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "expected #{inspect(key)} to be a positive integer, got: #{inspect(value)}"
+      "invalid value for #{inspect(key)} option: expected positive integer, got: #{inspect(value)}"
     )
   end
 
   defp validate_type(:float, key, value) when not is_float(value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be a float, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "invalid value for #{inspect(key)} option: expected float, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(:atom, key, value) when not is_atom(value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be an atom, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "invalid value for #{inspect(key)} option: expected atom, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(:timeout, key, value)
@@ -604,16 +615,24 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "expected #{inspect(key)} to be non-negative integer or :infinity, got: #{inspect(value)}"
+      "invalid value for #{inspect(key)} option: expected non-negative integer or :infinity, got: #{inspect(value)}"
     )
   end
 
   defp validate_type(:string, key, value) when not is_binary(value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be a string, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "invalid value for #{inspect(key)} option: expected string, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(:boolean, key, value) when not is_boolean(value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be a boolean, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "invalid value for #{inspect(key)} option: expected boolean, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(:keyword_list, key, value) do
@@ -623,7 +642,7 @@ defmodule NimbleOptions do
       error_tuple(
         key,
         value,
-        "expected #{inspect(key)} to be a keyword list, got: #{inspect(value)}"
+        "invalid value for #{inspect(key)} option: expected keyword list, got: #{inspect(value)}"
       )
     end
   end
@@ -635,7 +654,7 @@ defmodule NimbleOptions do
       error_tuple(
         key,
         value,
-        "expected #{inspect(key)} to be a non-empty keyword list, got: #{inspect(value)}"
+        "invalid value for #{inspect(key)} option: expected non-empty keyword list, got: #{inspect(value)}"
       )
     end
   end
@@ -660,7 +679,11 @@ defmodule NimbleOptions do
   end
 
   defp validate_type(:pid, key, value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be a pid, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "invalid value for #{inspect(key)} option: expected pid, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(:reference, _key, value) when is_reference(value) do
@@ -668,7 +691,11 @@ defmodule NimbleOptions do
   end
 
   defp validate_type(:reference, key, value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be a reference, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "invalid value for #{inspect(key)} option: expected reference, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(:mfa, _key, {mod, fun, args} = value)
@@ -680,7 +707,7 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "expected #{inspect(key)} to be a tuple {Mod, Fun, Args}, got: #{inspect(value)}"
+      "invalid value for #{inspect(key)} option: expected tuple {mod, fun, args}, got: #{inspect(value)}"
     )
   end
 
@@ -692,23 +719,29 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "expected #{inspect(key)} to be a tuple {Mod, Arg}, got: #{inspect(value)}"
+      "invalid value for #{inspect(key)} option: expected tuple {mod, arg}, got: #{inspect(value)}"
     )
   end
 
   defp validate_type({:fun, arity}, key, value) do
-    expected = "expected #{inspect(key)} to be a function of arity #{arity}, "
-
     if is_function(value) do
       case :erlang.fun_info(value, :arity) do
         {:arity, ^arity} ->
           {:ok, value}
 
         {:arity, fun_arity} ->
-          error_tuple(key, value, expected <> "got: function of arity #{inspect(fun_arity)}")
+          error_tuple(
+            key,
+            value,
+            "invalid value for #{inspect(key)} option: expected function of arity #{arity}, got: function of arity #{inspect(fun_arity)}"
+          )
       end
     else
-      error_tuple(key, value, expected <> "got: #{inspect(value)}")
+      error_tuple(
+        key,
+        value,
+        "invalid value for #{inspect(key)} option: expected function of arity #{arity}, got: #{inspect(value)}"
+      )
     end
   end
 
@@ -718,7 +751,7 @@ defmodule NimbleOptions do
         {:ok, value}
 
       {:error, message} when is_binary(message) ->
-        error_tuple(key, value, message)
+        error_tuple(key, value, "invalid value for #{inspect(key)} option: " <> message)
 
       other ->
         raise "custom validation function #{inspect(mod)}.#{fun}/#{length(args) + 1} " <>
@@ -733,7 +766,7 @@ defmodule NimbleOptions do
       error_tuple(
         key,
         value,
-        "expected #{inspect(key)} to be in #{inspect(choices)}, got: #{inspect(value)}"
+        "invalid value for #{inspect(key)} option: expected one of #{inspect(choices)}, got: #{inspect(value)}"
       )
     end
   end
@@ -810,13 +843,17 @@ defmodule NimbleOptions do
   catch
     {:error, index, %ValidationError{} = error} ->
       message =
-        "list element at position #{index} in #{inspect(key)} failed validation: #{error.message}"
+        "invalid list element at position #{index} in #{inspect(key)} option: #{error.message}"
 
       error_tuple(key, value, message)
   end
 
   defp validate_type({:list, _subtype}, key, value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be a list, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "invalid value for #{inspect(key)} option: expected list, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type({:tuple, tuple_def}, key, value)
@@ -837,7 +874,7 @@ defmodule NimbleOptions do
   catch
     {:error, index, %ValidationError{} = error} ->
       message =
-        "tuple element at position #{index} in #{inspect(key)} failed validation: #{error.message}"
+        "invalid tuple element at position #{index} in #{inspect(key)} option: #{error.message}"
 
       error_tuple(key, value, message)
   end
@@ -846,12 +883,16 @@ defmodule NimbleOptions do
     error_tuple(
       key,
       value,
-      "expected #{inspect(key)} to be a tuple with #{length(tuple_def)} elements, got: #{inspect(value)}"
+      "invalid value for #{inspect(key)} option: expected tuple with #{length(tuple_def)} elements, got: #{inspect(value)}"
     )
   end
 
   defp validate_type({:tuple, _tuple_def}, key, value) do
-    error_tuple(key, value, "expected #{inspect(key)} to be a tuple, got: #{inspect(value)}")
+    error_tuple(
+      key,
+      value,
+      "invalid value for #{inspect(key)} option: expected tuple, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(nil, key, value) do
@@ -920,7 +961,7 @@ defmodule NimbleOptions do
       subtype, acc ->
         case validate_type(subtype) do
           {:ok, _value} -> {:cont, acc}
-          {:error, reason} -> {:halt, {:error, "invalid type in :or for reason: #{reason}"}}
+          {:error, reason} -> {:halt, {:error, "invalid type given to :or type: #{reason}"}}
         end
     end)
   end
@@ -935,7 +976,7 @@ defmodule NimbleOptions do
   def validate_type({:list, subtype}) do
     case validate_type(subtype) do
       {:ok, validated_subtype} -> {:ok, {:list, validated_subtype}}
-      {:error, reason} -> {:error, "invalid subtype for :list type: #{reason}"}
+      {:error, reason} -> {:error, "invalid subtype given to :list type: #{reason}"}
     end
   end
 
@@ -944,7 +985,7 @@ defmodule NimbleOptions do
       Enum.map(tuple_def, fn subtype ->
         case validate_type(subtype) do
           {:ok, validated_subtype} -> validated_subtype
-          {:error, reason} -> throw({:error, "invalid subtype for :tuple type: #{reason}"})
+          {:error, reason} -> throw({:error, "invalid subtype given to :tuple type: #{reason}"})
         end
       end)
 
@@ -972,7 +1013,7 @@ defmodule NimbleOptions do
   end
 
   def validate_type(value) do
-    {:error, "invalid option type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
+    {:error, "unknown type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
   end
 
   defp validate_map_keys(type, key, value), do: validate_all(type, key, Map.keys(value), "key")
