@@ -97,7 +97,7 @@ defmodule NimbleOptions do
     * `:non_empty_keyword_list` - A non-empty keyword list.
 
     * `:map` - A map consisting of `:atom` keys. Shorthand for `{:map, :atom, :any}`.
-      Keys can be specified using the `keys` option
+      Keys can be specified using the `keys` option.
 
     * `{:map, key_type, value_type}` - A map consisting of `key_type` keys and
       `value_type` values.
