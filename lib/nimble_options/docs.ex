@@ -138,6 +138,15 @@ defmodule NimbleOptions.Docs do
     end
   end
 
+  defp get_raw_type_str({:tuple, value_types}) do
+    value_types =
+      value_types
+      |> Enum.map(&get_raw_type_str/1)
+      |> Enum.join(", ")
+
+    "tuple of #{value_types} values"
+  end
+
   defp indent_doc(text, indent) do
     [head | tail] = String.split(text, ["\r\n", "\n"])
 
