@@ -1931,7 +1931,8 @@ defmodule NimbleOptionsTest do
         nested_list_of_ints: [type: {:list, {:list, :integer}}],
         list_of_kws: [type: {:list, {:keyword_list, []}}],
         map: [type: :map],
-        map_of_strings: [type: {:map, :string, :string}]
+        map_of_strings: [type: {:map, :string, :string}],
+        tuple: [type: {:tuple, [:integer, :atom, {:list, :string}]}]
       ]
 
       assert NimbleOptions.docs(schema) == """
@@ -1960,6 +1961,8 @@ defmodule NimbleOptionsTest do
              * `:map` (`t:map/0`)
 
              * `:map_of_strings` (map of `t:String.t/0` keys and `t:String.t/0` values)
+
+             * `:tuple` (tuple of `t:integer/0`, `t:atom/0`, list of `t:String.t/0` values)
 
              """
     end
