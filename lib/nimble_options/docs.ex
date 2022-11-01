@@ -187,6 +187,8 @@ defmodule NimbleOptions.Docs do
       {:keyword_list, _keys} -> quote(do: keyword())
       :non_empty_keyword_list -> quote(do: keyword())
       {:non_empty_keyword_list, _keys} -> quote(do: keyword())
+      :map -> quote(do: map())
+      {:map, key_type, value_type} -> quote(do: %{optional(unquote(type_to_spec(key_type))) => unquote(type_to_spec(value_type))})
       {:fun, arity} -> function_spec(arity)
       {:in, _choices} -> quote(do: term())
       {:custom, _mod, _fun, _args} -> quote(do: term())

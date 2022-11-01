@@ -1995,6 +1995,8 @@ defmodule NimbleOptionsTest do
         any: [type: :any],
         keyword_list: [type: :keyword_list],
         non_empty_keyword_list: [type: :non_empty_keyword_list],
+        map: [type: :map],
+        map_of_string_to_int: [type: {:map, :string, :integer}],
         atom: [type: :atom],
         integer: [type: :integer],
         non_neg_integer: [type: :non_neg_integer],
@@ -2023,6 +2025,8 @@ defmodule NimbleOptionsTest do
                   {:any, term()}
                   | {:keyword_list, keyword()}
                   | {:non_empty_keyword_list, keyword()}
+                  | {:map, map()}
+                  | {:map_of_string_to_int, %{optional(binary()) => integer()}}
                   | {:atom, atom()}
                   | {:integer, integer()}
                   | {:non_neg_integer, non_neg_integer()}
