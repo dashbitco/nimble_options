@@ -170,28 +170,79 @@ defmodule NimbleOptions.Docs do
 
   defp type_to_spec(type) do
     case type do
-      :any -> quote(do: term())
-      :integer -> quote(do: integer())
-      :non_neg_integer -> quote(do: non_neg_integer())
-      :pos_integer -> quote(do: pos_integer())
-      :atom -> quote(do: atom())
-      :float -> quote(do: float())
-      :boolean -> quote(do: boolean())
-      :pid -> quote(do: pid())
-      :reference -> quote(do: reference())
-      :timeout -> quote(do: timeout())
-      :string -> quote(do: binary())
-      :mfa -> quote(do: {module(), atom(), [term()]})
-      :mod_arg -> quote(do: {module(), [term()]})
-      :keyword_list -> quote(do: keyword())
-      {:keyword_list, _keys} -> quote(do: keyword())
-      :non_empty_keyword_list -> quote(do: keyword())
-      {:non_empty_keyword_list, _keys} -> quote(do: keyword())
-      {:fun, arity} -> function_spec(arity)
-      {:in, _choices} -> quote(do: term())
-      {:custom, _mod, _fun, _args} -> quote(do: term())
-      {:list, subtype} -> quote(do: [unquote(type_to_spec(subtype))])
-      {:or, subtypes} -> subtypes |> Enum.map(&type_to_spec/1) |> unionize_quoted()
+      :any ->
+        quote(do: term())
+
+      :integer ->
+        quote(do: integer())
+
+      :non_neg_integer ->
+        quote(do: non_neg_integer())
+
+      :pos_integer ->
+        quote(do: pos_integer())
+
+      :atom ->
+        quote(do: atom())
+
+      :float ->
+        quote(do: float())
+
+      :boolean ->
+        quote(do: boolean())
+
+      :pid ->
+        quote(do: pid())
+
+      :reference ->
+        quote(do: reference())
+
+      :timeout ->
+        quote(do: timeout())
+
+      :string ->
+        quote(do: binary())
+
+      :mfa ->
+        quote(do: {module(), atom(), [term()]})
+
+      :mod_arg ->
+        quote(do: {module(), [term()]})
+
+      :keyword_list ->
+        quote(do: keyword())
+
+      {:keyword_list, _keys} ->
+        quote(do: keyword())
+
+      :non_empty_keyword_list ->
+        quote(do: keyword())
+
+      {:non_empty_keyword_list, _keys} ->
+        quote(do: keyword())
+
+      :map ->
+        quote(do: map())
+
+      {:map, key_type, value_type} ->
+        quote(
+          do: %{optional(unquote(type_to_spec(key_type))) => unquote(type_to_spec(value_type))}
+        )
+
+      {:fun, arity} ->
+        function_spec(arity)
+
+      {:in, _choices} ->
+        quote(do: term())
+
+      {:custom, _mod, _fun, _args} ->
+        quote(do: term())
+
+      {:list, subtype} ->
+        quote(do: [unquote(type_to_spec(subtype))])
+
+      {:or, subtypes} ->
+        subtypes |> Enum.map(&type_to_spec/1) |> unionize_quoted()
     end
   end
 
