@@ -1,5 +1,9 @@
 # Changelog for NimbleOptions
 
+## v0.5.1
+
+  * Support generating typespecs for `:tuple`, `:map`, and `{:map, key, value}` options
+
 ## v0.5.0
 
   * Support `:map` which accepts the same `:keys` specification as keyword lists
