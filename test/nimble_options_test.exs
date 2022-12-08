@@ -1970,7 +1970,8 @@ defmodule NimbleOptionsTest do
         list_of_kws: [type: {:list, {:keyword_list, []}}],
         map: [type: :map],
         map_of_strings: [type: {:map, :string, :string}],
-        tuple: [type: {:tuple, [:integer, :atom, {:list, :string}]}]
+        tuple: [type: {:tuple, [:integer, :atom, {:list, :string}]}],
+        struct: [type: {:struct, URI}]
       ]
 
       assert NimbleOptions.docs(schema) == """
@@ -2001,6 +2002,8 @@ defmodule NimbleOptionsTest do
              * `:map_of_strings` (map of `t:String.t/0` keys and `t:String.t/0` values)
 
              * `:tuple` (tuple of `t:integer/0`, `t:atom/0`, list of `t:String.t/0` values)
+
+             * `:struct` (struct of type URI)
 
              """
     end
@@ -2055,7 +2058,8 @@ defmodule NimbleOptionsTest do
         list_of_kw: [type: {:list, {:keyword_list, []}}],
         list_of_ne_kw: [type: {:list, {:non_empty_keyword_list, []}}],
         union_scalar: [type: {:or, [:integer, :boolean, :float]}],
-        union_complex: [type: {:or, [{:or, [:integer, :float]}, :boolean]}]
+        union_complex: [type: {:or, [{:or, [:integer, :float]}, :boolean]}],
+        struct: [type: {:struct, URI}]
       ]
 
       assert NimbleOptions.option_typespec(schema) ==
@@ -2086,6 +2090,7 @@ defmodule NimbleOptionsTest do
                   | {:list_of_ne_kw, [keyword()]}
                   | {:union_scalar, integer() | boolean() | float()}
                   | {:union_complex, (integer() | float()) | boolean()}
+                  | {:struct, atom()}
                 end)
     end
   end
