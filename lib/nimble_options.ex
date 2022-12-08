@@ -47,20 +47,6 @@ defmodule NimbleOptions do
           type: :string,
           doc: "The title of separate subsection of the options' documentation"
         ],
-        type_doc: [
-          type: {:or, [:string, {:in, false}]},
-          doc: """
-          The type doc to use *in the documentation* for the option item. If `false`,
-          no type documentation is added to the item. If it's a string, it can be
-          anything. For example, you can use `"a list of PIDs"`, or you can use
-          a typespec reference that ExDoc can link to the type definition, such as
-          `` "`t:binary/0`" ``. You can use Markdown in this documentation. If the
-          `:type_doc` option is not present, NimbleOptions tries to produce a type
-          documentation automatically if it can do it unambiguously. For example,
-          if `type: :integer`, NimbleOptions will use `t:integer/0` as the
-          auto-generated type doc.
-          """
-        ],
         # TODO: remove in v0.5.
         rename_to: [
           type: :atom,
