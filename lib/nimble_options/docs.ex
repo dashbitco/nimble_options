@@ -126,9 +126,7 @@ defmodule NimbleOptions.Docs do
   defp get_raw_type_str({:keyword_list, _keys}), do: "`t:keyword/0`"
   defp get_raw_type_str({:non_empty_keyword_list, _keys}), do: "non-empty `t:keyword/0`"
   defp get_raw_type_str(:map), do: "`t:map/0`"
-
-  defp get_raw_type_str({:struct, struct_type}),
-    do: "struct of type #{nice_struct_name(struct_type)}"
+  defp get_raw_type_str({:struct, struct_type}), do: "struct of type #{inspect(struct_type)}"
 
   defp get_raw_type_str({:list, subtype}) do
     if subtype_str = get_raw_type_str(subtype), do: "list of #{subtype_str}"
@@ -264,11 +262,5 @@ defmodule NimbleOptions.Docs do
     specs
     |> Enum.reverse()
     |> Enum.reduce(&quote(do: unquote(&1) | unquote(&2)))
-  end
-
-  defp nice_struct_name(struct_type) do
-    struct_type
-    |> Module.split()
-    |> Enum.join(".")
   end
 end
