@@ -169,6 +169,8 @@ defmodule NimbleOptions do
       same position. For example, to describe 3-element tuples with an atom, a string, and
       a list of integers you would use the type `{:tuple, [:atom, :string, {:list, :integer}]}`.
       *Available since v0.4.1*.
+      
+    * `{:struct, struct_name}` - An instance of the struct type given.
 
   ## Example
 
@@ -913,6 +915,18 @@ defmodule NimbleOptions do
     )
   end
 
+  defp validate_type({:struct, struct_name}, _key, value) when is_struct(value, struct_name) do
+    {:ok, value}
+  end
+
+  defp validate_type({:struct, struct_name}, key, value) do
+    error_tuple(
+      key,
+      value,
+      "invalid value for #{render_key(key)}: expected #{inspect(struct_name)}, got: #{inspect(value)}"
+    )
+  end
+
   defp validate_type(nil, key, value) do
     validate_type(:any, key, value)
   end
@@ -945,7 +959,8 @@ defmodule NimbleOptions do
           "{:custom, mod, fun, args}",
           "{:list, subtype}",
           "{:tuple, list_of_subtypes}",
-          "{:map, key_type, value_type}"
+          "{:map, key_type, value_type}",
+          "{:struct, struct_name}"
         ]
 
     Enum.join(types, ", ")
@@ -1028,6 +1043,14 @@ defmodule NimbleOptions do
     {:ok, {:map, valid_key_type, valid_values_type}}
   catch
     {:error, reason} -> {:error, reason}
+  end
+
+  def validate_type({:struct, struct_name}) when is_atom(struct_name) do
+    {:ok, {:struct, struct_name}}
+  end
+
+  def validate_type({:struct, struct_name}) do
+    {:error, "invalid struct_name for :struct, expected atom, got #{inspect(struct_name)}"}
   end
 
   def validate_type(value) do
