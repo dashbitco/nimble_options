@@ -1243,38 +1243,43 @@ defmodule NimbleOptionsTest do
                   value: %{c: [4, 5, 6], invalid_key: [1, 2, 3]}
                 }}
     end
-    
+
     test "valid {:struct, struct_name}" do
       schema = [struct: [type: {:struct, URI}]]
-      
+
       opts = [struct: %URI{}]
-      
+
       assert NimbleOptions.validate(opts, schema) == {:ok, opts}
-    end  
-    
+    end
+
     test "non-matching {:struct, struct_name}" do
       schema = [struct: [type: {:struct, URI}]]
-      
+
       opts = [struct: %NimbleOptions{}]
-      
-      assert NimbleOptions.validate(opts, schema) ==  {:error,
-      %NimbleOptions.ValidationError{
-        key: :struct,
-        keys_path: [],
-        message:
-          "invalid value for :struct option: expected URI, got: %NimbleOptions{schema: []}",
-        value: %NimbleOptions{schema: []}
-      }}
-    end 
-    
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :struct,
+                  keys_path: [],
+                  message:
+                    "invalid value for :struct option: expected URI, got: %NimbleOptions{schema: []}",
+                  value: %NimbleOptions{schema: []}
+                }}
+    end
+
     test "invalid {:struct, struct_name}" do
       schema = [struct: [type: {:struct, "123"}]]
-      
+
       opts = [struct: %URI{}]
-      
-      assert_raise(ArgumentError, "invalid NimbleOptions schema. Reason: invalid value for :type option: invalid struct_name for :struct, expected atom, got \"123\" (in options [:struct])", fn -> 
-        NimbleOptions.validate(opts, schema)
-      end)
+
+      assert_raise(
+        ArgumentError,
+        "invalid NimbleOptions schema. Reason: invalid value for :type option: invalid struct_name for :struct, expected atom, got \"123\" (in options [:struct])",
+        fn ->
+          NimbleOptions.validate(opts, schema)
+        end
+      )
     end
   end
 
