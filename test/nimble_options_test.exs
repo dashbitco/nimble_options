@@ -1743,6 +1743,27 @@ defmodule NimbleOptionsTest do
       assert NimbleOptions.docs(NimbleOptions.new!(schema)) == docs
     end
 
+    test "uses the type_doc option" do
+      schema = [
+        foo: [type: :string, type_doc: "`t:SomeModule.t/0`", doc: "The foo."],
+        bar: [type: :string, type_doc: "`t:SomeModule.t/0`"],
+        baz: [type: :integer, type_doc: false, doc: "The bar."],
+        quux: [type: :integer, type_doc: false, doc: false]
+      ]
+
+      docs = """
+      * `:foo` (`t:SomeModule.t/0`) - The foo.
+
+      * `:bar` (`t:SomeModule.t/0`)
+
+      * `:baz` - The bar.
+
+      """
+
+      assert NimbleOptions.docs(schema) == docs
+      assert NimbleOptions.docs(NimbleOptions.new!(schema)) == docs
+    end
+
     test "passing specific indentation" do
       nested_schema = [
         allowed_messages: [type: :pos_integer, doc: "Allowed messages."],

@@ -48,7 +48,7 @@ defmodule NimbleOptions do
           doc: "The title of separate subsection of the options' documentation"
         ],
         type_doc: [
-          type: {:or, [:string, {:in, false}]},
+          type: {:or, [:string, {:in, [false]}]},
           doc: """
           The type doc to use *in the documentation* for the option item. If `false`,
           no type documentation is added to the item. If it's a string, it can be
