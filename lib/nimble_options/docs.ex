@@ -97,7 +97,14 @@ defmodule NimbleOptions.Docs do
   end
 
   defp get_type_str(schema) do
-    if str = get_raw_type_str(schema[:type]) do
+    str =
+      case Keyword.fetch(schema, :type_doc) do
+        {:ok, false} -> nil
+        {:ok, type_doc} when is_binary(type_doc) -> type_doc
+        :error -> get_raw_type_str(schema[:type])
+      end
+
+    if str do
       "(#{str})"
     end
   end
