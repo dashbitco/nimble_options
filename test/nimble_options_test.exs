@@ -42,7 +42,7 @@ defmodule NimbleOptionsTest do
       Available types: :any, :keyword_list, :non_empty_keyword_list, :map, :atom, \
       :integer, :non_neg_integer, :pos_integer, :float, :mfa, :mod_arg, :string, :boolean, :timeout, \
       :pid, :reference, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
-      {:list, subtype}, {:tuple, list_of_subtypes}, {:map, key_type, value_type} \
+      {:list, subtype}, {:tuple, list_of_subtypes}, {:map, key_type, value_type}, {:struct, struct_name} \
       (in options [:stages])\
       """
 
@@ -1243,6 +1243,44 @@ defmodule NimbleOptionsTest do
                   value: %{c: [4, 5, 6], invalid_key: [1, 2, 3]}
                 }}
     end
+
+    test "valid {:struct, struct_name}" do
+      schema = [struct: [type: {:struct, URI}]]
+
+      opts = [struct: %URI{}]
+
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "non-matching {:struct, struct_name}" do
+      schema = [struct: [type: {:struct, URI}]]
+
+      opts = [struct: %NimbleOptions{}]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :struct,
+                  keys_path: [],
+                  message:
+                    "invalid value for :struct option: expected URI, got: %NimbleOptions{schema: []}",
+                  value: %NimbleOptions{schema: []}
+                }}
+    end
+
+    test "invalid {:struct, struct_name}" do
+      schema = [struct: [type: {:struct, "123"}]]
+
+      opts = [struct: %URI{}]
+
+      assert_raise(
+        ArgumentError,
+        "invalid NimbleOptions schema. Reason: invalid value for :type option: invalid struct_name for :struct, expected atom, got \"123\" (in options [:struct])",
+        fn ->
+          NimbleOptions.validate(opts, schema)
+        end
+      )
+    end
   end
 
   describe "nested options with predefined keys" do
@@ -1953,7 +1991,8 @@ defmodule NimbleOptionsTest do
         list_of_kws: [type: {:list, {:keyword_list, []}}],
         map: [type: :map],
         map_of_strings: [type: {:map, :string, :string}],
-        tuple: [type: {:tuple, [:integer, :atom, {:list, :string}]}]
+        tuple: [type: {:tuple, [:integer, :atom, {:list, :string}]}],
+        struct: [type: {:struct, URI}]
       ]
 
       assert NimbleOptions.docs(schema) == """
@@ -1984,6 +2023,8 @@ defmodule NimbleOptionsTest do
              * `:map_of_strings` (map of `t:String.t/0` keys and `t:String.t/0` values)
 
              * `:tuple` (tuple of `t:integer/0`, `t:atom/0`, list of `t:String.t/0` values)
+
+             * `:struct` (struct of type URI)
 
              """
     end
@@ -2038,7 +2079,8 @@ defmodule NimbleOptionsTest do
         list_of_kw: [type: {:list, {:keyword_list, []}}],
         list_of_ne_kw: [type: {:list, {:non_empty_keyword_list, []}}],
         union_scalar: [type: {:or, [:integer, :boolean, :float]}],
-        union_complex: [type: {:or, [{:or, [:integer, :float]}, :boolean]}]
+        union_complex: [type: {:or, [{:or, [:integer, :float]}, :boolean]}],
+        struct: [type: {:struct, URI}]
       ]
 
       assert NimbleOptions.option_typespec(schema) ==
@@ -2069,6 +2111,7 @@ defmodule NimbleOptionsTest do
                   | {:list_of_ne_kw, [keyword()]}
                   | {:union_scalar, integer() | boolean() | float()}
                   | {:union_complex, (integer() | float()) | boolean()}
+                  | {:struct, atom()}
                 end)
     end
   end
