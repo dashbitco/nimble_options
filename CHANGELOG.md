@@ -1,5 +1,10 @@
 # Changelog for NimbleOptions
 
+## v0.5.2
+
+  * Support `:type_doc` option
+  * Support `{:struct, SomeStruct}` as type
+
 ## v0.5.1
 
   * Support generating typespecs for `:tuple`, `:map`, and `{:map, key, value}` options

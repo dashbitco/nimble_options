@@ -916,14 +916,16 @@ defmodule NimbleOptions do
   end
 
   defp validate_type({:struct, struct_name}, key, value) do
-    if match?(%^struct_name{}, value) do
-      {:ok, value}
-    else
-      error_tuple(
-        key,
-        value,
-        "invalid value for #{render_key(key)}: expected #{inspect(struct_name)}, got: #{inspect(value)}"
-      )
+    case value do
+      %^struct_name{} ->
+        {:ok, value}
+
+      _ ->
+        error_tuple(
+          key,
+          value,
+          "invalid value for #{render_key(key)}: expected #{inspect(struct_name)}, got: #{inspect(value)}"
+        )
     end
   end
 
