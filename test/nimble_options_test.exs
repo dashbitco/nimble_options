@@ -42,8 +42,8 @@ defmodule NimbleOptionsTest do
       Available types: :any, :keyword_list, :non_empty_keyword_list, :map, :atom, \
       :integer, :non_neg_integer, :pos_integer, :float, :mfa, :mod_arg, :string, :boolean, :timeout, \
       :pid, :reference, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
-      {:list, subtype}, {:tuple, list_of_subtypes}, {:map, key_type, value_type}, {:struct, struct_name} \
-      (in options [:stages])\
+      {:list, subtype}, {:tuple, list_of_subtypes}, {:map, key_type, value_type}, {:struct, struct_name}, \
+      {:existing_module, module_name, exports} (in options [:stages])\
       """
 
       assert_raise ArgumentError, message, fn ->
@@ -1280,6 +1280,48 @@ defmodule NimbleOptionsTest do
           NimbleOptions.validate(opts, schema)
         end
       )
+    end
+  end
+
+  describe "{:existing_module, module_name, exports}" do
+    test "valid" do
+      schema = [module: [type: {:existing_module, URI, decode: 1, encode: 1}]]
+
+      opts = [module: URI]
+
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid module" do
+      schema = [module: [type: {:existing_module, URI, []}]]
+
+      opts = [module: URI_XX]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :module,
+                  keys_path: [],
+                  message:
+                    "invalid value for :module option: expected a compile-time dependency URI, got: URI_XX (error: nofile)",
+                  value: URI_XX
+                }}
+    end
+
+    test "invalid exports" do
+      schema = [module: [type: {:existing_module, URI, xxx: 1}]]
+
+      opts = [module: URI]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :module,
+                  keys_path: [],
+                  message:
+                    "invalid value for :module option: expected URI to export all of [xxx: 1], got: URI, missing [xxx: 1]",
+                  value: URI
+                }}
     end
   end
 

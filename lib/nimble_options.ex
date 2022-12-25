@@ -169,8 +169,11 @@ defmodule NimbleOptions do
       same position. For example, to describe 3-element tuples with an atom, a string, and
       a list of integers you would use the type `{:tuple, [:atom, :string, {:list, :integer}]}`.
       *Available since v0.4.1*.
-      
+
     * `{:struct, struct_name}` - An instance of the struct type given.
+
+    * `{:existing_module, module_name, exports}` - A module which is expected to be available
+      in compile-time, exporting functions specified in `exports`.
 
   ## Example
 
@@ -927,6 +930,37 @@ defmodule NimbleOptions do
     end
   end
 
+  defp validate_type({:existing_module, module_name, exports}, key, value) do
+    case Code.ensure_compiled(value) do
+      {:module, ^value} ->
+        validator = fn {fun, arity} -> function_exported?(module_name, fun, arity) end
+
+        if Enum.all?(exports, validator) do
+          {:ok, value}
+        else
+          missing_exports =
+            exports
+            |> Enum.reject(validator)
+            |> inspect(limit: :infinity)
+
+          error_tuple(
+            key,
+            value,
+            "invalid value for #{render_key(key)}: expected #{inspect(module_name)} to " <>
+              "export all of #{inspect(exports)}, got: #{inspect(value)}, missing #{missing_exports}"
+          )
+        end
+
+      {:error, error} ->
+        error_tuple(
+          key,
+          value,
+          "invalid value for #{render_key(key)}: expected a compile-time dependency #{inspect(module_name)}, " <>
+            "got: #{inspect(value)} (error: #{error})"
+        )
+    end
+  end
+
   defp validate_type(nil, key, value) do
     validate_type(:any, key, value)
   end
@@ -960,7 +994,8 @@ defmodule NimbleOptions do
           "{:list, subtype}",
           "{:tuple, list_of_subtypes}",
           "{:map, key_type, value_type}",
-          "{:struct, struct_name}"
+          "{:struct, struct_name}",
+          "{:existing_module, module_name, exports}"
         ]
 
     Enum.join(types, ", ")
@@ -1051,6 +1086,15 @@ defmodule NimbleOptions do
 
   def validate_type({:struct, struct_name}) do
     {:error, "invalid struct_name for :struct, expected atom, got #{inspect(struct_name)}"}
+  end
+
+  def validate_type({:existing_module, module_name, exports}) when is_atom(module_name) do
+    {:ok, {:existing_module, module_name, exports}}
+  end
+
+  def validate_type({:existing_module, module_name, _exports}) do
+    {:error,
+     "invalid module_name for :existing_module, expected atom, got #{inspect(module_name)}"}
   end
 
   def validate_type(value) do
