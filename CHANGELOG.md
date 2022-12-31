@@ -1,5 +1,22 @@
 # Changelog for NimbleOptions
 
+## v0.5.2
+
+  * Add support for a {:struct, struct_name} type specifier
+    * Example:
+
+        ```elixir
+        schema = [struct: [type: {:struct, URI}]]
+        ```
+  * Add support for the type_doc option
+    * Example:
+
+        ```elixir
+        schema = [
+          foo: [type: :string, type_doc: "`t:SomeModule.t/0`", doc: "The foo."]
+        ]
+        ```
+
 ## v0.5.1
 
   * Support generating typespecs for `:tuple`, `:map`, and `{:map, key, value}` options
