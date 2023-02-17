@@ -229,6 +229,9 @@ defmodule NimbleOptions.Docs do
       {:non_empty_keyword_list, _keys} ->
         quote(do: keyword())
 
+      nil ->
+        quote(do: nil)
+
       :map ->
         quote(do: map())
 

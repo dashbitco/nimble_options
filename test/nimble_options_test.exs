@@ -41,7 +41,7 @@ defmodule NimbleOptionsTest do
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :map, :atom, \
       :integer, :non_neg_integer, :pos_integer, :float, :mfa, :mod_arg, :string, :boolean, :timeout, \
-      :pid, :reference, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
+      :pid, :reference, nil, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
       {:list, subtype}, {:tuple, list_of_subtypes}, {:map, key_type, value_type}, {:struct, struct_name} \
       (in options [:stages])\
       """
@@ -595,6 +595,25 @@ defmodule NimbleOptionsTest do
                    ~s(invalid value for :partition_by option: expected function of arity 1, got: function of arity 2)
                }
              }
+    end
+
+    test "valid nil" do
+      schema = [name: [type: nil, required: true]]
+      opts = [name: nil]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid nil" do
+      schema = [name: [type: nil, required: true]]
+      opts = [name: :not_nil]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: :name,
+                  value: :not_nil,
+                  message: "invalid value for :name option: expected nil, got: :not_nil"
+                }}
     end
 
     test "valid {:in, choices}" do

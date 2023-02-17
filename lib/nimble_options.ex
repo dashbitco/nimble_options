@@ -122,6 +122,8 @@ defmodule NimbleOptions do
 
     * `:reference` - A reference (see `t:reference/0`).
 
+    * `nil` - The value `nil` itself. Available since v0.6.0.
+
     * `:mfa` - A named function in the format `{module, function, arity}` where
       `arity` is a list of arguments. For example, `{MyModule, :my_fun, [arg1, arg2]}`.
 
@@ -169,7 +171,7 @@ defmodule NimbleOptions do
       same position. For example, to describe 3-element tuples with an atom, a string, and
       a list of integers you would use the type `{:tuple, [:atom, :string, {:list, :integer}]}`.
       *Available since v0.4.1*.
-      
+
     * `{:struct, struct_name}` - An instance of the struct type given.
 
   ## Example
@@ -285,7 +287,8 @@ defmodule NimbleOptions do
     :boolean,
     :timeout,
     :pid,
-    :reference
+    :reference,
+    nil
   ]
 
   @typedoc """
@@ -763,6 +766,18 @@ defmodule NimbleOptions do
     end
   end
 
+  defp validate_type(nil, key, value) do
+    if is_nil(value) do
+      {:ok, value}
+    else
+      error_tuple(
+        key,
+        value,
+        "invalid value for #{render_key(key)}: expected nil, got: #{inspect(value)}"
+      )
+    end
+  end
+
   defp validate_type({:custom, mod, fun, args}, key, value) do
     case apply(mod, fun, [value | args]) do
       {:ok, value} ->
@@ -925,10 +940,6 @@ defmodule NimbleOptions do
         "invalid value for #{render_key(key)}: expected #{inspect(struct_name)}, got: #{inspect(value)}"
       )
     end
-  end
-
-  defp validate_type(nil, key, value) do
-    validate_type(:any, key, value)
   end
 
   defp validate_type(_type, _key, value) do
