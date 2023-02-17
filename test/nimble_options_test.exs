@@ -72,7 +72,7 @@ defmodule NimbleOptionsTest do
       Reason: \
       unknown options [:unknown_schema_option], \
       valid options are: [:type, :required, :default, :keys, \
-      :deprecated, :doc, :subsection, :type_doc, :rename_to] \
+      :deprecated, :doc, :subsection, :type_doc] \
       (in options [:producers, :keys, :*, :keys, :module])\
       """
 
@@ -137,30 +137,6 @@ defmodule NimbleOptionsTest do
                   message:
                     "required :name option not found, received options: [:an_option, :other_option]"
                 }}
-    end
-  end
-
-  # TODO: remove on v0.5.
-  describe ":rename_to (deprecated)" do
-    import ExUnit.CaptureIO
-
-    test "renames option and removes the old option" do
-      capture_io(:stderr, fn ->
-        schema = [
-          port: [rename_to: :new_port],
-          new_port: [type: {:custom, __MODULE__, :string_to_integer, []}]
-        ]
-
-        assert NimbleOptions.validate([port: "4000"], schema) ==
-                 {:ok, [new_port: 4000]}
-      end)
-    end
-
-    test "is ignored when option is not present given" do
-      capture_io(:stderr, fn ->
-        schema = [context: [rename_to: :new_context], new_context: []]
-        assert NimbleOptions.validate([], schema) == {:ok, []}
-      end)
     end
   end
 

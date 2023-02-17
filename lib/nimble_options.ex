@@ -60,12 +60,6 @@ defmodule NimbleOptions do
           if `type: :integer`, NimbleOptions will use `t:integer/0` as the
           auto-generated type doc.
           """
-        ],
-        # TODO: remove in v0.5.
-        rename_to: [
-          type: :atom,
-          deprecated: "Handle renaming after validation.",
-          doc: "Deprecated in v0.5.0."
         ]
       ]
     ]
@@ -524,17 +518,7 @@ defmodule NimbleOptions do
         {:halt, result}
 
       {:ok, value} ->
-        # TODO: remove on v0.5 when we remove :rename_to.
-        if renamed_key = schema_opts[:rename_to] do
-          opts =
-            opts
-            |> Keyword.update(renamed_key, value, fn _ -> value end)
-            |> Keyword.delete(key)
-
-          {:cont, opts}
-        else
-          {:cont, Keyword.update(opts, key, value, fn _ -> value end)}
-        end
+        {:cont, Keyword.update(opts, key, value, fn _ -> value end)}
 
       :no_value ->
         if Keyword.has_key?(schema_opts, :default) do
