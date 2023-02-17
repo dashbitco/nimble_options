@@ -1,8 +1,11 @@
 # NimbleOptions
 
+[![hex.pm badge](https://img.shields.io/badge/Package%20on%20hex.pm-informational)](https://hex.pm/packages/nimble_options)
+[![Documentation badge](https://img.shields.io/badge/Documentation-ff69b4)][docs]
+[![CI](https://github.com/dashbitco/nimble_options/actions/workflows/main.yml/badge.svg)](https://github.com/dashbitco/nimble_options/actions/workflows/main.yml)
 [![Coverage Status](https://coveralls.io/repos/github/dashbitco/nimble_options/badge.svg?branch=master)](https://coveralls.io/github/dashbitco/nimble_options?branch=master)
 
-[Online Documentation](https://hexdocs.pm/nimble_options).
+[Online Documentation][docs].
 
 A tiny library for validating and documenting high-level options.
 
@@ -86,3 +89,5 @@ Copyright 2020 Dashbit
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
+
+[docs]: https://hexdocs.pm/nimble_options
