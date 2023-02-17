@@ -81,7 +81,7 @@ defmodule NimbleOptions do
     * Config validation against schemas
     * Automatic doc generation
 
-  ## Schema options
+  ## Schema Options
 
   These are the options supported in a *schema*. They are what
   defines the validation for the items in the given schema.
@@ -199,7 +199,7 @@ defmodule NimbleOptions do
       ...> Exception.message(error)
       "required :module option not found, received options: [:concurrency] (in options [:producer])"
 
-  ## Nested option items
+  ## Nested Option Items
 
   `NimbleOptions` allows option items to be nested so you can recursively validate
   any item down the options tree.
@@ -292,13 +292,17 @@ defmodule NimbleOptions do
   ]
 
   @typedoc """
-  A schema. See the module documentation for more information.
+  A schema.
+
+  See the module documentation for more information.
   """
   @type schema() :: keyword()
 
   @typedoc """
-  The `NimbleOptions` struct embedding a validated schema. See the
-  Validating Schemas section in the module documentation.
+  The `NimbleOptions` struct embedding a validated schema.
+
+  See the [*Validating Schemas* section](#module-validating-schemas) in
+  the module documentation.
   """
   @type t() :: %NimbleOptions{schema: schema()}
 
