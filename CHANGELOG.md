@@ -1,9 +1,10 @@
 # Changelog
 
-## v0.5.2
+## v1.0.0
 
   * Add support for a `{:struct, struct_name}` type specifier
   * Add support for the `:type_doc` option
+  * Turn `t:NimbleOptions.t/0` into an *opaque* type
 
 ## v0.5.1
 
