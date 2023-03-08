@@ -239,6 +239,13 @@ defmodule NimbleOptions do
   and then use that valid schema directly. This is done by using the `new!/1` function first, and
   then passing the returned schema to `validate/2`.
 
+  > #### Create the Schema at Compile Time {: .tip}
+  >
+  > If your option schema doesn't include any runtime-only terms in it (such as anonymous
+  > functions), you can call `new!/1` to validate the schema and returned a *compiled* schema
+  > **at compile time**. This is an efficient way to avoid doing any unnecessary work at
+  > runtime. See the example below for more information.
+
   ### Example
 
       iex> raw_schema = [
@@ -298,7 +305,7 @@ defmodule NimbleOptions do
   See the [*Validating Schemas* section](#module-validating-schemas) in
   the module documentation.
   """
-  @type t() :: %NimbleOptions{schema: schema()}
+  @type t() :: %__MODULE__{schema: schema()}
 
   @doc """
   Validate the given `options` with the given `schema`.
