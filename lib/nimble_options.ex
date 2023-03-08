@@ -116,7 +116,7 @@ defmodule NimbleOptions do
 
     * `:reference` - A reference (see `t:reference/0`).
 
-    * `nil` - The value `nil` itself. Available since v0.6.0.
+    * `nil` - The value `nil` itself. Available since v1.0.0.
 
     * `:mfa` - A named function in the format `{module, function, arity}` where
       `arity` is a list of arguments. For example, `{MyModule, :my_fun, [arg1, arg2]}`.
