@@ -8,7 +8,11 @@ defmodule NimbleOptions.ValidationError do
   See [`%NimbleOptions.ValidationError{}`](`__struct__/0`) for documentation on the fields.
   """
 
-  @type t() :: %__MODULE__{}
+  @type t() :: %__MODULE__{
+          key: atom(),
+          keys_path: [atom()],
+          value: term()
+        }
 
   @doc """
   The error struct.
