@@ -305,7 +305,7 @@ defmodule NimbleOptions do
   See the [*Validating Schemas* section](#module-validating-schemas) in
   the module documentation.
   """
-  @opaque t() :: %__MODULE__{schema: schema()}
+  @type t() :: %__MODULE__{schema: schema()}
 
   @doc """
   Validate the given `options` with the given `schema`.
