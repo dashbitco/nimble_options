@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.1
+
+  * Make the `NimbleOptions.t/0` type *public* (instead of opaque). This helps with Dialyzer issues when ysing `NimbleOptions.new!/1` at compile time.
+
 ## v1.0.0
 
   * Add support for a `{:struct, struct_name}` type specifier
