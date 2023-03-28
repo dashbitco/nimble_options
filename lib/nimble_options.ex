@@ -121,8 +121,9 @@ defmodule NimbleOptions do
     * `:mfa` - A named function in the format `{module, function, arity}` where
       `arity` is a list of arguments. For example, `{MyModule, :my_fun, [arg1, arg2]}`.
 
-    * `:mod_arg` - A module along with arguments, e.g. `{MyModule, [arg1, arg2]}`.
-      Usually used for process initialization using `start_link` and friends.
+    * `:mod_arg` - A module along with arguments, such as `{MyModule, arguments}`.
+      Usually used for process initialization using `start_link` and similar. The
+      second element of the tuple can be any term.
 
     * `{:fun, arity}` - Any function with the specified arity.
 
