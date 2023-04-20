@@ -1817,7 +1817,7 @@ defmodule NimbleOptionsTest do
     if Version.match?(System.version(), "~> 1.12") do
       test "ranges with step" do
         schema = [
-          range: [type: {:in, 1..10//2}]
+          range: [type: {:in, %Range{(1..10) | step: 2}}]
         ]
 
         expected =
