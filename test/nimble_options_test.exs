@@ -1769,7 +1769,9 @@ defmodule NimbleOptionsTest do
         list_of_ne_kw: [type: {:list, {:non_empty_keyword_list, []}}],
         union_scalar: [type: {:or, [:integer, :boolean, :float]}],
         union_complex: [type: {:or, [{:or, [:integer, :float]}, :boolean]}],
-        struct: [type: {:struct, URI}]
+        struct: [type: {:struct, URI}],
+        single_element_tuple: [type: {:tuple, [{:list, :integer}]}],
+        two_element_tuple: [type: {:tuple, [:string, :atom]}]
       ]
 
       assert NimbleOptions.option_typespec(schema) ==
@@ -1801,6 +1803,8 @@ defmodule NimbleOptionsTest do
                   | {:union_scalar, integer() | boolean() | float()}
                   | {:union_complex, (integer() | float()) | boolean()}
                   | {:struct, atom()}
+                  | {:single_element_tuple, {[integer()]}}
+                  | {:two_element_tuple, {binary(), atom()}}
                 end)
     end
   end
