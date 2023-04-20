@@ -1813,18 +1813,21 @@ defmodule NimbleOptionsTest do
                clean_context_meta(expected)
     end
 
-    test "ranges with step" do
-      schema = [
-        range: [type: {:in, 1..10//2}]
-      ]
+    # TODO: remove check when we depend on Elixir 1.12+
+    if Version.match?(System.version(), "~> 1.12") do
+      test "ranges with step" do
+        schema = [
+          range: [type: {:in, 1..10//2}]
+        ]
 
-      expected =
-        quote do
-          {:range, term()}
-        end
+        expected =
+          quote do
+            {:range, term()}
+          end
 
-      assert clean_context_meta(NimbleOptions.option_typespec(schema)) ==
-               clean_context_meta(expected)
+        assert clean_context_meta(NimbleOptions.option_typespec(schema)) ==
+                 clean_context_meta(expected)
+      end
     end
   end
 

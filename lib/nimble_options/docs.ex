@@ -243,8 +243,13 @@ defmodule NimbleOptions.Docs do
       {:fun, arity} ->
         function_spec(arity)
 
-      {:in, %Range{first: first, last: last, step: 1}} ->
-        quote(do: unquote(first)..unquote(last))
+      {:in, %Range{first: first, last: last} = range} ->
+        # TODO: match on first..last//1 when we depend on Elixir 1.12+
+        if Map.get(range, :step) == 1 do
+          quote(do: unquote(first)..unquote(last))
+        else
+          quote(do: term())
+        end
 
       {:in, _choices} ->
         quote(do: term())
