@@ -1761,7 +1761,8 @@ defmodule NimbleOptionsTest do
         pid: [type: :pid],
         reference: [type: :reference],
         fun: [type: {:fun, 3}],
-        member: [type: {:in, 1..10}],
+        member: [type: {:in, MapSet.new([:a, :b, :c])}],
+        member_of_range: [type: {:in, 1..10}],
         custom: [type: {:custom, __MODULE__, :fun, []}],
         list_of_int: [type: {:list, :integer}],
         list_of_list_of_int: [type: {:list, {:list, :integer}}],
@@ -1774,39 +1775,64 @@ defmodule NimbleOptionsTest do
         two_element_tuple: [type: {:tuple, [:string, :atom]}]
       ]
 
-      assert NimbleOptions.option_typespec(schema) ==
-               (quote do
-                  {:any, term()}
-                  | {:keyword_list, keyword()}
-                  | {:non_empty_keyword_list, keyword()}
-                  | {:map, map()}
-                  | {:map_of_string_to_int, %{optional(binary()) => integer()}}
-                  | {:atom, atom()}
-                  | {:integer, integer()}
-                  | {:non_neg_integer, non_neg_integer()}
-                  | {:pos_integer, pos_integer()}
-                  | {:float, float()}
-                  | {:mfa, {module(), atom(), [term()]}}
-                  | {:mod_arg, {module(), [term()]}}
-                  | {:string, binary()}
-                  | {:boolean, boolean()}
-                  | {:timeout, timeout()}
-                  | {:pid, pid()}
-                  | {:reference, reference()}
-                  | {:fun, (term(), term(), term() -> term())}
-                  | {:member, term()}
-                  | {:custom, term()}
-                  | {:list_of_int, [integer()]}
-                  | {:list_of_list_of_int, [[integer()]]}
-                  | {:list_of_kw, [keyword()]}
-                  | {:list_of_ne_kw, [keyword()]}
-                  | {:union_scalar, integer() | boolean() | float()}
-                  | {:union_complex, (integer() | float()) | boolean()}
-                  | {:struct, atom()}
-                  | {:single_element_tuple, {[integer()]}}
-                  | {:two_element_tuple, {binary(), atom()}}
-                end)
+      expected =
+        quote do
+          {:any, term()}
+          | {:keyword_list, keyword()}
+          | {:non_empty_keyword_list, keyword()}
+          | {:map, map()}
+          | {:map_of_string_to_int, %{optional(binary()) => integer()}}
+          | {:atom, atom()}
+          | {:integer, integer()}
+          | {:non_neg_integer, non_neg_integer()}
+          | {:pos_integer, pos_integer()}
+          | {:float, float()}
+          | {:mfa, {module(), atom(), [term()]}}
+          | {:mod_arg, {module(), [term()]}}
+          | {:string, binary()}
+          | {:boolean, boolean()}
+          | {:timeout, timeout()}
+          | {:pid, pid()}
+          | {:reference, reference()}
+          | {:fun, (term(), term(), term() -> term())}
+          | {:member, term()}
+          | {:member_of_range, 1..10}
+          | {:custom, term()}
+          | {:list_of_int, [integer()]}
+          | {:list_of_list_of_int, [[integer()]]}
+          | {:list_of_kw, [keyword()]}
+          | {:list_of_ne_kw, [keyword()]}
+          | {:union_scalar, integer() | boolean() | float()}
+          | {:union_complex, (integer() | float()) | boolean()}
+          | {:struct, atom()}
+          | {:single_element_tuple, {[integer()]}}
+          | {:two_element_tuple, {binary(), atom()}}
+        end
+
+      assert clean_context_meta(NimbleOptions.option_typespec(schema)) ==
+               clean_context_meta(expected)
     end
+
+    test "ranges with step" do
+      schema = [
+        range: [type: {:in, 1..10//2}]
+      ]
+
+      expected =
+        quote do
+          {:range, term()}
+        end
+
+      assert clean_context_meta(NimbleOptions.option_typespec(schema)) ==
+               clean_context_meta(expected)
+    end
+  end
+
+  defp clean_context_meta(ast) do
+    Macro.prewalk(ast, fn
+      {_, _, _} = tuple -> Macro.update_meta(tuple, &Keyword.delete(&1, :context))
+      other -> other
+    end)
   end
 
   @compile_time_wrapper NimbleOptions.new!(an_option: [])

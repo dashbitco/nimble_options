@@ -243,6 +243,9 @@ defmodule NimbleOptions.Docs do
       {:fun, arity} ->
         function_spec(arity)
 
+      {:in, %Range{first: first, last: last, step: 1}} ->
+        quote(do: unquote(first)..unquote(last))
+
       {:in, _choices} ->
         quote(do: term())
 
