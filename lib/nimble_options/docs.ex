@@ -257,6 +257,12 @@ defmodule NimbleOptions.Docs do
 
       {:struct, _struct_name} ->
         quote(do: atom())
+
+      {:tuple, [subtype_1, subtype_2]} ->
+        {type_to_spec(subtype_1), type_to_spec(subtype_2)}
+
+      {:tuple, subtypes} ->
+        {:{}, [], Enum.map(subtypes, &type_to_spec/1)}
     end
   end
 
