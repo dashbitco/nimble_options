@@ -264,13 +264,13 @@ defmodule NimbleOptions.Docs do
         subtypes |> Enum.map(&type_to_spec/1) |> unionize_quoted()
 
       {:struct, _struct_name} ->
-        quote(do: atom())
+        quote(do: struct())
 
-      {:tuple, [subtype_1, subtype_2]} ->
-        {type_to_spec(subtype_1), type_to_spec(subtype_2)}
-
-      {:tuple, subtypes} ->
-        {:{}, [], Enum.map(subtypes, &type_to_spec/1)}
+      {:tuple, tuple_types} ->
+        case Enum.map(tuple_types, &type_to_spec/1) do
+          [type1, type2] -> quote(do: {unquote(type1), unquote(type2)})
+          types -> quote do: {unquote_splicing(types)}
+        end
     end
   end
 
