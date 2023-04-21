@@ -1741,72 +1741,87 @@ defmodule NimbleOptionsTest do
   end
 
   describe "option_typespec/1" do
-    test "all possible types" do
+    test "joins typespec correctly" do
       schema = [
-        any: [type: :any],
-        keyword_list: [type: :keyword_list],
-        non_empty_keyword_list: [type: :non_empty_keyword_list],
-        map: [type: :map],
-        map_of_string_to_int: [type: {:map, :string, :integer}],
-        atom: [type: :atom],
-        integer: [type: :integer],
-        non_neg_integer: [type: :non_neg_integer],
-        pos_integer: [type: :pos_integer],
-        float: [type: :float],
-        mfa: [type: :mfa],
-        mod_arg: [type: :mod_arg],
-        string: [type: :string],
-        boolean: [type: :boolean],
-        timeout: [type: :timeout],
-        pid: [type: :pid],
-        reference: [type: :reference],
-        fun: [type: {:fun, 3}],
-        member: [type: {:in, 1..10}],
-        custom: [type: {:custom, __MODULE__, :fun, []}],
-        list_of_int: [type: {:list, :integer}],
-        list_of_list_of_int: [type: {:list, {:list, :integer}}],
-        list_of_kw: [type: {:list, {:keyword_list, []}}],
-        list_of_ne_kw: [type: {:list, {:non_empty_keyword_list, []}}],
-        union_scalar: [type: {:or, [:integer, :boolean, :float]}],
-        union_complex: [type: {:or, [{:or, [:integer, :float]}, :boolean]}],
-        struct: [type: {:struct, URI}],
-        single_element_tuple: [type: {:tuple, [{:list, :integer}]}],
-        two_element_tuple: [type: {:tuple, [:string, :atom]}]
+        name: [type: :atom],
+        context: [type: :atom],
+        stages: [type: :pos_integer]
       ]
 
       assert NimbleOptions.option_typespec(schema) ==
-               (quote do
-                  {:any, term()}
-                  | {:keyword_list, keyword()}
-                  | {:non_empty_keyword_list, keyword()}
-                  | {:map, map()}
-                  | {:map_of_string_to_int, %{optional(binary()) => integer()}}
-                  | {:atom, atom()}
-                  | {:integer, integer()}
-                  | {:non_neg_integer, non_neg_integer()}
-                  | {:pos_integer, pos_integer()}
-                  | {:float, float()}
-                  | {:mfa, {module(), atom(), [term()]}}
-                  | {:mod_arg, {module(), [term()]}}
-                  | {:string, binary()}
-                  | {:boolean, boolean()}
-                  | {:timeout, timeout()}
-                  | {:pid, pid()}
-                  | {:reference, reference()}
-                  | {:fun, (term(), term(), term() -> term())}
-                  | {:member, term()}
-                  | {:custom, term()}
-                  | {:list_of_int, [integer()]}
-                  | {:list_of_list_of_int, [[integer()]]}
-                  | {:list_of_kw, [keyword()]}
-                  | {:list_of_ne_kw, [keyword()]}
-                  | {:union_scalar, integer() | boolean() | float()}
-                  | {:union_complex, (integer() | float()) | boolean()}
-                  | {:struct, atom()}
-                  | {:single_element_tuple, {[integer()]}}
-                  | {:two_element_tuple, {binary(), atom()}}
-                end)
+               quote(do: {:name, atom()} | {:context, atom()} | {:stages, pos_integer()})
     end
+
+    test "all possible types" do
+      cases = [
+        {:any, quote(do: term())},
+        {:keyword_list, quote(do: keyword())},
+        {:non_empty_keyword_list, quote(do: keyword())},
+        {:map, quote(do: map())},
+        {{:map, :string, :integer}, quote(do: %{optional(binary()) => integer()})},
+        {:atom, quote(do: atom())},
+        {:integer, quote(do: integer())},
+        {:non_neg_integer, quote(do: non_neg_integer())},
+        {:pos_integer, quote(do: pos_integer())},
+        {:float, quote(do: float())},
+        {:mfa, quote(do: {module(), atom(), [term()]})},
+        {:mod_arg, quote(do: {module(), [term()]})},
+        {:string, quote(do: binary())},
+        {:boolean, quote(do: boolean())},
+        {:timeout, quote(do: timeout())},
+        {:pid, quote(do: pid())},
+        {:reference, quote(do: reference())},
+        {{:fun, 3}, quote(do: (term(), term(), term() -> term()))},
+        {{:in, MapSet.new([:a, :b, :c])}, quote(do: term())},
+        {{:in, 1..10}, quote(do: 1..10)},
+        {{:custom, __MODULE__, :fun, []}, quote(do: term())},
+        {{:list, :integer}, quote(do: [integer()])},
+        {{:list, {:list, :integer}}, quote(do: [[integer()]])},
+        {{:list, {:keyword_list, []}}, quote(do: [keyword()])},
+        {{:list, {:non_empty_keyword_list, []}}, quote(do: [keyword()])},
+        {{:or, [:integer, :boolean, :float]}, quote(do: integer() | boolean() | float())},
+        {{:or, [{:or, [:integer, :float]}, :boolean]},
+         quote(do: (integer() | float()) | boolean())},
+        {{:struct, URI}, quote(do: struct())},
+        {{:tuple, [{:list, :integer}]}, quote(do: {[integer()]})},
+        {{:tuple, [:string, :atom]}, quote(do: {binary(), atom()})}
+      ]
+
+      Enum.each(cases, fn {type, quoted_typespec} ->
+        actual =
+          [my_key: [type: type]]
+          |> NimbleOptions.option_typespec()
+          |> clean_context_meta()
+
+        expected = clean_context_meta(quote(do: {:my_key, unquote(quoted_typespec)}))
+
+        assert actual == expected
+      end)
+    end
+
+    # TODO: remove check when we depend on Elixir 1.12+
+    if Version.match?(System.version(), "~> 1.12") do
+      test "ranges with step" do
+        schema = [
+          range: [type: {:in, %Range{(1..10) | step: 2}}]
+        ]
+
+        expected =
+          quote do
+            {:range, term()}
+          end
+
+        assert clean_context_meta(NimbleOptions.option_typespec(schema)) ==
+                 clean_context_meta(expected)
+      end
+    end
+  end
+
+  defp clean_context_meta(ast) do
+    Macro.prewalk(ast, fn
+      {_, _, _} = tuple -> Macro.update_meta(tuple, &Keyword.delete(&1, :context))
+      other -> other
+    end)
   end
 
   @compile_time_wrapper NimbleOptions.new!(an_option: [])
