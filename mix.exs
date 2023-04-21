@@ -1,7 +1,7 @@
 defmodule NimbleOptions.MixProject do
   use Mix.Project
 
-  @version "1.0.1"
+  @version "1.0.2"
   @repo_url "https://github.com/dashbitco/nimble_options"
 
   def project do
