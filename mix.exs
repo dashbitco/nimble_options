@@ -36,7 +36,8 @@ defmodule NimbleOptions.MixProject do
   defp deps do
     [
       {:ex_doc, ">= 0.19.0", only: :dev},
-      {:excoveralls, "~> 0.16.1", only: :test}
+      {:excoveralls, "~> 0.16.1", only: :test},
+      {:ssl_verify_fun, "~> 1.1", only: :test, override: true, manager: :rebar3}
     ]
   end
 

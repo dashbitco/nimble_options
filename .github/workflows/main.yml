@@ -4,14 +4,14 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   test:
     runs-on: ubuntu-20.04
     env:
       MIX_ENV: test
-      GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
@@ -20,36 +20,48 @@ jobs:
               elixir: "1.9.4"
               otp: "20.3"
           - pair:
-              elixir: "1.14.5"
-              otp: "25.3"
+              elixir: "1.15.0"
+              otp: "26.0.1"
             lint: lint
             coverage: true
     steps:
-      - uses: actions/checkout@v3
+      - name: Check out this repository
+        uses: actions/checkout@v3
 
-      - uses: erlef/setup-beam@v1
+      - name: Install Erlang/OTP and Elixir
+        uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.pair.otp}}
           elixir-version: ${{matrix.pair.elixir}}
+          version-type: strict
 
-      - uses: actions/cache@v3
+      - name: Cache Mix dependencies
+        uses: actions/cache@v3
         with:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-${{matrix.pair.elixir}}-${{matrix.pair.otp}}-${{ hashFiles('**/mix.lock') }}
+          key: |
+            ${{ runner.os }}-mix-${{matrix.pair.elixir}}-${{matrix.pair.otp}}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-${{matrix.pair.elixir}}-${{matrix.pair.otp}}-
 
-      - run: mix deps.get
+      - name: Fetch Mix dependencies
+        run: mix deps.get
 
-      - run: mix format --check-formatted
+      - name: Check for formatted files
+        run: mix format --check-formatted
         if: ${{ matrix.lint }}
 
-      - run: mix deps.unlock --check-unused
+      - name: Check for unused dependencies
+        run: mix deps.unlock --check-unused
         if: ${{ matrix.lint }}
 
-      - run: mix deps.compile
+      - name: Compile Mix dependencies
+        run: mix deps.compile
 
-      - run: mix compile --warnings-as-errors
+      - name: Check for compilation warnings
+        run: mix compile --warnings-as-errors
         if: ${{ matrix.lint }}
 
       - run: mix test
