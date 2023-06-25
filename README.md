@@ -58,7 +58,7 @@ dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:nimble_options, "~> 0.3.0"}
+    {:nimble_options, "~> 1.0"}
   ]
 end
 ```
