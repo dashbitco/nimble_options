@@ -309,7 +309,7 @@ defmodule NimbleOptions do
   @type t() :: %__MODULE__{schema: schema()}
 
   @doc """
-  Validate the given `options` with the given `schema`.
+  Validates the given `options` with the given `schema`.
 
   See the module documentation for what a `schema` is.
 
