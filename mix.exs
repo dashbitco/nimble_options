@@ -51,9 +51,14 @@ defmodule NimbleOptions.MixProject do
   defp docs do
     [
       main: "NimbleOptions",
+      extras: [
+        "CHANGELOG.md": [title: "Changelog"],
+        "LICENSE.md": [title: "License"]
+      ],
       source_ref: "v#{@version}",
       source_url: @repo_url,
-      extras: ["CHANGELOG.md": [title: "Changelog"]]
+      formatters: ["html"],
+      skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
     ]
   end
 end
