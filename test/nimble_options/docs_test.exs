@@ -303,6 +303,7 @@ defmodule NimbleOptions.DocsTest do
         list_of_ints: [type: {:list, :integer}],
         nested_list_of_ints: [type: {:list, {:list, :integer}}],
         list_of_kws: [type: {:list, {:keyword_list, []}}],
+        list_of_maps: [type: {:list, {:map, []}}],
         map: [type: :map],
         map_of_strings: [type: {:map, :string, :string}],
         tuple: [type: {:tuple, [:integer, :atom, {:list, :string}]}],
@@ -331,6 +332,8 @@ defmodule NimbleOptions.DocsTest do
              * `:nested_list_of_ints` (list of list of `t:integer/0`)
 
              * `:list_of_kws` (list of `t:keyword/0`)
+
+             * `:list_of_maps` (list of `t:map/0`)
 
              * `:map` (`t:map/0`)
 
