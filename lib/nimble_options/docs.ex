@@ -130,6 +130,7 @@ defmodule NimbleOptions.Docs do
   defp get_raw_type_str(:string), do: "`t:String.t/0`"
   defp get_raw_type_str(:keyword_list), do: "`t:keyword/0`"
   defp get_raw_type_str(:non_empty_keyword_list), do: "non-empty `t:keyword/0`"
+  defp get_raw_type_str({:map, _keys}), do: "`t:map/0`"
   defp get_raw_type_str({:keyword_list, _keys}), do: "`t:keyword/0`"
   defp get_raw_type_str({:non_empty_keyword_list, _keys}), do: "non-empty `t:keyword/0`"
   defp get_raw_type_str(:map), do: "`t:map/0`"
