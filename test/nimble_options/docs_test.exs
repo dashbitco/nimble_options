@@ -299,6 +299,7 @@ defmodule NimbleOptions.DocsTest do
         kw: [type: :keyword_list],
         nonempty_kw: [type: :non_empty_keyword_list],
         int: [type: :integer],
+        num: [type: :number],
         ref: [type: :reference],
         list_of_ints: [type: {:list, :integer}],
         nested_list_of_ints: [type: {:list, {:list, :integer}}],
@@ -324,6 +325,8 @@ defmodule NimbleOptions.DocsTest do
              * `:nonempty_kw` (non-empty `t:keyword/0`)
 
              * `:int` (`t:integer/0`)
+
+             * `:num` (`t:number/0`)
 
              * `:ref` (`t:reference/0`)
 

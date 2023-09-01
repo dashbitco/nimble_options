@@ -110,6 +110,8 @@ defmodule NimbleOptions do
 
     * `:float` - A float.
 
+    * `:number` - A number.
+
     * `:timeout` - A non-negative integer or the atom `:infinity`.
 
     * `:pid` - A PID (process identifier).
@@ -283,6 +285,7 @@ defmodule NimbleOptions do
     :non_neg_integer,
     :pos_integer,
     :float,
+    :number,
     :mfa,
     :mod_arg,
     :string,
@@ -600,6 +603,14 @@ defmodule NimbleOptions do
       key,
       value,
       "invalid value for #{render_key(key)}: expected float, got: #{inspect(value)}"
+    )
+  end
+
+  defp validate_type(:number, key, value) when not is_number(value) do
+    error_tuple(
+      key,
+      value,
+      "invalid value for #{render_key(key)}: expected number, got: #{inspect(value)}"
     )
   end
 

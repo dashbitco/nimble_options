@@ -40,7 +40,7 @@ defmodule NimbleOptionsTest do
       Reason: invalid value for :type option: unknown type :foo.
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :map, :atom, \
-      :integer, :non_neg_integer, :pos_integer, :float, :mfa, :mod_arg, :string, :boolean, :timeout, \
+      :integer, :non_neg_integer, :pos_integer, :float, :number, :mfa, :mod_arg, :string, :boolean, :timeout, \
       :pid, :reference, nil, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
       {:list, subtype}, {:tuple, list_of_subtypes}, {:map, key_type, value_type}, {:struct, struct_name} \
       (in options [:stages])\
@@ -299,6 +299,26 @@ defmodule NimbleOptionsTest do
                   key: :certainty,
                   value: :an_atom,
                   message: "invalid value for :certainty option: expected float, got: :an_atom"
+                }}
+    end
+
+    test "valid number" do
+      schema = [multiplier: [type: :number]]
+
+      assert NimbleOptions.validate([multiplier: 1], schema) == {:ok, [multiplier: 1]}
+      assert NimbleOptions.validate([multiplier: 2.3], schema) == {:ok, [multiplier: 2.3]}
+      assert NimbleOptions.validate([multiplier: -4], schema) == {:ok, [multiplier: -4]}
+    end
+
+    test "invalid number" do
+      schema = [multiplier: [type: :number]]
+
+      assert NimbleOptions.validate([multiplier: :an_atom], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :multiplier,
+                  value: :an_atom,
+                  message: "invalid value for :multiplier option: expected number, got: :an_atom"
                 }}
     end
 
