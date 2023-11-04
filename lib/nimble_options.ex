@@ -65,7 +65,7 @@ defmodule NimbleOptions do
           type: :string,
           doc: """
           The version of the application/library when the option was added. Only used
-          for documentation purposes.
+          for documentation purposes. *Available since v1.0.0*.
           """
         ]
       ]
