@@ -72,7 +72,7 @@ defmodule NimbleOptionsTest do
       Reason: \
       unknown options [:unknown_schema_option], \
       valid options are: [:type, :required, :default, :keys, \
-      :deprecated, :doc, :subsection, :type_doc] \
+      :deprecated, :doc, :subsection, :type_doc, :since] \
       (in options [:producers, :keys, :*, :keys, :module])\
       """
 

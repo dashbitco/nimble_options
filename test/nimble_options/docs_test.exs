@@ -345,6 +345,29 @@ defmodule NimbleOptions.DocsTest do
 
              """
     end
+
+    test "uses the :since schema option" do
+      schema = [
+        str_without_default: [
+          type: :string,
+          doc: "Some doc.",
+          since: "10.0.0"
+        ],
+        str_with_default: [
+          type: :string,
+          doc: "Some doc.",
+          since: "11.0.0",
+          default: "dflt"
+        ]
+      ]
+
+      assert NimbleOptions.docs(schema) == """
+             * `:str_without_default` (`t:String.t/0`) - Some doc. *Available since version 10.0.0*.
+
+             * `:str_with_default` (`t:String.t/0`) - Some doc. The default value is `"dflt"`. *Available since version 11.0.0*.
+
+             """
+    end
   end
 
   defp recursive_schema() do

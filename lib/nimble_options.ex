@@ -60,6 +60,13 @@ defmodule NimbleOptions do
           if `type: :integer`, NimbleOptions will use `t:integer/0` as the
           auto-generated type doc.
           """
+        ],
+        since: [
+          type: :string,
+          doc: """
+          The version of the application/library when the option was added. Only used
+          for documentation purposes.
+          """
         ]
       ]
     ]

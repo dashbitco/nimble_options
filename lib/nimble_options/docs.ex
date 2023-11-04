@@ -47,6 +47,7 @@ defmodule NimbleOptions.Docs do
       get_required_str(schema)
       |> get_doc_str(schema)
       |> get_default_str(schema)
+      |> get_since_str(schema)
       |> case do
         nil -> ""
         parts -> indent_doc(" - " <> parts, desc_indent)
@@ -90,6 +91,22 @@ defmodule NimbleOptions.Docs do
         prev_str <> "\n\n" <> default_str
       else
         space_concat(prev_str, default_str)
+      end
+    else
+      prev_str
+    end
+  end
+
+  defp get_since_str(prev_str, schema) do
+    if Keyword.has_key?(schema, :since) do
+      since_str = "*Available since version #{schema[:since]}*."
+
+      # If the documentation contains multiple lines,
+      # the default must be in a trailing line.
+      if prev_str && String.contains?(prev_str, ["\r\n", "\n\n"]) do
+        prev_str <> "\n\n" <> since_str
+      else
+        space_concat(prev_str, since_str)
       end
     else
       prev_str
