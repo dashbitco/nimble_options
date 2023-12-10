@@ -1799,6 +1799,18 @@ defmodule NimbleOptionsTest do
       end)
     end
 
+    test "supports overriding specific specs with the :type_spec schema option" do
+      schema = [
+        name: [
+          type: :any,
+          type_spec: quote(do: atom())
+        ]
+      ]
+
+      assert NimbleOptions.option_typespec(schema) ==
+               quote(do: {:name, atom()})
+    end
+
     # TODO: remove check when we depend on Elixir 1.12+
     if Version.match?(System.version(), "~> 1.12") do
       test "ranges with step" do

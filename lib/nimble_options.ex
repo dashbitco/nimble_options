@@ -60,6 +60,19 @@ defmodule NimbleOptions do
           if `type: :integer`, NimbleOptions will use `t:integer/0` as the
           auto-generated type doc.
           """
+        ],
+        type_spec: [
+          type_spec: :any,
+          doc: """
+          The quoted spec to use *in the typespec* for the option item. You should use this
+          when the auto-generated spec is not specific enough. For example, if you are performing
+          custom validation on an option (with the `{:custom, ...}` type), then the
+          generated type spec for that option will always be `t:term/0`, but you can use
+          this option to customize that. The value for this option **must** be a quoted Elixir
+          term. For example, if you have an `:exception` option that is validated with a
+          `{:custom, ...}` type (based on `is_exception/1`), you can override the type
+          spec for that option to be `quote(do: Exception.t())`. *Available since v1.1.0*.
+          """
         ]
       ]
     ]
