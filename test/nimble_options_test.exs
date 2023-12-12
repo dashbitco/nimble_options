@@ -72,7 +72,7 @@ defmodule NimbleOptionsTest do
       Reason: \
       unknown options [:unknown_schema_option], \
       valid options are: [:type, :required, :default, :keys, \
-      :deprecated, :doc, :subsection, :type_doc] \
+      :deprecated, :doc, :subsection, :type_doc, :type_spec] \
       (in options [:producers, :keys, :*, :keys, :module])\
       """
 
@@ -1797,6 +1797,18 @@ defmodule NimbleOptionsTest do
 
         assert actual == expected
       end)
+    end
+
+    test "supports overriding specific specs with the :type_spec schema option" do
+      schema = [
+        name: [
+          type: :any,
+          type_spec: quote(do: atom())
+        ]
+      ]
+
+      assert NimbleOptions.option_typespec(schema) ==
+               quote(do: {:name, atom()})
     end
 
     # TODO: remove check when we depend on Elixir 1.12+

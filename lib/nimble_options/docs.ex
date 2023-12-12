@@ -171,7 +171,9 @@ defmodule NimbleOptions.Docs do
   def schema_to_spec(schema) do
     schema
     |> Enum.map(fn {key, opt_schema} ->
-      typespec = type_to_spec(opt_schema[:type])
+      typespec =
+        Keyword.get_lazy(opt_schema, :type_spec, fn -> type_to_spec(opt_schema[:type]) end)
+
       quote do: {unquote(key), unquote(typespec)}
     end)
     |> unionize_quoted()
