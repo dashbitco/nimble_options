@@ -16,14 +16,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Latest versions
+          - pair:
+              elixir: "1.15"
+              otp: "26.2"
+            lint: lint
+            coverage: true
+
+          # Oldest supported versions
           - pair:
               elixir: "1.9.4"
               otp: "20.3.8"
-          - pair:
-              elixir: "1.15.0"
-              otp: "26.0.1"
-            lint: lint
-            coverage: true
     steps:
       - name: Check out this repository
         uses: actions/checkout@v3
@@ -31,8 +34,8 @@ jobs:
       - name: Install Erlang/OTP and Elixir
         uses: erlef/setup-beam@v1
         with:
-          otp-version: ${{matrix.pair.otp}}
-          elixir-version: ${{matrix.pair.elixir}}
+          otp-version: ${{ matrix.pair.otp }}
+          elixir-version: ${{ matrix.pair.elixir }}
           version-type: strict
 
       - name: Cache Mix dependencies
@@ -42,12 +45,12 @@ jobs:
             deps
             _build
           key: |
-            ${{ runner.os }}-mix-${{matrix.pair.elixir}}-${{matrix.pair.otp}}-${{ hashFiles('**/mix.lock') }}
+            ${{ runner.os }}-mix-${{ matrix.pair.elixir }}-${{ matrix.pair.otp }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-${{matrix.pair.elixir}}-${{matrix.pair.otp}}-
+            ${{ runner.os }}-mix-${{ matrix.pair.elixir }}-${{ matrix.pair.otp }}-
 
-      - name: Fetch Mix dependencies
-        run: mix deps.get
+      - name: Fetch Mix dependencies (and check mix.lock)
+        run: mix deps.get --check-locked
 
       - name: Check for formatted files
         run: mix format --check-formatted
