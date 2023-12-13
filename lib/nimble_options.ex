@@ -62,7 +62,7 @@ defmodule NimbleOptions do
           """
         ],
         type_spec: [
-          type_spec: :any,
+          type: :any,
           doc: """
           The quoted spec to use *in the typespec* for the option item. You should use this
           when the auto-generated spec is not specific enough. For example, if you are performing
