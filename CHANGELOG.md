@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.0 (2023-12-13)
+
+  * Add a `:type_spec` option to specify a quoted type spec for options.
+
 ## v1.0.2 (2023-04-21)
 
   * Improve typespec generation for ranges and structs.
