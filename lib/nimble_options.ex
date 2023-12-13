@@ -41,6 +41,7 @@ defmodule NimbleOptions do
         ],
         doc: [
           type: {:or, [:string, {:in, [false]}]},
+          type_doc: "`t:String.t/0` or `false`",
           doc: "The documentation for the option item."
         ],
         subsection: [
@@ -49,6 +50,7 @@ defmodule NimbleOptions do
         ],
         type_doc: [
           type: {:or, [:string, {:in, [false]}]},
+          type_doc: "`t:String.t/0` or `false`",
           doc: """
           The type doc to use *in the documentation* for the option item. If `false`,
           no type documentation is added to the item. If it's a string, it can be
@@ -63,6 +65,7 @@ defmodule NimbleOptions do
         ],
         type_spec: [
           type: :any,
+          type_doc: "`t:Macro.t/0`",
           doc: """
           The quoted spec to use *in the typespec* for the option item. You should use this
           when the auto-generated spec is not specific enough. For example, if you are performing
