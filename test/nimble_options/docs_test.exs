@@ -341,7 +341,7 @@ defmodule NimbleOptions.DocsTest do
 
              * `:tuple` (tuple of `t:integer/0`, `t:atom/0`, list of `t:String.t/0` values)
 
-             * `:struct` (struct of type URI)
+             * `:struct` (struct of type `URI`)
 
              """
     end
