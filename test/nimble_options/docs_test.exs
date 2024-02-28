@@ -236,6 +236,22 @@ defmodule NimbleOptions.DocsTest do
       assert NimbleOptions.docs(schema) == docs
     end
 
+    test "generates deprecated information" do
+      schema = [
+        old: [type: :atom, doc: "Old option.", deprecated: "Use `:new` instead."],
+        new: [type: :string, doc: "New option."]
+      ]
+
+      docs = """
+      * `:old` (`t:atom/0`) - This option is deprecated. Use `:new` instead. Old option.
+
+      * `:new` (`t:String.t/0`) - New option.
+
+      """
+
+      assert NimbleOptions.docs(schema) == docs
+    end
+
     test "the option doesn't appear in the documentation when the :doc option is false" do
       schema = [
         name: [type: :atom, doc: "An atom."],
