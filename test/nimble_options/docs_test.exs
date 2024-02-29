@@ -243,7 +243,7 @@ defmodule NimbleOptions.DocsTest do
       ]
 
       docs = """
-      * `:old` (`t:atom/0`) - This option is deprecated. Use `:new` instead. Old option.
+      * `:old` (`t:atom/0`) - *This option is deprecated. Use `:new` instead.* Old option.
 
       * `:new` (`t:String.t/0`) - New option.
 

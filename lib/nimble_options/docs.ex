@@ -80,7 +80,7 @@ defmodule NimbleOptions.Docs do
   defp get_deprecated_str(prev_str, schema) do
     space_concat(
       prev_str,
-      schema[:deprecated] && "This option is deprecated. #{String.trim(schema[:deprecated])}"
+      schema[:deprecated] && "*This option is deprecated. #{String.trim(schema[:deprecated])}*"
     )
   end
 
