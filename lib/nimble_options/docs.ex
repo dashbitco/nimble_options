@@ -45,6 +45,7 @@ defmodule NimbleOptions.Docs do
 
     description =
       get_required_str(schema)
+      |> get_deprecated_str(schema)
       |> get_doc_str(schema)
       |> get_default_str(schema)
       |> case do
@@ -74,6 +75,13 @@ defmodule NimbleOptions.Docs do
 
   defp get_required_str(schema) do
     if schema[:required], do: "Required."
+  end
+
+  defp get_deprecated_str(prev_str, schema) do
+    space_concat(
+      prev_str,
+      schema[:deprecated] && "*This option is deprecated. #{String.trim(schema[:deprecated])}*"
+    )
   end
 
   defp get_doc_str(prev_str, schema) do
