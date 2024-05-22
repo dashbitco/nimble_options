@@ -335,8 +335,8 @@ defmodule NimbleOptions do
   `NimbleOptions.ValidationError` struct explaining what's wrong with the options.
   You can use `raise/1` with that struct or `Exception.message/1` to turn it into a string.
   """
-  @spec validate(keyword(), schema() | t()) ::
-          {:ok, validated_options :: keyword()} | {:error, ValidationError.t()}
+  @spec validate(keyword() | map(), schema() | t()) ::
+          {:ok, validated_options :: keyword() | map()} | {:error, ValidationError.t()}
 
   def validate(options, %NimbleOptions{schema: schema}) do
     validate_options_with_schema(options, schema)
@@ -352,7 +352,7 @@ defmodule NimbleOptions do
   This function behaves exactly like `validate/2`, but returns the options directly
   if they're valid or raises a `NimbleOptions.ValidationError` exception otherwise.
   """
-  @spec validate!(keyword(), schema() | t()) :: validated_options :: keyword()
+  @spec validate!(keyword() | map(), schema() | t()) :: validated_options :: keyword() | map()
   def validate!(options, schema) do
     case validate(options, schema) do
       {:ok, options} -> options
