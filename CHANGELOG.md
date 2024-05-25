@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.1.1 (2024-05-25)
+
+  * Fix typespecs to avoid Dialyzer warnings
+  * Do not list default values as part of received options
+  * Mark structs in backticks for doc references
+  * List deprecations in docs
+
 ## v1.1.0 (2023-12-13)
 
   * Add a `:type_spec` option to specify a quoted type spec for options.
