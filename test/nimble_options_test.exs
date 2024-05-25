@@ -116,6 +116,22 @@ defmodule NimbleOptionsTest do
                }
              }
     end
+
+    test "is not treated as values of received options when showing validation error" do
+      # It is intentional to define options with default values at the beginning of the list.
+      # Don't change the order of them.
+      schema = [age: [type: :non_neg_integer, default: 10], name: [type: :string, required: true]]
+
+      assert NimbleOptions.validate([], schema) == {
+               :error,
+               %NimbleOptions.ValidationError{
+                 key: :name,
+                 keys_path: [],
+                 message: "required :name option not found, received options: []",
+                 value: nil
+               }
+             }
+    end
   end
 
   describe ":required" do

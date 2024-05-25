@@ -505,7 +505,7 @@ defmodule NimbleOptions do
     schema = expand_star_to_option_keys(schema, opts)
 
     with :ok <- validate_unknown_options(opts, schema),
-         {:ok, options} <- validate_options(schema, opts) do
+         {:ok, options} <- validate_options(opts, schema) do
       {:ok, options}
     else
       {:error, %ValidationError{} = error} ->
@@ -529,33 +529,36 @@ defmodule NimbleOptions do
     end
   end
 
-  defp validate_options(schema, opts) do
-    case Enum.reduce_while(schema, opts, &reduce_options/2) do
+  defp validate_options(opts, schema) do
+    orig_opts = opts
+
+    case Enum.reduce_while(schema, {opts, orig_opts}, &reduce_options/2) do
       {:error, %ValidationError{}} = result -> result
-      result -> {:ok, result}
+      {opts, _orig_opts} -> {:ok, opts}
     end
   end
 
-  defp reduce_options({key, schema_opts}, opts) do
-    case validate_option(opts, key, schema_opts) do
+  defp reduce_options({key, schema_opts}, {opts, orig_opts}) do
+    case validate_option({opts, orig_opts}, key, schema_opts) do
       {:error, %ValidationError{}} = result ->
         {:halt, result}
 
       {:ok, value} ->
-        {:cont, Keyword.update(opts, key, value, fn _ -> value end)}
+        opts = Keyword.update(opts, key, value, fn _ -> value end)
+        {:cont, {opts, orig_opts}}
 
       :no_value ->
         if Keyword.has_key?(schema_opts, :default) do
           opts_with_default = Keyword.put(opts, key, schema_opts[:default])
-          reduce_options({key, schema_opts}, opts_with_default)
+          reduce_options({key, schema_opts}, {opts_with_default, orig_opts})
         else
-          {:cont, opts}
+          {:cont, {opts, orig_opts}}
         end
     end
   end
 
-  defp validate_option(opts, key, schema) do
-    with {:ok, value} <- validate_value(opts, key, schema),
+  defp validate_option({opts, orig_opts}, key, schema) do
+    with {:ok, value} <- validate_value({opts, orig_opts}, key, schema),
          {:ok, value} <- validate_type(schema[:type], key, value) do
       if nested_schema = schema[:keys] do
         validate_options_with_schema_and_path(value, nested_schema, _path = [key])
@@ -565,7 +568,7 @@ defmodule NimbleOptions do
     end
   end
 
-  defp validate_value(opts, key, schema) do
+  defp validate_value({opts, orig_opts}, key, schema) do
     cond do
       Keyword.has_key?(opts, key) ->
         if message = Keyword.get(schema, :deprecated) do
@@ -579,7 +582,7 @@ defmodule NimbleOptions do
           key,
           nil,
           "required #{render_key(key)} not found, received options: " <>
-            inspect(Keyword.keys(opts))
+            inspect(Keyword.keys(orig_opts))
         )
 
       true ->
