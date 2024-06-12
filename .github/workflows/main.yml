@@ -18,8 +18,8 @@ jobs:
         include:
           # Latest versions
           - pair:
-              elixir: "1.16"
-              otp: "26.2"
+              elixir: "1.17"
+              otp: "27.0"
             lint: lint
             coverage: true
 
