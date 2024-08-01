@@ -1735,6 +1735,32 @@ defmodule NimbleOptionsTest do
     end
   end
 
+  # No other test is passing in `opts` as a map, so these are just some white box tests for sanity checking
+  describe "can use a map for validate/2" do
+    schema = []
+    opts = %{}
+    assert NimbleOptions.validate(opts, schema) == {:ok, %{}}
+
+    schema = [
+      name: [type: :string, required: true],
+      context: [type: :atom, required: false]
+    ]
+
+    opts = %{}
+
+    assert NimbleOptions.validate(opts, schema) ==
+             {:error,
+              %ValidationError{
+                key: :name,
+                value: nil,
+                keys_path: [],
+                message: "required :name option not found, received options: []"
+              }}
+
+    opts = %{name: "primary 1"}
+    assert NimbleOptions.validate(opts, schema) == {:ok, %{name: "primary 1"}}
+  end
+
   describe "validate!/2 (raising version)" do
     test "returns the direct options if the options are valid" do
       schema = [name: [], context: []]
