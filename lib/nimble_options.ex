@@ -342,7 +342,7 @@ defmodule NimbleOptions do
     validate_options_with_schema(options, schema)
   end
 
-  def validate(options, schema) when is_list(options) and is_list(schema) do
+  def validate(options, schema) when (is_list(options) or is_map(options)) and is_list(schema) do
     validate(options, new!(schema))
   end
 
