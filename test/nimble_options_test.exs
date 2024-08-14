@@ -290,6 +290,26 @@ defmodule NimbleOptionsTest do
                 }}
     end
 
+    test "redacted invalid integer" do
+      schema = [min_demand: [type: :integer, redact: true]]
+
+      assert NimbleOptions.validate([min_demand: 1.5], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :min_demand,
+                  value: 1.5,
+                  message: "invalid value for :min_demand option: expected integer"
+                }}
+
+      assert NimbleOptions.validate([min_demand: :an_atom], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :min_demand,
+                  value: :an_atom,
+                  message: "invalid value for :min_demand option: expected integer"
+                }}
+    end
+
     test "valid non negative integer" do
       schema = [min_demand: [type: :non_neg_integer]]
       opts = [min_demand: 0]
