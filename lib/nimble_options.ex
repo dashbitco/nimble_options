@@ -76,6 +76,14 @@ defmodule NimbleOptions do
           `{:custom, ...}` type (based on `is_exception/1`), you can override the type
           spec for that option to be `quote(do: Exception.t())`. *Available since v1.1.0*.
           """
+        ],
+        redact: [
+          default: false,
+          type: :boolean,
+          doc: """
+          Ensures that sensitive information is not included in error messages and hides any
+          sensitive values when inspecting the `NimbleOptions.ValidationError` struct.
+          """
         ]
       ]
     ]
@@ -559,7 +567,12 @@ defmodule NimbleOptions do
 
   defp validate_option({opts, orig_opts}, key, schema) do
     with {:ok, value} <- validate_value({opts, orig_opts}, key, schema),
-         {:ok, value} <- validate_type(schema[:type], key, value) do
+         # NOTE: This is just for testing purposes. Will be removed.
+         {:ok, value} <-
+           if(schema[:type] == :integer,
+             do: validate_type(schema[:type], key, value, schema[:redact]),
+             else: validate_type(schema[:type], key, value)
+           ) do
       if nested_schema = schema[:keys] do
         validate_options_with_schema_and_path(value, nested_schema, _path = [key])
       else
@@ -590,12 +603,18 @@ defmodule NimbleOptions do
     end
   end
 
-  defp validate_type(:integer, key, value) when not is_integer(value) do
+  defp validate_type(:integer, key, value, redact) when not is_integer(value) do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected integer, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected integer",
+      ", got: #{inspect(value)}",
+      redact
     )
+  end
+
+  defp validate_type(_type, _key, value, _redact) do
+    {:ok, value}
   end
 
   defp validate_type(:non_neg_integer, key, value) when not is_integer(value) or value < 0 do
@@ -1081,6 +1100,18 @@ defmodule NimbleOptions do
 
   def validate_type(value) do
     {:error, "unknown type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
+  end
+
+  defp error_tuple(key, value, message, nil, _) do
+    error_tuple(key, value, message)
+  end
+
+  defp error_tuple(key, value, message, _, true) do
+    error_tuple(key, value, message)
+  end
+
+  defp error_tuple(key, value, message, unredacted_message, false) do
+    error_tuple(key, value, message <> unredacted_message)
   end
 
   defp error_tuple(key, value, message) do

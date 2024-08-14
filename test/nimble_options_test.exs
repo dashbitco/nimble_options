@@ -72,7 +72,7 @@ defmodule NimbleOptionsTest do
       Reason: \
       unknown options [:unknown_schema_option], \
       valid options are: [:type, :required, :default, :keys, \
-      :deprecated, :doc, :subsection, :type_doc, :type_spec] \
+      :deprecated, :doc, :subsection, :type_doc, :type_spec, :redact] \
       (in options [:producers, :keys, :*, :keys, :module])\
       """
 
@@ -129,6 +129,34 @@ defmodule NimbleOptionsTest do
                  keys_path: [],
                  message: "required :name option not found, received options: []",
                  value: nil
+               }
+             }
+    end
+
+    test "is redacted" do
+      schema = [
+        processors: [
+          type: :keyword_list,
+          default: [],
+          keys: [
+            stages: [
+              type: :integer,
+              default: "10",
+              redact: true
+            ]
+          ]
+        ]
+      ]
+
+      opts = [processors: []]
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %ValidationError{
+                 key: :stages,
+                 keys_path: [:processors],
+                 message: "invalid value for :stages option: expected integer",
+                 value: "10"
                }
              }
     end
