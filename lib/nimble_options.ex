@@ -83,6 +83,7 @@ defmodule NimbleOptions do
           doc: """
           Ensures that sensitive information is not included in error messages and hides any
           sensitive values when inspecting the `NimbleOptions.ValidationError` struct.
+          *Available since v1.2.0*.
           """
         ]
       ]
