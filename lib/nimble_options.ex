@@ -567,13 +567,10 @@ defmodule NimbleOptions do
   end
 
   defp validate_option({opts, orig_opts}, key, schema) do
-    with {:ok, value} <- validate_value({opts, orig_opts}, key, schema),
-         # NOTE: This is just for testing purposes. Will be removed.
+    with {:ok, value} <-
+           validate_value({opts, orig_opts}, key, schema),
          {:ok, value} <-
-           if(schema[:type] == :integer,
-             do: validate_type(schema[:type], key, value, schema[:redact]),
-             else: validate_type(schema[:type], key, value)
-           ) do
+           validate_type(schema[:type], key, value, Keyword.get(schema, :redact, false)) do
       if nested_schema = schema[:keys] do
         validate_options_with_schema_and_path(value, nested_schema, _path = [key])
       else
@@ -614,100 +611,117 @@ defmodule NimbleOptions do
     )
   end
 
-  defp validate_type(_type, _key, value, _redact) do
-    {:ok, value}
-  end
-
-  defp validate_type(:non_neg_integer, key, value) when not is_integer(value) or value < 0 do
+  defp validate_type(:non_neg_integer, key, value, redact)
+       when not is_integer(value) or value < 0 do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected non negative integer, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected non negative integer",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type(:pos_integer, key, value) when not is_integer(value) or value < 1 do
+  defp validate_type(:pos_integer, key, value, redact) when not is_integer(value) or value < 1 do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected positive integer, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected positive integer",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type(:float, key, value) when not is_float(value) do
+  defp validate_type(:float, key, value, redact) when not is_float(value) do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected float, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected float",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type(:atom, key, value) when not is_atom(value) do
+  defp validate_type(:atom, key, value, redact) when not is_atom(value) do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected atom, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected atom",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type(:timeout, key, value)
+  defp validate_type(:timeout, key, value, redact)
        when not (value == :infinity or (is_integer(value) and value >= 0)) do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected non-negative integer or :infinity, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected non-negative integer or :infinity",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type(:string, key, value) when not is_binary(value) do
+  defp validate_type(:string, key, value, redact) when not is_binary(value) do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected string, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected string",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type(:boolean, key, value) when not is_boolean(value) do
+  defp validate_type(:boolean, key, value, redact) when not is_boolean(value) do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected boolean, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected boolean",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type(:keyword_list, key, value) do
+  defp validate_type(:keyword_list, key, value, redact) do
     if keyword_list?(value) do
       {:ok, value}
     else
       error_tuple(
         key,
         value,
-        "invalid value for #{render_key(key)}: expected keyword list, got: #{inspect(value)}"
+        "invalid value for #{render_key(key)}: expected keyword list",
+        ", got: #{inspect(value)}",
+        redact
       )
     end
   end
 
-  defp validate_type(:non_empty_keyword_list, key, value) do
+  defp validate_type(:non_empty_keyword_list, key, value, redact) do
     if keyword_list?(value) and value != [] do
       {:ok, value}
     else
       error_tuple(
         key,
         value,
-        "invalid value for #{render_key(key)}: expected non-empty keyword list, got: #{inspect(value)}"
+        "invalid value for #{render_key(key)}: expected non-empty keyword list",
+        ", got: #{inspect(value)}",
+        redact
       )
     end
   end
 
-  defp validate_type(:map, key, value) do
-    validate_type({:map, :atom, :any}, key, value)
+  defp validate_type(:map, key, value, redact) do
+    validate_type({:map, :atom, :any}, key, value, redact)
   end
 
-  defp validate_type({:map, key_type, value_type}, key, map) when is_map(map) do
+  defp validate_type({:map, key_type, value_type}, key, map, redact) when is_map(map) do
     map
     |> Enum.reduce_while([], fn {key, value}, acc ->
-      with {:ok, updated_key} <- validate_type(key_type, {__MODULE__, :key}, key),
-           {:ok, updated_value} <- validate_type(value_type, {__MODULE__, :value, key}, value) do
+      with {:ok, updated_key} <-
+             validate_type(key_type, {__MODULE__, :key}, key, false),
+           {:ok, updated_value} <-
+             validate_type(value_type, {__MODULE__, :value, key}, value, redact) do
         {:cont, [{updated_key, updated_value} | acc]}
       else
         {:error, %ValidationError{} = error} -> {:halt, error}
@@ -722,64 +736,74 @@ defmodule NimbleOptions do
     end
   end
 
-  defp validate_type({:map, _, _}, key, value) do
+  defp validate_type({:map, _, _}, key, value, redact) do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected map, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected map",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type(:pid, _key, value) when is_pid(value) do
+  defp validate_type(:pid, _key, value, _redact) when is_pid(value) do
     {:ok, value}
   end
 
-  defp validate_type(:pid, key, value) do
+  defp validate_type(:pid, key, value, redact) do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected pid, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected pid",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type(:reference, _key, value) when is_reference(value) do
+  defp validate_type(:reference, _key, value, _redact) when is_reference(value) do
     {:ok, value}
   end
 
-  defp validate_type(:reference, key, value) do
+  defp validate_type(:reference, key, value, redact) do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected reference, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected reference",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type(:mfa, _key, {mod, fun, args} = value)
+  defp validate_type(:mfa, _key, {mod, fun, args} = value, _redact)
        when is_atom(mod) and is_atom(fun) and is_list(args) do
     {:ok, value}
   end
 
-  defp validate_type(:mfa, key, value) when not is_nil(value) do
+  defp validate_type(:mfa, key, value, redact) when not is_nil(value) do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected tuple {mod, fun, args}, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected tuple {mod, fun, args}",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type(:mod_arg, _key, {mod, _arg} = value) when is_atom(mod) do
+  defp validate_type(:mod_arg, _key, {mod, _arg} = value, _redact) when is_atom(mod) do
     {:ok, value}
   end
 
-  defp validate_type(:mod_arg, key, value) do
+  defp validate_type(:mod_arg, key, value, redact) do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected tuple {mod, arg}, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected tuple {mod, arg}",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type({:fun, arity}, key, value) do
+  defp validate_type({:fun, arity}, key, value, redact) do
     if is_function(value) do
       case :erlang.fun_info(value, :arity) do
         {:arity, ^arity} ->
@@ -789,31 +813,37 @@ defmodule NimbleOptions do
           error_tuple(
             key,
             value,
-            "invalid value for #{render_key(key)}: expected function of arity #{arity}, got: function of arity #{inspect(fun_arity)}"
+            "invalid value for #{render_key(key)}: expected function of arity #{arity}",
+            ", got: function of arity #{inspect(fun_arity)}",
+            redact
           )
       end
     else
       error_tuple(
         key,
         value,
-        "invalid value for #{render_key(key)}: expected function of arity #{arity}, got: #{inspect(value)}"
+        "invalid value for #{render_key(key)}: expected function of arity #{arity}",
+        ", got: #{inspect(value)}",
+        redact
       )
     end
   end
 
-  defp validate_type(nil, key, value) do
+  defp validate_type(nil, key, value, redact) do
     if is_nil(value) do
       {:ok, value}
     else
       error_tuple(
         key,
         value,
-        "invalid value for #{render_key(key)}: expected nil, got: #{inspect(value)}"
+        "invalid value for #{render_key(key)}: expected nil",
+        ", got: #{inspect(value)}",
+        redact
       )
     end
   end
 
-  defp validate_type({:custom, mod, fun, args}, key, value) do
+  defp validate_type({:custom, mod, fun, args}, key, value, _redact) do
     case apply(mod, fun, [value | args]) do
       {:ok, value} ->
         {:ok, value}
@@ -827,19 +857,21 @@ defmodule NimbleOptions do
     end
   end
 
-  defp validate_type({:in, choices}, key, value) do
+  defp validate_type({:in, choices}, key, value, redact) do
     if value in choices do
       {:ok, value}
     else
       error_tuple(
         key,
         value,
-        "invalid value for #{render_key(key)}: expected one of #{inspect(choices)}, got: #{inspect(value)}"
+        "invalid value for #{render_key(key)}: expected one of #{inspect(choices)}",
+        ", got: #{inspect(value)}",
+        redact
       )
     end
   end
 
-  defp validate_type({:or, subtypes}, key, value) do
+  defp validate_type({:or, subtypes}, key, value, redact) do
     result =
       Enum.reduce_while(subtypes, _errors = [], fn subtype, errors_acc ->
         {subtype, nested_schema} =
@@ -851,7 +883,7 @@ defmodule NimbleOptions do
               {other, _nested_schema = nil}
           end
 
-        case validate_type(subtype, key, value) do
+        case validate_type(subtype, key, value, redact) do
           {:ok, value} when not is_nil(nested_schema) ->
             case validate_options_with_schema_and_path(value, nested_schema, _path = [key]) do
               {:ok, value} -> {:halt, {:ok, value}}
@@ -880,7 +912,7 @@ defmodule NimbleOptions do
     end
   end
 
-  defp validate_type({:list, subtype}, key, value) when is_list(value) do
+  defp validate_type({:list, subtype}, key, value, redact) when is_list(value) do
     {subtype, nested_schema} =
       case subtype do
         {type, keys} when type in [:keyword_list, :non_empty_keyword_list, :map] ->
@@ -892,7 +924,7 @@ defmodule NimbleOptions do
 
     updated_elements =
       for {elem, index} <- Stream.with_index(value) do
-        case validate_type(subtype, {__MODULE__, :list, index}, elem) do
+        case validate_type(subtype, {__MODULE__, :list, index}, elem, redact) do
           {:ok, value} when not is_nil(nested_schema) ->
             case validate_options_with_schema_and_path(value, nested_schema, _path = [key]) do
               {:ok, updated_value} -> updated_value
@@ -920,22 +952,24 @@ defmodule NimbleOptions do
       )
   end
 
-  defp validate_type({:list, _subtype}, key, value) do
+  defp validate_type({:list, _subtype}, key, value, redact) do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected list, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected list",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type({:tuple, tuple_def}, key, value)
+  defp validate_type({:tuple, tuple_def}, key, value, redact)
        when is_tuple(value) and length(tuple_def) == tuple_size(value) do
     tuple_def
     |> Stream.with_index()
     |> Enum.reduce_while([], fn {subtype, index}, acc ->
       elem = elem(value, index)
 
-      case validate_type(subtype, {__MODULE__, :tuple, index}, elem) do
+      case validate_type(subtype, {__MODULE__, :tuple, index}, elem, redact) do
         {:ok, updated_elem} -> {:cont, [updated_elem | acc]}
         {:error, %ValidationError{} = error} -> {:halt, error}
       end
@@ -949,35 +983,41 @@ defmodule NimbleOptions do
     end
   end
 
-  defp validate_type({:tuple, tuple_def}, key, value) when is_tuple(value) do
+  defp validate_type({:tuple, tuple_def}, key, value, redact) when is_tuple(value) do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected tuple with #{length(tuple_def)} elements, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected tuple with #{length(tuple_def)} elements",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type({:tuple, _tuple_def}, key, value) do
+  defp validate_type({:tuple, _tuple_def}, key, value, redact) do
     error_tuple(
       key,
       value,
-      "invalid value for #{render_key(key)}: expected tuple, got: #{inspect(value)}"
+      "invalid value for #{render_key(key)}: expected tuple",
+      ", got: #{inspect(value)}",
+      redact
     )
   end
 
-  defp validate_type({:struct, struct_name}, key, value) do
+  defp validate_type({:struct, struct_name}, key, value, redact) do
     if match?(%^struct_name{}, value) do
       {:ok, value}
     else
       error_tuple(
         key,
         value,
-        "invalid value for #{render_key(key)}: expected #{inspect(struct_name)}, got: #{inspect(value)}"
+        "invalid value for #{render_key(key)}: expected #{inspect(struct_name)}",
+        ", got: #{inspect(value)}",
+        redact
       )
     end
   end
 
-  defp validate_type(_type, _key, value) do
+  defp validate_type(_type, _key, value, _redact) do
     {:ok, value}
   end
 
@@ -1101,10 +1141,6 @@ defmodule NimbleOptions do
 
   def validate_type(value) do
     {:error, "unknown type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
-  end
-
-  defp error_tuple(key, value, message, nil, _) do
-    error_tuple(key, value, message)
   end
 
   defp error_tuple(key, value, message, _, true) do
