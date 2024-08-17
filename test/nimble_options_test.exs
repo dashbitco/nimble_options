@@ -156,7 +156,8 @@ defmodule NimbleOptionsTest do
                  key: :stages,
                  keys_path: [:processors],
                  message: "invalid value for :stages option: expected integer",
-                 value: "10"
+                 value: "10",
+                 redact: true
                }
              }
     end
@@ -271,7 +272,8 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :stages,
                   value: 0,
-                  message: "invalid value for :stages option: expected positive integer"
+                  message: "invalid value for :stages option: expected positive integer",
+                  redact: true
                 }}
     end
 
@@ -310,7 +312,8 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :min_demand,
                   value: 1.5,
-                  message: "invalid value for :min_demand option: expected integer"
+                  message: "invalid value for :min_demand option: expected integer",
+                  redact: true
                 }}
     end
 
@@ -351,7 +354,8 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :min_demand,
                   value: -1,
-                  message: "invalid value for :min_demand option: expected non negative integer"
+                  message: "invalid value for :min_demand option: expected non negative integer",
+                  redact: true
                 }}
     end
 
@@ -390,7 +394,8 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :certainty,
                   value: 1,
-                  message: "invalid value for :certainty option: expected float"
+                  message: "invalid value for :certainty option: expected float",
+                  redact: true
                 }}
     end
 
@@ -420,7 +425,8 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :name,
                   value: 1,
-                  message: "invalid value for :name option: expected atom"
+                  message: "invalid value for :name option: expected atom",
+                  redact: true
                 }}
     end
 
@@ -526,7 +532,8 @@ defmodule NimbleOptionsTest do
                   key: :timeout,
                   value: -1,
                   message:
-                    "invalid value for :timeout option: expected non-negative integer or :infinity"
+                    "invalid value for :timeout option: expected non-negative integer or :infinity",
+                  redact: true
                 }}
     end
 
@@ -556,7 +563,8 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :name,
                   value: 1,
-                  message: "invalid value for :name option: expected pid"
+                  message: "invalid value for :name option: expected pid",
+                  redact: true
                 }}
     end
 
@@ -586,7 +594,8 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :name,
                   value: 1,
-                  message: "invalid value for :name option: expected reference"
+                  message: "invalid value for :name option: expected reference",
+                  redact: true
                 }}
     end
 
@@ -662,7 +671,9 @@ defmodule NimbleOptionsTest do
                %ValidationError{
                  key: :transformer,
                  value: {"not_a_module", :func, []},
-                 message: "invalid value for :transformer option: expected tuple {mod, fun, args}"
+                 message:
+                   "invalid value for :transformer option: expected tuple {mod, fun, args}",
+                 redact: true
                }
              }
     end
@@ -715,7 +726,8 @@ defmodule NimbleOptionsTest do
                %ValidationError{
                  key: :producer,
                  value: NotATuple,
-                 message: ~s(invalid value for :producer option: expected tuple {mod, arg})
+                 message: ~s(invalid value for :producer option: expected tuple {mod, arg}),
+                 redact: true
                }
              }
     end
@@ -768,7 +780,9 @@ defmodule NimbleOptionsTest do
                %ValidationError{
                  key: :partition_by,
                  value: :not_a_fun,
-                 message: ~s(invalid value for :partition_by option: expected function of arity 1)
+                 message:
+                   ~s(invalid value for :partition_by option: expected function of arity 1),
+                 redact: true
                }
              }
 
@@ -779,7 +793,9 @@ defmodule NimbleOptionsTest do
                %ValidationError{
                  key: :partition_by,
                  value: opts[:partition_by],
-                 message: ~s(invalid value for :partition_by option: expected function of arity 1)
+                 message:
+                   ~s(invalid value for :partition_by option: expected function of arity 1),
+                 redact: true
                }
              }
     end
@@ -812,7 +828,8 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :name,
                   value: :not_nil,
-                  message: "invalid value for :name option: expected nil"
+                  message: "invalid value for :name option: expected nil",
+                  redact: true
                 }}
     end
 
@@ -893,7 +910,9 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :batch_mode,
                   value: :invalid,
-                  message: "invalid value for :batch_mode option: expected one of [:flush, :bulk]"
+                  message:
+                    "invalid value for :batch_mode option: expected one of [:flush, :bulk]",
+                  redact: true
                 }}
     end
 
@@ -1232,7 +1251,8 @@ defmodule NimbleOptionsTest do
                   key: :metadata,
                   keys_path: [],
                   message: "invalid value for :metadata option: expected list",
-                  value: "not a list"
+                  value: "not a list",
+                  redact: true
                 }}
 
       # List with invalid elements
@@ -1441,7 +1461,8 @@ defmodule NimbleOptionsTest do
                   key: :result,
                   keys_path: [],
                   message: "invalid value for :result option: expected tuple",
-                  value: "not a tuple"
+                  value: "not a tuple",
+                  redact: true
                 }}
 
       # List with invalid elements
@@ -1566,7 +1587,8 @@ defmodule NimbleOptionsTest do
                   key: :map,
                   keys_path: [],
                   message: "invalid value for :map option: expected map",
-                  value: "not a map"
+                  value: "not a map",
+                  redact: true
                 }}
 
       schema = [map: [type: :map, keys: [key: [type: :string, redact: true]]]]
@@ -1579,7 +1601,8 @@ defmodule NimbleOptionsTest do
                   key: :key,
                   keys_path: [:map],
                   message: "invalid value for :key option: expected string",
-                  value: :atom_value
+                  value: :atom_value,
+                  redact: true
                 }}
     end
 
@@ -1748,7 +1771,8 @@ defmodule NimbleOptionsTest do
                   key: :struct,
                   keys_path: [],
                   message: "invalid value for :struct option: expected URI",
-                  value: %NimbleOptions{schema: []}
+                  value: %NimbleOptions{schema: []},
+                  redact: true
                 }}
     end
   end
@@ -2136,7 +2160,8 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :producers,
                   value: [],
-                  message: "invalid value for :producers option: expected non-empty keyword list"
+                  message: "invalid value for :producers option: expected non-empty keyword list",
+                  redact: true
                 }}
     end
 

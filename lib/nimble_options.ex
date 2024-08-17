@@ -1143,16 +1143,20 @@ defmodule NimbleOptions do
     {:error, "unknown type #{inspect(value)}.\n\nAvailable types: #{available_types()}"}
   end
 
+  defp error_tuple(key, value, message) do
+    error_tuple(key, value, message, false)
+  end
+
+  defp error_tuple(key, value, message, redact) do
+    {:error, %ValidationError{key: key, message: message, redact: redact, value: value}}
+  end
+
   defp error_tuple(key, value, message, _, true) do
-    error_tuple(key, value, message)
+    error_tuple(key, value, message, true)
   end
 
   defp error_tuple(key, value, message, unredacted_message, false) do
-    error_tuple(key, value, message <> unredacted_message)
-  end
-
-  defp error_tuple(key, value, message) do
-    {:error, %ValidationError{key: key, message: message, value: value}}
+    error_tuple(key, value, message <> unredacted_message, false)
   end
 
   defp render_key({__MODULE__, :key}), do: "map key"
