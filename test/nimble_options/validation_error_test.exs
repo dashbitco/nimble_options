@@ -32,4 +32,28 @@ defmodule NimbleOptions.ValidationErrorTest do
       NimbleOptions.validate!(opts, schema)
     end)
   end
+
+  describe "Inspect implementation" do
+    test "inspects fine" do
+      schema = [foo: [type: :integer]]
+
+      opts = [foo: true]
+
+      {:error, error} = NimbleOptions.validate(opts, schema)
+
+      assert inspect(error) ==
+               ~s(#NimbleOptions.ValidationError<key: :foo, keys_path: [], message: "invalid value for :foo option: expected integer, got: true", redact: false, value: true>)
+    end
+
+    test "with a redacted option" do
+      schema = [foo: [type: :integer, redact: true]]
+
+      opts = [foo: "not an integer"]
+
+      {:error, error} = NimbleOptions.validate(opts, schema)
+
+      assert inspect(error) ==
+               ~s(#NimbleOptions.ValidationError<key: :foo, keys_path: [], message: "invalid value for :foo option: expected integer", redact: true, value: "**redacted**">)
+    end
+  end
 end

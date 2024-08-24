@@ -42,30 +42,20 @@ defmodule NimbleOptions.ValidationError do
     message <> suffix
   end
 
-  defimpl Inspect, for: NimbleOptions.ValidationError do
+  defimpl Inspect do
     import Inspect.Algebra
 
-    def inspect(%{redact: redacted} = error, opts) do
-      list =
-        for attr <- [:key, :keys_path, :message, :value, :key] do
-          {attr, Map.get(error, attr)}
-        end
+    def inspect(%@for{redact: redacted?} = error, opts) do
+      fields =
+        error
+        |> Map.drop([:__struct__, :__exception__])
+        |> Map.update!(:value, &if(redacted?, do: "**redacted**", else: &1))
+        |> Enum.sort_by(fn {key, _val} -> key end)
+        |> Enum.map(fn {key, val} -> [string("#{key}:"), break(), to_doc(val, opts)] end)
+        |> Enum.intersperse([string(","), break()])
+        |> List.flatten()
 
-      container_doc("#NimbleOptions.ValidationError<", list, ">", %Inspect.Opts{limit: 4}, fn
-        {:key, key}, _opts ->
-          concat("key: ", to_doc(key, opts))
-
-        {:keys_path, keys_path}, _opts ->
-          concat("keys_path: ", to_doc(keys_path, opts))
-
-        {:message, message}, _opts ->
-          concat("message: ", to_doc(message, opts))
-
-        {:value, value}, _opts ->
-          value = if redacted, do: "**redacted**", else: value
-
-          concat("value: ", to_doc(value, opts))
-      end)
+      concat(["##{inspect(@for)}<"] ++ fields ++ [">"])
     end
   end
 end
