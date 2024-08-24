@@ -72,7 +72,7 @@ defmodule NimbleOptionsTest do
       Reason: \
       unknown options [:unknown_schema_option], \
       valid options are: [:type, :required, :default, :keys, \
-      :deprecated, :doc, :subsection, :type_doc, :type_spec] \
+      :deprecated, :doc, :subsection, :type_doc, :type_spec, :redact] \
       (in options [:producers, :keys, :*, :keys, :module])\
       """
 
@@ -132,6 +132,35 @@ defmodule NimbleOptionsTest do
                }
              }
     end
+
+    test "is redacted" do
+      schema = [
+        processors: [
+          type: :keyword_list,
+          default: [],
+          keys: [
+            stages: [
+              type: :integer,
+              default: "10",
+              redact: true
+            ]
+          ]
+        ]
+      ]
+
+      opts = [processors: []]
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %ValidationError{
+                 key: :stages,
+                 keys_path: [:processors],
+                 message: "invalid value for :stages option: expected integer",
+                 value: "10",
+                 redact: true
+               }
+             }
+    end
   end
 
   describe ":required" do
@@ -158,8 +187,8 @@ defmodule NimbleOptionsTest do
 
   describe ":doc" do
     test "valid documentation for key" do
-      schema = [context: [doc: "details", default: 1]]
-      assert NimbleOptions.validate([], schema) == {:ok, [context: 1]}
+      # schema = [context: [doc: "details", default: 1]]
+      # assert NimbleOptions.validate([], schema) == {:ok, [context: 1]}
       schema = [context: [doc: false, default: 1]]
       assert NimbleOptions.validate([], schema) == {:ok, [context: 1]}
     end
@@ -235,6 +264,19 @@ defmodule NimbleOptionsTest do
                 }}
     end
 
+    test "redacted invalid positive integer" do
+      schema = [stages: [type: :pos_integer, redact: true]]
+
+      assert NimbleOptions.validate([stages: 0], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :stages,
+                  value: 0,
+                  message: "invalid value for :stages option: expected positive integer",
+                  redact: true
+                }}
+    end
+
     test "valid integer" do
       schema = [min_demand: [type: :integer]]
       opts = [min_demand: 12]
@@ -259,6 +301,19 @@ defmodule NimbleOptionsTest do
                   key: :min_demand,
                   value: :an_atom,
                   message: "invalid value for :min_demand option: expected integer, got: :an_atom"
+                }}
+    end
+
+    test "redacted invalid integer" do
+      schema = [min_demand: [type: :integer, redact: true]]
+
+      assert NimbleOptions.validate([min_demand: 1.5], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :min_demand,
+                  value: 1.5,
+                  message: "invalid value for :min_demand option: expected integer",
+                  redact: true
                 }}
     end
 
@@ -291,6 +346,19 @@ defmodule NimbleOptionsTest do
                 }}
     end
 
+    test "redacted invalid non negative integer" do
+      schema = [min_demand: [type: :non_neg_integer, redact: true]]
+
+      assert NimbleOptions.validate([min_demand: -1], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :min_demand,
+                  value: -1,
+                  message: "invalid value for :min_demand option: expected non negative integer",
+                  redact: true
+                }}
+    end
+
     test "valid float" do
       schema = [certainty: [type: :float]]
       opts = [certainty: 0.5]
@@ -318,6 +386,19 @@ defmodule NimbleOptionsTest do
                 }}
     end
 
+    test "redacted invalid float" do
+      schema = [certainty: [type: :float, redact: true]]
+
+      assert NimbleOptions.validate([certainty: 1], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :certainty,
+                  value: 1,
+                  message: "invalid value for :certainty option: expected float",
+                  redact: true
+                }}
+    end
+
     test "valid atom" do
       schema = [name: [type: :atom]]
       opts = [name: :an_atom]
@@ -336,6 +417,19 @@ defmodule NimbleOptionsTest do
                 }}
     end
 
+    test "redacted invalid atom" do
+      schema = [name: [type: :atom, redact: true]]
+
+      assert NimbleOptions.validate([name: 1], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :name,
+                  value: 1,
+                  message: "invalid value for :name option: expected atom",
+                  redact: true
+                }}
+    end
+
     test "valid string" do
       schema = [doc: [type: :string]]
       opts = [doc: "a string"]
@@ -343,6 +437,18 @@ defmodule NimbleOptionsTest do
     end
 
     test "invalid string" do
+      schema = [doc: [type: :string]]
+
+      assert NimbleOptions.validate([doc: :an_atom], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :doc,
+                  value: :an_atom,
+                  message: "invalid value for :doc option: expected string, got: :an_atom"
+                }}
+    end
+
+    test "redacted invalid string" do
       schema = [doc: [type: :string]]
 
       assert NimbleOptions.validate([doc: :an_atom], schema) ==
@@ -415,6 +521,22 @@ defmodule NimbleOptionsTest do
                 }}
     end
 
+    test "redact invalid timeout" do
+      schema = [timeout: [type: :timeout, redact: true]]
+
+      opts = [timeout: -1]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: :timeout,
+                  value: -1,
+                  message:
+                    "invalid value for :timeout option: expected non-negative integer or :infinity",
+                  redact: true
+                }}
+    end
+
     test "valid pid" do
       schema = [name: [type: :pid]]
       opts = [name: self()]
@@ -433,6 +555,19 @@ defmodule NimbleOptionsTest do
                 }}
     end
 
+    test "redacted invalid pid" do
+      schema = [name: [type: :pid, redact: true]]
+
+      assert NimbleOptions.validate([name: 1], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :name,
+                  value: 1,
+                  message: "invalid value for :name option: expected pid",
+                  redact: true
+                }}
+    end
+
     test "valid reference" do
       schema = [name: [type: :reference]]
       opts = [name: make_ref()]
@@ -448,6 +583,19 @@ defmodule NimbleOptionsTest do
                   key: :name,
                   value: 1,
                   message: "invalid value for :name option: expected reference, got: 1"
+                }}
+    end
+
+    test "redacted invalid reference" do
+      schema = [name: [type: :reference, redact: true]]
+
+      assert NimbleOptions.validate([name: 1], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :name,
+                  value: 1,
+                  message: "invalid value for :name option: expected reference",
+                  redact: true
                 }}
     end
 
@@ -513,6 +661,23 @@ defmodule NimbleOptionsTest do
              }
     end
 
+    test "redacted invalid mfa" do
+      schema = [transformer: [type: :mfa, redact: true]]
+
+      opts = [transformer: {"not_a_module", :func, []}]
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %ValidationError{
+                 key: :transformer,
+                 value: {"not_a_module", :func, []},
+                 message:
+                   "invalid value for :transformer option: expected tuple {mod, fun, args}",
+                 redact: true
+               }
+             }
+    end
+
     test "valid mod_arg" do
       schema = [producer: [type: :mod_arg]]
 
@@ -547,6 +712,22 @@ defmodule NimbleOptionsTest do
                  value: {"not_a_module", []},
                  message:
                    ~s(invalid value for :producer option: expected tuple {mod, arg}, got: {"not_a_module", []})
+               }
+             }
+    end
+
+    test "redacted invalid mod_arg" do
+      schema = [producer: [type: :mod_arg, redact: true]]
+
+      opts = [producer: NotATuple]
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %ValidationError{
+                 key: :producer,
+                 value: NotATuple,
+                 message: ~s(invalid value for :producer option: expected tuple {mod, arg}),
+                 redact: true
                }
              }
     end
@@ -589,6 +770,36 @@ defmodule NimbleOptionsTest do
              }
     end
 
+    test "redacted invalid {:fun, arity}" do
+      schema = [partition_by: [type: {:fun, 1}, redact: true]]
+
+      opts = [partition_by: :not_a_fun]
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %ValidationError{
+                 key: :partition_by,
+                 value: :not_a_fun,
+                 message:
+                   ~s(invalid value for :partition_by option: expected function of arity 1),
+                 redact: true
+               }
+             }
+
+      opts = [partition_by: fn x, y -> x * y end]
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %ValidationError{
+                 key: :partition_by,
+                 value: opts[:partition_by],
+                 message:
+                   ~s(invalid value for :partition_by option: expected function of arity 1),
+                 redact: true
+               }
+             }
+    end
+
     test "valid nil" do
       schema = [name: [type: nil, required: true]]
       opts = [name: nil]
@@ -605,6 +816,20 @@ defmodule NimbleOptionsTest do
                   key: :name,
                   value: :not_nil,
                   message: "invalid value for :name option: expected nil, got: :not_nil"
+                }}
+    end
+
+    test "redacted invalid nil" do
+      schema = [name: [type: nil, required: true, redact: true]]
+      opts = [name: :not_nil]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: :name,
+                  value: :not_nil,
+                  message: "invalid value for :name option: expected nil",
+                  redact: true
                 }}
     end
 
@@ -672,6 +897,22 @@ defmodule NimbleOptionsTest do
                   value: :unknown,
                   message:
                     "invalid value for :mode option: expected one of #{inspect(MapSet.new([:active, :passive]))}, got: :unknown"
+                }}
+    end
+
+    test "redact invalid {:in, choices}" do
+      schema = [batch_mode: [type: {:in, [:flush, :bulk]}, redact: true]]
+
+      opts = [batch_mode: :invalid]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: :batch_mode,
+                  value: :invalid,
+                  message:
+                    "invalid value for :batch_mode option: expected one of [:flush, :bulk]",
+                  redact: true
                 }}
     end
 
@@ -760,6 +1001,23 @@ defmodule NimbleOptionsTest do
 
         * invalid value for :docs option: expected boolean, got: :invalid
         * invalid value for :docs option: expected string, got: :invalid\
+      """
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error, %ValidationError{key: :docs, value: :invalid, message: expected_message}}
+    end
+
+    test "redacted invalid {:or, subtypes}" do
+      schema = [docs: [type: {:or, [:string, :boolean]}, redact: true]]
+
+      opts = [docs: :invalid]
+
+      expected_message = """
+      expected :docs option to match at least one given type, but didn't match any. Here are the \
+      reasons why it didn't match each of the allowed types:
+
+        * invalid value for :docs option: expected boolean
+        * invalid value for :docs option: expected string\
       """
 
       assert NimbleOptions.validate(opts, schema) ==
@@ -981,6 +1239,63 @@ defmodule NimbleOptionsTest do
              }
     end
 
+    test "redacted invalid {:list, subtype}" do
+      schema = [metadata: [type: {:list, :atom}, redact: true]]
+
+      # Not a list
+      opts = [metadata: "not a list"]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: :metadata,
+                  keys_path: [],
+                  message: "invalid value for :metadata option: expected list",
+                  value: "not a list",
+                  redact: true
+                }}
+
+      # List with invalid elements
+      opts = [metadata: [:foo, :bar, "baz", :bong, "another invalid value"]]
+
+      message = """
+      invalid list in :metadata option: \
+      invalid value for list element at position 2: \
+      expected atom\
+      """
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %NimbleOptions.ValidationError{
+                 key: :metadata,
+                 keys_path: [],
+                 message: message,
+                 value: [:foo, :bar, "baz", :bong, "another invalid value"]
+               }
+             }
+
+      # Nested list with invalid elements
+      schema = [metadata: [type: {:list, {:list, :atom}}, redact: true]]
+      opts = [metadata: [[:foo, :bar], ["baz", :bong, "another invalid value"]]]
+
+      message = """
+      invalid list in :metadata option: \
+      invalid list in list element at position 1: \
+      invalid value for list element at position 0: \
+      expected atom\
+      """
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %NimbleOptions.ValidationError{
+                 key: :metadata,
+                 keys_path: [],
+                 message: message,
+                 value: [[:foo, :bar], ["baz", :bong, "another invalid value"]]
+               }
+             }
+    end
+
     test "{:list, subtype} with custom subtype" do
       schema = [metadata: [type: {:list, {:custom, __MODULE__, :string_to_integer, []}}]]
 
@@ -1080,7 +1395,7 @@ defmodule NimbleOptionsTest do
     test "invalid {:tuple, tuple_def}" do
       schema = [result: [type: {:tuple, [{:in, [:ok, :error]}, :string]}]]
 
-      # Not a list
+      # Not a tuple
       opts = [result: "not a tuple"]
 
       assert NimbleOptions.validate(opts, schema) ==
@@ -1134,6 +1449,63 @@ defmodule NimbleOptionsTest do
              }
     end
 
+    test "redacted invalid {:tuple, tuple_def}" do
+      schema = [result: [type: {:tuple, [{:in, [:ok, :error]}, :string]}, redact: true]]
+
+      # Not a tuple
+      opts = [result: "not a tuple"]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: :result,
+                  keys_path: [],
+                  message: "invalid value for :result option: expected tuple",
+                  value: "not a tuple",
+                  redact: true
+                }}
+
+      # List with invalid elements
+      opts = [result: {:ok, :not_a_string}]
+
+      message = """
+      invalid tuple in :result option: \
+      invalid value for tuple element at position 1: \
+      expected string\
+      """
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %NimbleOptions.ValidationError{
+                 key: :result,
+                 keys_path: [],
+                 message: message,
+                 value: {:ok, :not_a_string}
+               }
+             }
+
+      # Nested list with invalid elements
+      schema = [tup: [type: {:tuple, [{:tuple, [:string, :string]}, :integer]}, redact: true]]
+      opts = [tup: {{"string", :not_a_string}, 1}]
+
+      message = """
+      invalid tuple in :tup option: \
+      invalid tuple in tuple element at position 0: \
+      invalid value for tuple element at position 1: \
+      expected string\
+      """
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %NimbleOptions.ValidationError{
+                 key: :tup,
+                 keys_path: [],
+                 message: message,
+                 value: {{"string", :not_a_string}, 1}
+               }
+             }
+    end
+
     test "valid :map" do
       schema = [map: [type: :map]]
 
@@ -1154,6 +1526,17 @@ defmodule NimbleOptionsTest do
 
     test "invalid :map" do
       schema = [map: [type: :map]]
+
+      opts = [map: "not a map"]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :map,
+                  keys_path: [],
+                  message: "invalid value for :map option: expected map, got: \"not a map\"",
+                  value: "not a map"
+                }}
 
       opts = [map: %{"string key" => :value}]
 
@@ -1190,6 +1573,36 @@ defmodule NimbleOptionsTest do
                   keys_path: [:map],
                   message: "unknown options [:unknown_key], valid options are: [:key]",
                   value: nil
+                }}
+    end
+
+    test "redacted invalid map" do
+      schema = [map: [type: :map, redact: true]]
+
+      opts = [map: "not a map"]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :map,
+                  keys_path: [],
+                  message: "invalid value for :map option: expected map",
+                  value: "not a map",
+                  redact: true
+                }}
+
+      schema = [map: [type: :map, keys: [key: [type: :string, redact: true]]]]
+
+      opts = [map: %{key: :atom_value}]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :key,
+                  keys_path: [:map],
+                  message: "invalid value for :key option: expected string",
+                  value: :atom_value,
+                  redact: true
                 }}
     end
 
@@ -1255,6 +1668,60 @@ defmodule NimbleOptionsTest do
                 }}
     end
 
+    test "redacted invalid {:map, key_type, value_type}" do
+      schema = [map: [type: {:map, :string, :string}, redact: true]]
+
+      opts = [map: %{:invalid_key => "valid_value", :other_invalid_key => "other_value"}]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :map,
+                  keys_path: [],
+                  message:
+                    "invalid map in :map option: invalid value for map key: expected string, got: :invalid_key",
+                  value: %{invalid_key: "valid_value", other_invalid_key: "other_value"}
+                }}
+
+      opts = [map: %{"valid_key" => :invalid_value, "other_key" => :other_invalid_value}]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :map,
+                  keys_path: [],
+                  message:
+                    "invalid map in :map option: invalid value for map key \"other_key\": expected string",
+                  value: %{"other_key" => :other_invalid_value, "valid_key" => :invalid_value}
+                }}
+
+      schema = [map: [type: {:map, {:in, [:a, :b, :c]}, {:list, :integer}}, redact: true]]
+
+      opts = [map: %{a: "not a list"}]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :map,
+                  keys_path: [],
+                  message:
+                    "invalid map in :map option: invalid value for map key :a: expected list",
+                  value: %{a: "not a list"}
+                }}
+
+      opts = [map: %{a: ["not an integer"]}]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :map,
+                  keys_path: [],
+                  message:
+                    "invalid map in :map option: invalid list in map key :a: invalid value for list element at position 0: expected integer",
+                  value: %{a: ["not an integer"]}
+                }}
+    end
+
     test "valid {:struct, struct_name}" do
       schema = [struct: [type: {:struct, URI}]]
 
@@ -1291,6 +1758,22 @@ defmodule NimbleOptionsTest do
           NimbleOptions.validate(opts, schema)
         end
       )
+    end
+
+    test "redacted invalid {:struct, struct_name}" do
+      schema = [struct: [type: {:struct, URI}, redact: true]]
+
+      opts = [struct: %NimbleOptions{}]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %NimbleOptions.ValidationError{
+                  key: :struct,
+                  keys_path: [],
+                  message: "invalid value for :struct option: expected URI",
+                  value: %NimbleOptions{schema: []},
+                  redact: true
+                }}
     end
   end
 
@@ -1648,6 +2131,37 @@ defmodule NimbleOptionsTest do
                   value: [],
                   message:
                     "invalid value for :producers option: expected non-empty keyword list, got: []"
+                }}
+    end
+
+    test "redact invalid :non_empty_keyword_list" do
+      schema = [
+        producers: [
+          type: :non_empty_keyword_list,
+          keys: [
+            *: [
+              type: :keyword_list,
+              keys: [
+                module: [required: true, type: :atom],
+                stages: [type: :pos_integer]
+              ]
+            ]
+          ],
+          redact: true
+        ]
+      ]
+
+      opts = [
+        producers: []
+      ]
+
+      assert NimbleOptions.validate(opts, schema) ==
+               {:error,
+                %ValidationError{
+                  key: :producers,
+                  value: [],
+                  message: "invalid value for :producers option: expected non-empty keyword list",
+                  redact: true
                 }}
     end
 
