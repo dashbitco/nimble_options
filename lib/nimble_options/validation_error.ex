@@ -12,6 +12,7 @@ defmodule NimbleOptions.ValidationError do
           key: atom(),
           keys_path: [atom()],
           redact: boolean,
+          validation: :required | {:type, term()},
           value: term()
         }
 
@@ -28,8 +29,10 @@ defmodule NimbleOptions.ValidationError do
     * `:value` (`t:term/0`) - The value that failed to validate. This field is `nil` if there
       was no value provided.
 
+    * `:validation` (`:required` or `{:type, type}`) - The validation that failed.
+
   """
-  defexception [:message, :key, :value, keys_path: [], redact: false]
+  defexception [:message, :key, :validation, :value, keys_path: [], redact: false]
 
   @impl true
   def message(%__MODULE__{message: message, keys_path: keys_path}) do

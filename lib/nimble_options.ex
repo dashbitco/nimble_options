@@ -601,8 +601,8 @@ defmodule NimbleOptions do
     end
   end
 
-  defp validate_type(:integer, key, value, redact) when not is_integer(value) do
-    structured_error_tuple(key, value, "integer", redact)
+  defp validate_type(:integer = type, key, value, redact) when not is_integer(value) do
+    structured_error_tuple(key, value, {:type, type}, "integer", redact)
   end
 
   defp validate_type(:non_neg_integer, key, value, redact)
@@ -1019,11 +1019,16 @@ defmodule NimbleOptions do
     {:error, %ValidationError{key: key, message: message, redact: redact, value: value}}
   end
 
+  # FIX: remove after error types are implemented
   defp structured_error_tuple(key, value, expected, redact?) do
-    structured_error_tuple(key, value, expected, inspect(value), redact?)
+    structured_error_tuple(key, value, false, expected, redact?)
   end
 
-  defp structured_error_tuple(key, value, expected, got, redact?) do
+  defp structured_error_tuple(key, value, type, expected, redact?) do
+    structured_error_tuple(key, value, type, expected, inspect(value), redact?)
+  end
+
+  defp structured_error_tuple(key, value, validation, expected, got, redact?) do
     message =
       if redact? do
         "invalid value for #{render_key(key)}: expected #{expected}"
@@ -1031,7 +1036,14 @@ defmodule NimbleOptions do
         "invalid value for #{render_key(key)}: expected #{expected}, got: #{got}"
       end
 
-    {:error, %ValidationError{key: key, message: message, redact: redact?, value: value}}
+    {:error,
+     %ValidationError{
+       key: key,
+       message: message,
+       redact: redact?,
+       value: value,
+       validation: validation
+     }}
   end
 
   defp render_key({__MODULE__, :key}), do: "map key"
