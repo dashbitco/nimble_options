@@ -2250,7 +2250,7 @@ defmodule NimbleOptionsTest do
   end
 
   # No other test is passing in `opts` as a map, so these are just some white box tests for sanity checking
-  describe "can use a map for validate/2" do
+  test "can use a map for validate/2" do
     schema = []
     opts = %{}
     assert NimbleOptions.validate(opts, schema) == {:ok, %{}}
