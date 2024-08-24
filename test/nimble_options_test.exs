@@ -301,6 +301,7 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :min_demand,
                   value: :an_atom,
+                  validation: {:type, :integer},
                   message: "invalid value for :min_demand option: expected integer, got: :an_atom"
                 }}
     end
@@ -313,6 +314,7 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :min_demand,
                   value: 1.5,
+                  validation: {:type, :integer},
                   message: "invalid value for :min_demand option: expected integer",
                   redact: true
                 }}
@@ -2251,7 +2253,7 @@ defmodule NimbleOptionsTest do
   end
 
   # No other test is passing in `opts` as a map, so these are just some white box tests for sanity checking
-  describe "can use a map for validate/2" do
+  test "can use a map for validate/2" do
     schema = []
     opts = %{}
     assert NimbleOptions.validate(opts, schema) == {:ok, %{}}
