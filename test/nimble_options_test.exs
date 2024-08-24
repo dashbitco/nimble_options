@@ -292,6 +292,7 @@ defmodule NimbleOptionsTest do
                 %ValidationError{
                   key: :min_demand,
                   value: 1.5,
+                  validation: {:type, :integer},
                   message: "invalid value for :min_demand option: expected integer, got: 1.5"
                 }}
 
