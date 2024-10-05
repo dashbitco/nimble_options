@@ -158,9 +158,8 @@ defmodule NimbleOptions do
       called `:one_of` and the `:in` name is available since version 0.3.3 (`:one_of`
       has been removed in v0.4.0).
 
-    * `{:custom, mod, fun, args}` - A custom type. The related value must be validated
-      by `mod.fun(values, ...args)`. The function should return `{:ok, value}` or
-      `{:error, message}`.
+    * `{:custom, mod, fun, args}` - A custom type. The related value will be validated
+      by `apply(mod, fun, [value | args])`. `fun` should return `{:ok, value}` or `{:error, message}`.
 
     * `{:or, subtypes}` - A value that matches one of the given `subtypes`. The value is
       matched against the subtypes in the order specified in the list of `subtypes`. If
