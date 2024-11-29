@@ -295,6 +295,8 @@ defmodule NimbleOptions do
 
   alias NimbleOptions.ValidationError
 
+  require Logger
+
   defstruct schema: []
 
   @basic_types [
@@ -582,7 +584,7 @@ defmodule NimbleOptions do
     cond do
       Keyword.has_key?(opts, key) ->
         if message = Keyword.get(schema, :deprecated) do
-          IO.warn("#{render_key(key)} is deprecated. " <> message)
+          Logger.warning("#{render_key(key)} is deprecated. " <> message)
         end
 
         {:ok, opts[key]}
