@@ -898,7 +898,7 @@ defmodule NimbleOptions do
         keys
 
       schema_opts ->
-        Enum.map(opts, fn {k, _} -> {k, schema_opts} end)
+        keys ++ Enum.map(opts, fn {k, _} -> {k, schema_opts} end)
     end
   end
 

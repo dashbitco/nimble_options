@@ -93,6 +93,11 @@ defmodule NimbleOptionsTest do
       assert NimbleOptions.validate([context: :given], schema) == {:ok, [context: :given]}
     end
 
+    test "is used when wildcard-key is defined" do
+      schema = [context: [default: :ok], *: [type: :any]]
+      assert NimbleOptions.validate([], schema) == {:ok, [context: :ok]}
+    end
+
     test "is validated" do
       schema = [
         processors: [
