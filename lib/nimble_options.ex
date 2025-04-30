@@ -517,7 +517,7 @@ defmodule NimbleOptions do
       {:ok, options}
     else
       {:error, %ValidationError{} = error} ->
-        {:error, %ValidationError{error | keys_path: path ++ error.keys_path}}
+        {:error, %{error | keys_path: path ++ error.keys_path}}
     end
   end
 
