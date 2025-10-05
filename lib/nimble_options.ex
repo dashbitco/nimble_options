@@ -314,6 +314,7 @@ defmodule NimbleOptions do
     :timeout,
     :pid,
     :reference,
+    :file,
     nil
   ]
 
@@ -634,6 +635,10 @@ defmodule NimbleOptions do
     structured_error_tuple(key, value, "boolean", redact)
   end
 
+  defp validate_type(:file, key, value, redact) when not is_binary(value) do
+    structured_error_tuple(key, value, "file", redact)
+  end
+
   defp validate_type(:keyword_list, key, value, redact) do
     if keyword_list?(value) do
       {:ok, value}
@@ -730,6 +735,27 @@ defmodule NimbleOptions do
     else
       structured_error_tuple(key, value, "function of arity #{arity}", redact)
     end
+  end
+
+  defp validate_type(:file, key, value, _redact) when is_binary(value) do
+    if File.exists?(value) do
+      {:ok, value}
+    else
+      {:error,
+       %ValidationError{
+         key: key,
+         message: "expected an existing file path, got: #{inspect(value)}",
+         value: value
+       }}
+    end
+  end
+
+  defp validate_type(:file, key, value, _redact) do
+    error_tuple(
+      key,
+      value,
+      "invalid value for #{render_key(key)}: expected file, got: #{inspect(value)}"
+    )
   end
 
   defp validate_type(nil, key, value, redact) do

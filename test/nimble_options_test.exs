@@ -41,7 +41,7 @@ defmodule NimbleOptionsTest do
 
       Available types: :any, :keyword_list, :non_empty_keyword_list, :map, :atom, \
       :integer, :non_neg_integer, :pos_integer, :float, :mfa, :mod_arg, :string, :boolean, :timeout, \
-      :pid, :reference, nil, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
+      :pid, :reference, :file, nil, {:fun, arity}, {:in, choices}, {:or, subtypes}, {:custom, mod, fun, args}, \
       {:list, subtype}, {:tuple, list_of_subtypes}, {:map, key_type, value_type}, {:struct, struct_name} \
       (in options [:stages])\
       """
@@ -2167,6 +2167,40 @@ defmodule NimbleOptionsTest do
                   value: [],
                   message: "invalid value for :producers option: expected non-empty keyword list",
                   redact: true
+                }}
+    end
+
+    test "valid file" do
+      schema = [file: [type: {:or, [:file, {:list, :file}]}]]
+
+      file = Path.join(System.tmp_dir!(), "test_file_#{:rand.uniform(1000)}")
+      File.write!(file, "test content")
+
+      opts = [file: file]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+
+      file2 = Path.join(System.tmp_dir!(), "test_file_#{:rand.uniform(1000)}")
+      File.write!(file2, "test content")
+
+      opts = [file: [file, file2]]
+      assert NimbleOptions.validate(opts, schema) == {:ok, opts}
+    end
+
+    test "invalid file" do
+      schema = [file: [type: :file]]
+
+      message = "expected an existing file path, got: \"file-does-not-exist\""
+
+      assert_raise NimbleOptions.ValidationError, message, fn ->
+        NimbleOptions.validate!([file: "file-does-not-exist"], schema)
+      end
+
+      assert NimbleOptions.validate([file: :not_a_string], schema) ==
+               {:error,
+                %ValidationError{
+                  key: :file,
+                  value: :not_a_string,
+                  message: "invalid value for :file option: expected file, got: :not_a_string"
                 }}
     end
 
