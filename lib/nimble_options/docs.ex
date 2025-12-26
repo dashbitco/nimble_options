@@ -246,6 +246,9 @@ defmodule NimbleOptions.Docs do
       :map ->
         quote(do: map())
 
+      {:map, _keys} ->
+        quote(do: map())
+
       {:map, key_type, value_type} ->
         quote(
           do: %{optional(unquote(type_to_spec(key_type))) => unquote(type_to_spec(value_type))}
