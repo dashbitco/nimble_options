@@ -180,7 +180,7 @@ defmodule NimbleOptions do
       a keyword list or map, you won't be able to pass `:keys` directly. For this reason,
       `:keyword_list`, `:non_empty_keyword_list`, and `:map` are special cased and can
       be used as the subtype by using `{:keyword_list, keys}`, `{:non_empty_keyword_list, keys}`
-      or `{:keyword_list, keys}`. For example, a type such as
+      or `{:map, keys}`. For example, a type such as
       `{:list, {:keyword_list, enabled: [type: :boolean]}}` would a *list of keyword lists*,
       where each keyword list in the list could have the `:enabled` boolean option in it.
 
