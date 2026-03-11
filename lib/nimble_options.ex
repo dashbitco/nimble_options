@@ -700,7 +700,7 @@ defmodule NimbleOptions do
     {:ok, value}
   end
 
-  defp validate_type(:mfa, key, value, redact) when not is_nil(value) do
+  defp validate_type(:mfa, key, value, redact) do
     structured_error_tuple(key, value, "tuple {mod, fun, args}", inspect(value), redact)
   end
 

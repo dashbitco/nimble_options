@@ -666,6 +666,22 @@ defmodule NimbleOptionsTest do
              }
     end
 
+    test "mfa rejects nil" do
+      schema = [transformer: [type: :mfa]]
+
+      opts = [transformer: nil]
+
+      assert NimbleOptions.validate(opts, schema) == {
+               :error,
+               %ValidationError{
+                 key: :transformer,
+                 value: nil,
+                 message:
+                   "invalid value for :transformer option: expected tuple {mod, fun, args}, got: nil"
+               }
+             }
+    end
+
     test "redacted invalid mfa" do
       schema = [transformer: [type: :mfa, redact: true]]
 
