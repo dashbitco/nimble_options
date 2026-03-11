@@ -25,8 +25,8 @@ jobs:
 
           # Oldest supported versions
           - pair:
-              elixir: "1.9.4"
-              otp: "20.3.8"
+              elixir: "1.15"
+              otp: "24"
     steps:
       - name: Check out this repository
         uses: actions/checkout@v3
