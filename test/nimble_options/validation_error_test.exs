@@ -45,6 +45,16 @@ defmodule NimbleOptions.ValidationErrorTest do
                ~s(#NimbleOptions.ValidationError<key: :foo, keys_path: [], message: "invalid value for :foo option: expected integer, got: true", redact: false, value: true>)
     end
 
+    test "with syntax colors" do
+      schema = [foo: [type: :integer]]
+      opts = [foo: true]
+
+      {:error, error} = NimbleOptions.validate(opts, schema)
+
+      assert inspect(error, syntax_colors: [atom: :red]) ==
+               ~s(#NimbleOptions.ValidationError<key: \e[31m:foo\e[0m, keys_path: [], message: "invalid value for :foo option: expected integer, got: true", redact: false, value: true>)
+    end
+
     test "with a redacted option" do
       schema = [foo: [type: :integer, redact: true]]
 

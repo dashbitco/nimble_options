@@ -51,11 +51,10 @@ defmodule NimbleOptions.ValidationError do
         |> Map.drop([:__struct__, :__exception__])
         |> Map.update!(:value, &if(redacted?, do: "**redacted**", else: &1))
         |> Enum.sort_by(fn {key, _val} -> key end)
-        |> Enum.map(fn {key, val} -> [string("#{key}:"), break(), to_doc(val, opts)] end)
-        |> Enum.intersperse([string(","), break()])
-        |> List.flatten()
+        |> Enum.map(fn {key, val} -> concat([string("#{key}: "), to_doc(val, opts)]) end)
+        |> Enum.intersperse(string(", "))
 
-      concat(["##{inspect(@for)}<"] ++ fields ++ [">"])
+      concat(["##{inspect(@for)}<", concat(fields), ">"])
     end
   end
 end
