@@ -9,7 +9,7 @@ defmodule NimbleOptions.ValidationError do
   """
 
   @type t() :: %__MODULE__{
-          key: atom(),
+          key: atom() | [atom()],
           keys_path: [atom()],
           redact: boolean,
           value: term()
@@ -21,7 +21,9 @@ defmodule NimbleOptions.ValidationError do
   Only the following documented fields are considered public. All other fields are
   considered private and should not be referenced:
 
-    * `:key` (`t:atom/0`) - The key that did not successfully validate.
+    * `:key` (`t:atom/0` or list of `t:atom/0`) - The key that did not successfully
+      validate. When several keys are involved in the same error (for example,
+      unknown options reported as a group), this is the list of those keys.
 
     * `:keys_path` (list of `t:atom/0`) - If the key is nested, this is the path to the key.
 
