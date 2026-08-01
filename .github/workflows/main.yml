@@ -6,9 +6,17 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
     env:
       MIX_ENV: test
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -16,38 +24,42 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Latest versions
-          - pair:
-              elixir: "1.18"
-              otp: "27.2"
-            lint: lint
+          - name: Latest Elixir and OTP
+            elixir: "> 0"
+            otp: "> 0"
+            version_type: loose
+            lint: true
             coverage: true
 
-          # Oldest supported versions
-          - pair:
-              elixir: "1.15"
-              otp: "25.3.2"
+          - name: Minimum Elixir and OTP
+            elixir: "1.15.0"
+            otp: "24.3"
+            version_type: strict
     steps:
       - name: Check out this repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
 
       - name: Install Erlang/OTP and Elixir
+        id: setup-beam
         uses: erlef/setup-beam@v1
         with:
-          otp-version: ${{ matrix.pair.otp }}
-          elixir-version: ${{ matrix.pair.elixir }}
-          version-type: strict
+          otp-version: ${{ matrix.otp }}
+          elixir-version: ${{ matrix.elixir }}
+          version-type: ${{ matrix.version_type }}
+          hexpm-mirrors: |
+            https://builds.hex.pm
+            https://cdn.jsdelivr.net/hex
 
       - name: Cache Mix dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: |
             deps
             _build
           key: |
-            ${{ runner.os }}-mix-${{ matrix.pair.elixir }}-${{ matrix.pair.otp }}-${{ hashFiles('**/mix.lock') }}
+            ${{ runner.os }}-mix-${{ steps.setup-beam.outputs.elixir-version }}-${{ steps.setup-beam.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-${{ matrix.pair.elixir }}-${{ matrix.pair.otp }}-
+            ${{ runner.os }}-mix-${{ steps.setup-beam.outputs.elixir-version }}-${{ steps.setup-beam.outputs.otp-version }}-
 
       - name: Fetch Mix dependencies (and check mix.lock)
         run: mix deps.get --check-locked
