@@ -33,7 +33,7 @@ jobs:
 
           - name: Minimum Elixir and OTP
             elixir: "1.15.0"
-            otp: "24.3"
+            otp: "25.3.2"
             version_type: strict
     steps:
       - name: Check out this repository
