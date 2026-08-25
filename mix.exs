@@ -37,7 +37,7 @@ defmodule NimbleOptions.MixProject do
     [
       # excoverals uses CAStore to push results via HTTP.
       {:castore, "~> 1.0.0", only: :test},
-      {:ex_doc, ">= 0.19.0", only: :dev},
+      {:ex_doc, ">= 0.40.3", only: :dev},
       {:excoveralls, "~> 0.18.0", only: :test}
     ]
   end
@@ -59,7 +59,7 @@ defmodule NimbleOptions.MixProject do
       ],
       source_ref: "v#{@version}",
       source_url: @repo_url,
-      formatters: ["html"],
+      formatters: ["html", "markdown"],
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
     ]
   end
