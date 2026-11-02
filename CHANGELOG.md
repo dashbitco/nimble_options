@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.2.0 (2026-11-02)
+
+  * Support redacting sensitive options via the `:redact` option
+  * Allow map options when validating a schema that is a list
+  * Fix a bug where we'd ignore a schema when a wildcard key was defined
+  * Fix inspect exception when ANSI is enabled
+  * Fix invalid MFA validation if value is `nil`
+
 ## v1.1.1 (2024-05-25)
 
   * Fix typespecs to avoid Dialyzer warnings
